@@ -8,6 +8,18 @@ from typing import Optional
 
 LOCAL_LLM_API_BASE = "10.11.34.200:11434/v1"
 
+# 与 autodoc/utils.py 的 AI_API_KEY_ENV 保持一致；设置环境变量可覆盖 ini 明文 key。
+_AI_API_KEY_ENV = "AUTODOCGEN_AI_API_KEY"
+
+
+def _resolve_api_key(ini_value) -> str:
+    """环境变量 AUTODOCGEN_AI_API_KEY 优先于 ini 明文 key，避免密钥泄露。"""
+    env_val = os.environ.get(_AI_API_KEY_ENV, "").strip()
+    if env_val:
+        return env_val
+    s = str(ini_value) if ini_value is not None else ""
+    return s.strip()
+
 
 def normalize_ai_mode(value) -> int:
     """Public AI mode is binary: 0 = off, 1 = enabled.
@@ -158,7 +170,7 @@ class SettingsStore:
         out.ai_provider = str(s.value("ai/ai_provider", out.ai_provider))
         out.ai_model = str(s.value("ai/ai_model", out.ai_model))
         out.ai_api_base = str(s.value("ai/ai_api_base", out.ai_api_base))
-        out.ai_api_key = str(s.value("ai/ai_api_key", out.ai_api_key))
+        out.ai_api_key = _resolve_api_key(s.value("ai/ai_api_key", out.ai_api_key))
         out.ai_num_ctx = int(s.value("ai/ai_num_ctx", out.ai_num_ctx))
         out.ai_read_timeout = max(5, min(600, int(s.value("ai/ai_read_timeout", out.ai_read_timeout))))
         out.ai_workers = max(1, min(16, int(s.value("ai/ai_workers", out.ai_workers))))

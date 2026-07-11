@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import os
 from typing import Any, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -16,6 +17,22 @@ if TYPE_CHECKING:
 
 
 # ── Safe value conversion ──────────────────────────────────────────
+
+# AI API key 环境变量名：设置后覆盖 ini 中的明文 key，避免密钥入库/泄露。
+AI_API_KEY_ENV = "AUTODOCGEN_AI_API_KEY"
+
+
+def resolve_api_key(ini_value: Any) -> str:
+    """返回最终生效的 AI API key。
+
+    优先级：环境变量 ``AUTODOCGEN_AI_API_KEY`` > ini 中的 ``ai/ai_api_key``。
+    这样密钥可不写入 autodocgen.ini（该文件曾随压缩包分发导致泄露），
+    改为在 shell/CI 中 ``export AUTODOCGEN_AI_API_KEY=...`` 注入。
+    """
+    env_val = os.environ.get(AI_API_KEY_ENV, "").strip()
+    if env_val:
+        return env_val
+    return _safe_text(ini_value).strip()
 
 def _safe_text(value: Any, *, default: str = "") -> str:
     if value is None:
@@ -212,6 +229,8 @@ def _get_last_llm_json_debug(cfg: Optional["GenConfig"]) -> dict[str, Any]:
 
 
 __all__ = [
+    "AI_API_KEY_ENV",
+    "resolve_api_key",
     "_safe_text",
     "_safe_strip",
     "cfg_get_int",

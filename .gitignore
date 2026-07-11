@@ -17,6 +17,11 @@ tool.log
 ai_repro/
 .autodoc/
 
+# === 测试工程运行期缓存（autodoc 工具生成的索引/记忆库，含机器绝对路径，不入库） ===
+tests/PROJECT-2007-0613/autodoc_*.json
+tests/PROJECT-2007-0613/autodoc_*_index.json
+tests/PROJECT-2007-S01-0001-0621_src/autodoc_*.json
+
 # === 含明文 API key 的本地配置(不入库,改用 autodocgen.ini.example 模板) ===
 autodocgen.ini
 

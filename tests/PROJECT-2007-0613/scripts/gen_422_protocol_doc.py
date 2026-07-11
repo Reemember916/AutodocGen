@@ -12,7 +12,9 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
-OUT_PATH = "/Users/ree/Downloads/PROJECT-2007-0613/output/doc/PROJECT-2007_维护422通信协议.docx"
+# 输出到项目目录下的 output/doc/ 子目录，避免硬编码绝对路径
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUT_PATH = os.path.join(_PROJECT_ROOT, "output", "doc", "PROJECT-2007_维护422通信协议.docx")
 
 # ---------- 样式辅助 ----------
 

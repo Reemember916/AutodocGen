@@ -21,6 +21,7 @@ from docx import Document
 from autodoc import backend
 from autodoc import lsp_facts
 from autodoc import revision as revision_utils
+from autodoc.utils import resolve_api_key
 
 
 @dataclass
@@ -188,8 +189,8 @@ def load_cfg(ini_path: Path, *, no_ai: bool, ai_workers: int | None) -> backend.
         ai_provider=ai.get("ai_provider", "local"),
         ai_model=ai.get("ai_model", ""),
         ai_api_base=ai.get("ai_api_base", ""),
-        ai_api_key=ai.get("ai_api_key", ""),
-        ai_use_auth=bool(ai.get("ai_api_key", "")),
+        ai_api_key=resolve_api_key(ai.get("ai_api_key", "")),
+        ai_use_auth=bool(resolve_api_key(ai.get("ai_api_key", ""))),
         ai_num_ctx=_int(ai.get("ai_num_ctx", 0), 0),
         ai_read_timeout=_float(ai.get("ai_read_timeout", 40), 40),
         ai_workers=max(1, ai_workers if ai_workers is not None else _int(ai.get("ai_workers", 1), 1)),
@@ -737,9 +738,11 @@ def write_reports(results: list[CheckResult], output_dir: Path) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="随机抽取真实项目 C 函数生成文档并做粗略质量检查")
-    parser.add_argument("--project-dir", default="/Users/ree/Downloads/Q2760-2018-0504")
+    parser.add_argument("--project-dir", default=os.environ.get("AUTODOCGEN_TEST_PROJECT", ""),
+                        help="测试 C 项目目录（可用 AUTODOCGEN_TEST_PROJECT 环境变量预设）")
     parser.add_argument("--ini", default=str(ROOT / "autodocgen.ini"))
-    parser.add_argument("--output-dir", default="/Users/ree/Downloads/autodoc_random_check")
+    parser.add_argument("--output-dir", default=os.environ.get("AUTODOCGEN_CHECK_OUTPUT", "tmp/random_check"),
+                        help="检查报告输出目录（可用 AUTODOCGEN_CHECK_OUTPUT 环境变量预设）")
     parser.add_argument("--samples", type=int, default=3)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--max-files", type=int, default=0)

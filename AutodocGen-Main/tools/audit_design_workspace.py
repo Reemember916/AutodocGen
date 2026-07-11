@@ -103,6 +103,7 @@ def main() -> int:
     from autodoc.design_workspace import load_workspace
     from autodoc import ai as ai_utils
     from autodoc import config as cfgmod
+    from autodoc.utils import resolve_api_key
 
     workspace = load_workspace(workspace_path)
     funcs = workspace.get("functions") or {}
@@ -130,7 +131,7 @@ def main() -> int:
         ai_assist=True, ai_mode=1, ai_provider="openai",
         ai_model=sec.get("ai_model", "claude-haiku-4-5-20251001"),
         ai_api_base=sec.get("ai_api_base", ""),
-        ai_api_key=sec.get("ai_api_key", ""),
+        ai_api_key=resolve_api_key(sec.get("ai_api_key", "")),
         ai_max_tokens=int(sec.get("ai_max_tokens", 16384)),
         ai_temperature=0.1, ai_top_p=0.5,
         ai_workers=int(sec.get("ai_workers", 8)),

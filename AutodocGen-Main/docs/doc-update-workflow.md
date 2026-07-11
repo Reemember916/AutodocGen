@@ -22,7 +22,8 @@
 需要本地存在 DocDiff：
 
 ```bash
-/Users/ree/Downloads/DocDiff-main/cli.py
+# 默认在工作区根目录(AutodocGen/)下查找 DocDiff-main/
+# 也可用环境变量指定：export AUTODOCGEN_DOCDIFF_ROOT=/path/to/DocDiff-main
 ```
 
 AutoDocGen 默认会使用该路径。若 DocDiff 在其他位置，运行时传入 `--docdiff-root`。
@@ -172,9 +173,9 @@ GUI 后台与 CLI 使用同一套更新逻辑。
 当前真实样本：
 
 ```text
-old code: /Users/ree/Downloads/PROJECT-2007-0613
-new code: /Users/ree/Downloads/PROJECT-2007-S01-0001-0621_src
-old doc:  /Users/ree/Downloads/123_fixed2_test.docx
+old code: tests/PROJECT-2007-0613
+new code: tests/PROJECT-2007-S01-0001-0621_src
+old doc:  tests/samples/123_fixed2_test.docx
 ```
 
 当前 `plan-only` 结果：
@@ -189,7 +190,7 @@ total:  545
 当前 `apply-safe` 已验证可生成新 Word：
 
 ```text
-/Users/ree/Downloads/123_fixed2_test_project_csu_index_apply_safe.docx
+tests/samples/123_fixed2_test_project_csu_index_apply_safe.docx
 ```
 
 ## 9. 当前边界

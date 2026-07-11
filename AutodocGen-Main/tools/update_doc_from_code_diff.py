@@ -66,14 +66,16 @@ def _abs(path: str) -> str:
 
 
 def _default_docdiff_root() -> str:
+    # 环境变量优先，便于跨机器部署
+    env_root = os.environ.get("AUTODOCGEN_DOCDIFF_ROOT", "").strip()
+    if env_root and os.path.isdir(env_root):
+        return env_root
     candidates: list[str] = []
     frozen_root = getattr(sys, "_MEIPASS", "")
     if frozen_root:
         candidates.append(os.path.join(frozen_root, "DocDiff-main"))
-    candidates.extend([
-        os.path.join(Path(__file__).resolve().parents[1], "DocDiff-main"),
-        "/Users/ree/Downloads/DocDiff-main",
-    ])
+    # 工作区根(AutodocGen/)下的 DocDiff-main/；parents[2] 从 tools/ 上两级到根
+    candidates.append(os.path.join(Path(__file__).resolve().parents[2], "DocDiff-main"))
     for candidate in candidates:
         if candidate and os.path.isdir(candidate):
             return candidate
