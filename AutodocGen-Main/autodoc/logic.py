@@ -6022,6 +6022,16 @@ def _render_logic_ir_node(
         expr = utils._safe_strip((node or {}).get("expr"))
         if not expr:
             return "返回"
+        # P0#1: ReturnSemantic 确定性锁（窄锁定：NULL/TRUE/FALSE/错误码）
+        try:
+            from . import semantic_elements as semantic_element_utils
+            ret_sem = semantic_element_utils.infer_return_semantic(expr, effective_map)
+            if ret_sem:
+                ret_cn = semantic_element_utils.render_return_semantic(ret_sem)
+                if ret_cn:
+                    return ret_cn
+        except Exception:
+            pass
         ternary_ret = _render_ternary_return_text(expr, name_map=effective_map, backend_module=backend)
         if ternary_ret:
             return ternary_ret
@@ -6030,6 +6040,16 @@ def _render_logic_ir_node(
     if kind == "call":
         func = utils._safe_strip((node or {}).get("func"))
         args = list((node or {}).get("args") or [])
+        # P0#1: ActionSemantic 确定性锁（窄锁定：memset/memcpy）
+        try:
+            from . import semantic_elements as semantic_element_utils
+            act_sem = semantic_element_utils.infer_action_semantic(code, effective_map)
+            if act_sem:
+                act_cn = semantic_element_utils.render_action_semantic(act_sem)
+                if act_cn:
+                    return act_cn
+        except Exception:
+            pass
         if func == "memset" and len(args) >= 2:
             target_clean = utils._safe_strip(args[0])
             for _ in range(3):
@@ -6107,6 +6127,16 @@ def _render_logic_ir_node(
             return f"{lhs_cn} {op} {rhs_cn}"
         return f"{lhs_cn}{verb}{rhs_cn}"
     if kind == "assign":
+        # P0#1: ActionSemantic 确定性锁（窄锁定：清零赋值 lhs = 0）
+        try:
+            from . import semantic_elements as semantic_element_utils
+            act_sem = semantic_element_utils.infer_action_semantic(code, effective_map)
+            if act_sem:
+                act_cn = semantic_element_utils.render_action_semantic(act_sem)
+                if act_cn:
+                    return act_cn
+        except Exception:
+            pass
         simple = _render_simple_statement_action(code, name_map=effective_map, local_var_usages=local_var_usages, backend_module=backend)
         if simple:
             return simple
