@@ -77,11 +77,17 @@ def _dedupe_keep_order(items: list[str]) -> list[str]:
     return out
 
 
-def _resolve_ccs_option_value(raw: str, *, project_root: str = "") -> str:
+def _resolve_ccs_option_value(raw: str, *, project_root: str = "", project_name: str = "") -> str:
+    """解析 TI CCS .cproject 中的 Eclipse CDT 变量。
+
+    共享实现：compile_db.py 运行时和 convert_ccs_to_compile_commands.py
+    预处理工具均使用此函数，避免代码重复。
+    """
     text = html.unescape(str(raw or "")).strip().strip('"')
     if not text:
         return ""
-    project_name = Path(project_root).name if project_root else ""
+    if not project_name:
+        project_name = Path(project_root).name if project_root else ""
     replacements = {
         "${ProjName}": project_name,
         "${PROJECT_ROOT}": project_root,
@@ -100,7 +106,12 @@ def _resolve_ccs_option_value(raw: str, *, project_root: str = "") -> str:
     return text
 
 
-def _load_ccs_project_settings(project_root: str) -> dict[str, list[str]]:
+def _load_ccs_project_settings(project_root: str, *, project_name: str = "") -> dict[str, list[str]]:
+    """从 TI CCS ``.cproject`` XML 提取 include paths 和 defines。
+
+    共享实现：compile_db.py 运行时和 convert_ccs_to_compile_commands.py
+    预处理工具均使用此函数。``project_name`` 可显式传入覆盖推断值。
+    """
     root = Path(project_root or "")
     cproject = root / ".cproject"
     if not cproject.exists():
@@ -109,6 +120,8 @@ def _load_ccs_project_settings(project_root: str) -> dict[str, list[str]]:
         tree = ET.parse(cproject)
     except Exception:
         return {"include_paths": [], "defines": []}
+    if not project_name:
+        project_name = root.name
     include_paths: list[str] = []
     defines: list[str] = []
     for option in tree.findall(".//option"):
@@ -118,15 +131,15 @@ def _load_ccs_project_settings(project_root: str) -> dict[str, list[str]]:
         marker = " ".join([option_id, super_class, option_name]).upper()
         if "INCLUDE_PATH" in marker:
             for item in option.findall("./listOptionValue"):
-                value = _resolve_ccs_option_value(item.get("value"), project_root=project_root)
+                value = _resolve_ccs_option_value(item.get("value"), project_root=project_root, project_name=project_name)
                 if value and "${CG_TOOL_ROOT}" not in value:
                     include_paths.append(value)
         elif any(key in marker for key in ("DEFINE", "PREDEFINED_SYMBOL", "DEFINED_SYMBOL")):
             for item in option.findall("./listOptionValue"):
-                value = _resolve_ccs_option_value(item.get("value"), project_root=project_root)
+                value = _resolve_ccs_option_value(item.get("value"), project_root=project_root, project_name=project_name)
                 if value:
                     defines.append(value)
-            direct_value = _resolve_ccs_option_value(option.get("value"), project_root=project_root)
+            direct_value = _resolve_ccs_option_value(option.get("value"), project_root=project_root, project_name=project_name)
             if direct_value and direct_value not in {"true", "false"}:
                 defines.append(direct_value)
     return {
