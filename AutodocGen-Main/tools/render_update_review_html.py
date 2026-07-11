@@ -212,7 +212,17 @@ def _html_shell(plan: dict[str, Any]) -> str:
     const label = (item) => item.func_name || item.rel_path || '(unnamed)';
     const alignmentLabel = (item) => item.doc_title || item.doc_func_name || item.csu_id || '(unnamed CSU)';
     const statusClass = (s) => ['safe','review','manual','applied','failed'].includes(s) ? s : (s === 'matched_high' ? 'safe' : (s === 'ambiguous' ? 'review' : 'manual'));
-    const storageKey = `autodoc-review:${{plan.metadata?.old_doc || ''}}:${{plan.metadata?.new_code || ''}}:${{items.length}}`;
+    // 内容指纹:用 items 的稳定字段(action/func_name/rel_path/csu_id)拼接后哈希,
+    // 避免 plan 重生成后条目数不变但内容变了误恢复旧决策。
+    function planFingerprint(itemList) {{
+      let h = 5381;
+      for (const it of itemList) {{
+        const sig = `${{it.action || ''}}|${{it.func_name || ''}}|${{it.rel_path || ''}}|${{it.csu_id || ''}}`;
+        for (let i = 0; i < sig.length; i++) h = ((h << 5) + h + sig.charCodeAt(i)) | 0;
+      }}
+      return (h >>> 0).toString(16);
+    }}
+    const storageKey = `autodoc-review:${{plan.metadata?.old_doc || ''}}:${{plan.metadata?.new_code || ''}}:${{items.length}}:${{planFingerprint(items)}}`;
     const alignmentStorageKey = `${{storageKey}}:alignment`;
 
     function unique(values) {{
