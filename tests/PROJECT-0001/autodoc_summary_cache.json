@@ -1,0 +1,20 @@
+{
+  "/Users/ree/Downloads/PROJECT-2007-0613/Src/Application/Communication/Comm422.c::Comm422FrameCheck::fbe947d44ab03c41": "检测422通信通道接收缓冲区中是否存在有效报文帧。",
+  "/Users/ree/Downloads/PROJECT-2007-0613/Src/Application/Communication/Comm422.c::MaintRIUSimInjectProcess::ed2b2ff979e921a3": "维护RIU429模拟注入数据，仅在维护状态下处理指定通信ID的帧数据。",
+  "/Users/ree/Downloads/PROJECT-2007-0613/Src/Application/BIT/IFBIT.c::IFBITCommSCICCDLTest::8690d2d27ab1efb3": "通过检测CCDL通信心跳变化判断SCI通信是否正常，更新自检状态。",
+  "/Users/ree/Downloads/PROJECT-2007-0613/Src/Application/BIT/IFBIT.c::IFBITComm429KZZZTest::69a4af978745a495": "通过KZZZ通道收发数据，检测接收状态和数据有效性，统计通道正常数量并更新周期自检状态。",
+  "/Users/ree/Downloads/PROJECT-2007-0613/Src/Application/BIT/IFBIT.c::IFBITComm429KZZZTxTest::2cffd89a2b125e84": "检测左右吊舱429总线发送回绕和综合性能，累计正常结果直到达到阈值后更新自检状态。",
+  "/Users/ree/Downloads/PROJECT-2007-0613/Src/Application/BIT/IFBIT.c::IFBITCPLDCCDLTest::eb80c847204d15d1": "通过比较CPLD心跳值变化检测其工作状态，获取对端基础帧信息并更新自检结果。",
+  "/Users/ree/Downloads/PROJECT-2007-0613/Src/Application/BIT/MBIT.c::MBITCommSCICCDLTest::695d17b0c8437a26": "通过检测CCDL通信心跳变化判断SCI通信是否正常，并更新自检状态。",
+  "/Users/ree/Downloads/PROJECT-2007-0613/Src/Application/BIT/MBIT.c::MBITComm429KZZZTest::f1dd72eecdd3dbee": "检测KZZZ通道429通信状态，统计接收正常的通道数，更新维护自检结果。",
+  "/Users/ree/Downloads/PROJECT-2007-0613/Src/Application/BIT/MBIT.c::MBITCPLDCCDLTest::b9e9f7c3ae54c4f3": "通过比较CPLD心跳值变化，检测CPLD是否正常工作，并更新自检状态。",
+  "/Users/ree/Downloads/PROJECT-2007-0613/Src/Application/BIT/MBIT.c::MBITComm429KZZZTxTest::155af684b2d0e92a": "通过循环获取429发送回绕和综合检测结果，累计正常计数，更新自检状态。",
+  "/Users/ree/Downloads/PROJECT-2007-0613/Src/Application/Communication/Comm429RIU.c::RIU429InfoDataStateCheck::eef236c720b528ef": "遍历所有RIU429接收数据，检查状态变化并计数，达到阈值后确认状态更新。",
+  "/Users/ree/Downloads/PROJECT-2007-0613/Src/Application/Communication/CommCCDL.c::CommCCDLRIUOrigDataGet::869daf441262e18c": "根据指定CCDL链路ID获取并返回该链路缓存的RIU原始429字镜像数据。",
+  "/Users/ree/Downloads/PROJECT-2007-0613/Src/Application/Communication/CommCCDL.c::CommCCDLKZZZExtStatusGet::3de069b516a04399": "根据指定CCDL和KZZZ标识符，获取并返回该KZZZ扩展页的完整性与新鲜度状态信息。",
+  "/Users/ree/Downloads/PROJECT-2007-0613/Src/Application/Communication/CommCCDL.c::CommCCDLKZZZOrigDataGet::a307d109ca2a1bbf": "根据指定CCDL链路ID和KZZZ ID，获取并返回缓存的KZZZ原始429字镜像数据。",
+  "/Users/ree/Downloads/PROJECT-2007-0613/Src/Application/Communication/CommCCDL.c::CommCCDLSCIDataStartSend::8956a7c914591dfe": "通过打包基础帧数据，触发SCI串口直接发送通信CCDL数据。",
+  "/Users/ree/Downloads/PROJECT-2007-0613/Src/Application/Communication/CommCCDL.c::CommCCDLSCIDataSend::ff0c81b01ee2eb66": "检查RS422发送标志，通过SCI FIFO逐次装载并发送CCDL活动帧数据。",
+  "/Users/ree/Downloads/PROJECT-2007-0613/Src/Application/DataStorage/DataStore.c::FlashBuffDataUpdateCheck::6fa4a15eb1ece2d0": "检查FLASH缓存区待存储数据是否会被覆盖，若缓存满则停止刷新以保护数据。",
+  "/Users/ree/Downloads/PROJECT-2007-0613/Src/OtherDriver/SM25QH256M_SpiFlash.c::SpiFlashIsBusy::3dce97c8be0f6687": "通过读取SPI-FLASH状态寄存器的WIP位，判断FLASH是否处于忙状态并返回结果。"
+}

@@ -15,7 +15,7 @@
       "scope": "project",
       "source": "comment_rule",
       "source_rank": 76,
-      "updated_at": "2026-07-11T18:39:25",
+      "updated_at": "2026-07-11T18:43:49",
       "usage": "检测指定传感器通道的状态，读取原始数据并校验有效范围。"
     },
     "Comm422FrameCheck": {
@@ -33,7 +33,7 @@
       "scope": "project",
       "source": "comment_rule",
       "source_rank": 76,
-      "updated_at": "2026-07-11T18:39:25",
+      "updated_at": "2026-07-11T18:43:49",
       "usage": "校验 RS422 通信接收报文帧头，确认报文完整性。\n检测帧头1（低8位）和帧头2是否匹配，并计算校验和。"
     },
     "FdataAverage": {
@@ -51,7 +51,7 @@
       "scope": "project",
       "source": "comment_rule",
       "source_rank": 76,
-      "updated_at": "2026-07-11T18:39:25",
+      "updated_at": "2026-07-11T18:43:49",
       "usage": "计算浮点数据缓冲区的平均值，支持可变长度。"
     },
     "GPIO_Init": {
@@ -69,7 +69,7 @@
       "scope": "project",
       "source": "comment_rule",
       "source_rank": 76,
-      "updated_at": "2026-07-11T18:39:25",
+      "updated_at": "2026-07-11T18:43:49",
       "usage": "初始化 GPIO 引脚方向与初始电平，配置所有数字 I/O 通道。"
     },
     "GPIO_ReadChannel": {
@@ -87,7 +87,7 @@
       "scope": "project",
       "source": "comment_rule",
       "source_rank": 76,
-      "updated_at": "2026-07-11T18:39:25",
+      "updated_at": "2026-07-11T18:43:49",
       "usage": "读取指定 GPIO 通道的输入电平状态。"
     },
     "GPIO_WriteChannel": {
@@ -105,7 +105,7 @@
       "scope": "project",
       "source": "comment_rule",
       "source_rank": 76,
-      "updated_at": "2026-07-11T18:39:25",
+      "updated_at": "2026-07-11T18:43:49",
       "usage": "设置指定 GPIO 通道的输出电平。"
     },
     "InitSystem": {
@@ -123,7 +123,7 @@
       "scope": "project",
       "source": "comment_rule",
       "source_rank": 76,
-      "updated_at": "2026-07-11T18:39:25",
+      "updated_at": "2026-07-11T18:43:49",
       "usage": "系统上电初始化：配置时钟、外设、全局变量，完成后进入主循环。"
     },
     "TimeCountInit": {
@@ -141,7 +141,7 @@
       "scope": "project",
       "source": "comment_rule",
       "source_rank": 76,
-      "updated_at": "2026-07-11T18:39:25",
+      "updated_at": "2026-07-11T18:43:49",
       "usage": "初始化任务时间计数器，清零所有计时变量。"
     }
   },
@@ -161,7 +161,7 @@
       "scope": "project",
       "source": "comment_prebuild",
       "source_rank": 84,
-      "updated_at": "2026-07-11T18:39:25",
+      "updated_at": "2026-07-11T18:43:49",
       "usage": ""
     }
   },
@@ -182,7 +182,7 @@
       "scope": "param",
       "source": "comment_rule",
       "source_rank": 76,
-      "updated_at": "2026-07-11T18:39:25",
+      "updated_at": "2026-07-11T18:43:49",
       "usage": ""
     },
     "l_count_u16": {
@@ -200,7 +200,7 @@
       "scope": "local",
       "source": "comment_rule",
       "source_rank": 76,
-      "updated_at": "2026-07-11T18:39:25",
+      "updated_at": "2026-07-11T18:43:49",
       "usage": ""
     },
     "l_ii_u16": {
@@ -219,7 +219,7 @@
       "scope": "local",
       "source": "comment_rule",
       "source_rank": 76,
-      "updated_at": "2026-07-11T18:39:25",
+      "updated_at": "2026-07-11T18:43:49",
       "usage": ""
     },
     "l_jj_u16": {
@@ -237,7 +237,7 @@
       "scope": "local",
       "source": "comment_rule",
       "source_rank": 76,
-      "updated_at": "2026-07-11T18:39:25",
+      "updated_at": "2026-07-11T18:43:49",
       "usage": ""
     },
     "l_max_f32": {
@@ -255,7 +255,7 @@
       "scope": "local",
       "source": "comment_rule",
       "source_rank": 76,
-      "updated_at": "2026-07-11T18:39:25",
+      "updated_at": "2026-07-11T18:43:49",
       "usage": ""
     },
     "l_min_f32": {
@@ -273,7 +273,7 @@
       "scope": "local",
       "source": "comment_rule",
       "source_rank": 76,
-      "updated_at": "2026-07-11T18:39:25",
+      "updated_at": "2026-07-11T18:43:49",
       "usage": ""
     },
     "l_sum_f32": {
@@ -291,7 +291,7 @@
       "scope": "local",
       "source": "comment_rule",
       "source_rank": 76,
-      "updated_at": "2026-07-11T18:39:25",
+      "updated_at": "2026-07-11T18:43:49",
       "usage": ""
     },
     "l_sum_u16": {
@@ -309,7 +309,7 @@
       "scope": "local",
       "source": "comment_rule",
       "source_rank": 76,
-      "updated_at": "2026-07-11T18:39:25",
+      "updated_at": "2026-07-11T18:43:49",
       "usage": ""
     },
     "len": {
@@ -327,7 +327,7 @@
       "scope": "param",
       "source": "comment_rule",
       "source_rank": 76,
-      "updated_at": "2026-07-11T18:39:25",
+      "updated_at": "2026-07-11T18:43:49",
       "usage": ""
     },
     "p_avg": {
@@ -345,10 +345,10 @@
       "scope": "param",
       "source": "comment_rule",
       "source_rank": 76,
-      "updated_at": "2026-07-11T18:39:25",
+      "updated_at": "2026-07-11T18:43:49",
       "usage": ""
     }
   },
-  "updated_at": "2026-07-11T18:39:25",
+  "updated_at": "2026-07-11T18:43:49",
   "version": 2
 }
