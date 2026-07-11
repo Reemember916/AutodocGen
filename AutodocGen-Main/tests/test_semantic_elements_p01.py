@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from autodoc import logic as logic_utils
 from autodoc import semantic_elements
-from autodoc.logic_ir import build_logic_steps
+from autodoc.logic_step_ir import build_logic_steps
 
 
 _PROJECT_ROOT = os.path.join(

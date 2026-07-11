@@ -46,7 +46,7 @@ def _evidence_shadow_collect(func_data: dict, ctx: dict, cfg) -> None:
     if not body:
         return
     try:
-        from .logic_ir import build_logic_steps
+        from .logic_step_ir import build_logic_steps
         logic_steps = build_logic_steps(body, ctx.get("local_vars"), cfg, name_map=ctx.get("global_symbol_map"))
     except Exception:
         return

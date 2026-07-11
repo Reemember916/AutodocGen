@@ -11,7 +11,7 @@ from autodoc.evidence import (
     collect_function_evidence, build_quality_summary,
     FunctionEvidence, QualitySummary,
 )
-from autodoc.logic_ir import build_logic_steps
+from autodoc.logic_step_ir import build_logic_steps
 
 
 def _make_func_data(func_name, body, comment_desc=""):

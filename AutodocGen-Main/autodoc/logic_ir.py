@@ -1,655 +1,86 @@
-"""LogicStep IR — shadow mode 结构化逻辑步骤。
+"""系统唯一强类型语义中间层（Logic-IR）。
 
-本模块为 TODO P0#5 的实现：为每个 C 函数体构建结构化 LogicStep 序列，
-**不替换** `logic.generate_logic_from_body()` 的文本渲染路径。
+本模块定义了连接 C 源码分析与代码/文档生成的唯一语义基座。
+所有上游（解析器、LSP、AI）输出必须转换为本模块的数据类；
+所有下游（代码生成器、文档渲染器）仅消费本模块的数据类。
 
-设计目标
---------
-- 旁路（shadow）输出：与现有文本渲染并行运行，不影响 docx 产出。
-- 每个 LogicStep 保留：source_range / attached_comments / expression_text /
-  scope_depth / confidence / fallback_reason。
-- 空 ELSE、loop reset、default init 等边界场景能被结构化标记。
-- 后续由 ``LogicStep + SemanticElement`` 交给确定性 renderer 输出 GJB 风格短句。
-
-数据结构
---------
-所有 step 类型继承 ``LogicStep`` 基类（frozen dataclass），按 C 控制流分类：
-  IfStep / ElseIfStep / ElseStep / ForStep / WhileStep / DoWhileStep /
-  SwitchStep / CaseStep / DefaultStep / AssignmentStep / CallStep /
-  ReturnStep / BreakStep / ContinueStep / EndBlockStep / UnknownStep
-
-构建器
-------
-``build_logic_steps(body, local_vars, cfg, name_map)`` 复用 logic.py 的行预处理
-helper（``_join_c_line_continuations`` / ``_expand_inline_control_line_infos``
-/ ``_merge_multiline_expression_line_infos``），独立做 block_stack 跟踪与
-模式匹配，产出 ``list[LogicStep]``。
+兼容 Windows 7 / Python 3.8+，使用 dataclasses 而非 Pydantic。
 """
 
 from __future__ import annotations
 
-import re
-from dataclasses import dataclass, field
-from typing import Any, Optional, Sequence, Union
-
-from ._legacy_support import legacy_backend
-from . import utils
-from . import parse as parse_utils
+import json
+from dataclasses import dataclass, field, asdict
+from typing import Dict, List, Optional
 
 
-# ── 数据结构 ───────────────────────────────────────────────────────
+# ── 基础类型 ────────────────────────────────────────────────────────
 
 
-@dataclass(frozen=True)
-class SourceRange:
-    """源码行号范围（1-indexed，与 line_infos 对齐）。"""
-    start_line: int = 0
-    end_line: int = 0
-    raw_snippet: str = ""
+@dataclass
+class CTypeInfo:
+    """C 语言类型信息。"""
+    base_type: str = ""              # 如 "Uint16", "float", "void"
+    is_pointer: bool = False
+    is_const: bool = False
 
 
-@dataclass(frozen=True)
-class LogicStep:
-    """所有 LogicStep 的基类。
+# ── 函数级 IR ───────────────────────────────────────────────────────
 
-    ``kind`` 标识步骤类型，下游 renderer / evidence 据此分派。
+
+@dataclass
+class ParameterIR:
+    """函数参数语义描述。
+
+    ``business_meaning`` 是防文档干瘪的核心字段——
+    上游必须填入业务语义（如"燃油流量输入值"），不能仅留类型名。
     """
-    kind: str = "unknown"
-    source_range: SourceRange = field(default_factory=SourceRange)
-    attached_comments: tuple[str, ...] = ()
-    expression_text: str = ""          # 原始 C 表达式（去注释后）
-    scope_depth: int = 0              # block_stack 深度
-    confidence: float = 1.0           # 1.0=确定性规则；<1.0=启发式/降级
-    fallback_reason: str = ""         # confidence<1.0 时的降级原因
-    extra: tuple = ()                 # 类型特定的附加字段
+    name: str = ""
+    type_info: CTypeInfo = field(default_factory=CTypeInfo)
+    direction: str = "IN"            # IN / OUT / INOUT
+    business_meaning: str = ""       # 业务语义（防文档干瘪）
+    bit_fields: Dict[int, str] = field(default_factory=dict)  # 位域位号→中文名
 
 
-@dataclass(frozen=True)
-class IfStep(LogicStep):
-    kind: str = "if"
-    condition: str = ""
+@dataclass
+class FunctionIR:
+    """函数语义描述。"""
+    name: str = ""
+    chinese_name: str = ""
+    description: str = ""
+    return_type: CTypeInfo = field(default_factory=CTypeInfo)
+    parameters: List[ParameterIR] = field(default_factory=list)
+    user_code_block_id: str = ""     # 在生成的 .c 文件中锚定用户代码块
 
 
-@dataclass(frozen=True)
-class ElseIfStep(LogicStep):
-    kind: str = "else_if"
-    condition: str = ""
+# ── 文件级 IR ───────────────────────────────────────────────────────
 
 
-@dataclass(frozen=True)
-class ElseStep(LogicStep):
-    kind: str = "else"
-    is_empty: bool = False            # 空 ELSE 标记（后续 ELSE 后紧接 END IF）
-
-
-@dataclass(frozen=True)
-class ForStep(LogicStep):
-    kind: str = "for"
-    init: str = ""
-    condition: str = ""
-    update: str = ""
-
-
-@dataclass(frozen=True)
-class WhileStep(LogicStep):
-    kind: str = "while"
-    condition: str = ""
-
-
-@dataclass(frozen=True)
-class DoWhileStep(LogicStep):
-    kind: str = "do_while"
-    condition: str = ""
-
-
-@dataclass(frozen=True)
-class SwitchStep(LogicStep):
-    kind: str = "switch"
-    expression: str = ""
-
-
-@dataclass(frozen=True)
-class CaseStep(LogicStep):
-    kind: str = "case"
+@dataclass
+class MacroIR:
+    """宏定义语义描述。"""
+    name: str = ""
     value: str = ""
-
-
-@dataclass(frozen=True)
-class DefaultStep(LogicStep):
-    kind: str = "default"
-
-
-@dataclass(frozen=True)
-class AssignmentStep(LogicStep):
-    kind: str = "assignment"
-    lhs: str = ""
-    rhs: str = ""
-    op: str = "="                     # = += -= <<= 等
-    is_declaration: bool = False      # 带初始化的声明行
-
-
-@dataclass(frozen=True)
-class CallStep(LogicStep):
-    kind: str = "call"
-    callee: str = ""
-    args: str = ""
-    lhs: str = ""                     # 赋值型调用 x = foo()
-
-
-@dataclass(frozen=True)
-class ReturnStep(LogicStep):
-    kind: str = "return"
-    expression: str = ""
-
-
-@dataclass(frozen=True)
-class BreakStep(LogicStep):
-    kind: str = "break"
-
-
-@dataclass(frozen=True)
-class ContinueStep(LogicStep):
-    kind: str = "continue"
-
-
-@dataclass(frozen=True)
-class EndBlockStep(LogicStep):
-    """控制块结束标记：END IF / NEXT / END WHILE / END DO WHILE / END SWITCH。"""
-    kind: str = "end_block"
-    block_type: str = ""              # IF / FOR / WHILE / DO WHILE / SWITCH
-
-
-@dataclass(frozen=True)
-class UnknownStep(LogicStep):
-    """无法分类的语句，记录原始代码供 AI 二次填充。"""
-    kind: str = "unknown"
-    code: str = ""
-
-
-LogicStepType = Union[
-    IfStep, ElseIfStep, ElseStep, ForStep, WhileStep, DoWhileStep,
-    SwitchStep, CaseStep, DefaultStep, AssignmentStep, CallStep,
-    ReturnStep, BreakStep, ContinueStep, EndBlockStep, UnknownStep,
-]
-
-
-# ── 构建器 ─────────────────────────────────────────────────────────
-
-
-def _is_noop(code: str) -> bool:
-    """空语句 / 纯分号 / 纯花括号。"""
-    c = code.strip()
-    if not c:
-        return True
-    if c in ("{", "}", "{}", "{;}", "};"):
-        return True
-    core = re.sub(r"[{};]", "", c).strip()
-    return not core
-
-
-def _is_declaration(code: str) -> bool:
-    """粗判是否为声明行（含类型 + 标识符 + 可选初始化）。"""
-    c = code.strip()
-    if not c:
-        return False
-    if re.match(r"^(if|else|for|while|do|switch|case|default|return|break|continue)\b", c):
-        return False
-    return bool(re.match(
-        r"^(static\s+|const\s+|volatile\s+|register\s+)*"
-        r"(unsigned\s+|signed\s+)?"
-        r"(void|char|short|int|long|float|double|"
-        r"[A-Za-z_]\w*_t|[A-Z][A-Za-z0-9_]*)"
-        r"(\s+\*+|\s*\*+|\s+)\w+", c))
-
-
-def _extract_condition(header: str) -> str:
-    """从 ``if (cond)`` / ``while (cond)`` 等提取括号内条件文本。"""
-    m = re.search(r"\((.*)\)\s*\{?\s*$", header, re.DOTALL)
-    if m:
-        return m.group(1).strip()
-    return ""
-
-
-def _split_for_header(header: str) -> tuple[str, str, str]:
-    """从 ``for (init; cond; update)`` 提取三段。"""
-    cond = _extract_condition(header)
-    parts = cond.split(";")
-    init = parts[0].strip() if len(parts) > 0 else ""
-    condition = parts[1].strip() if len(parts) > 1 else ""
-    update = parts[2].strip() if len(parts) > 2 else ""
-    return (init, condition, update)
-
-
-def _split_assignment(code: str) -> Optional[tuple[str, str, str]]:
-    """拆 ``lhs op rhs``，返回 (lhs, op, rhs) 或 None。
-
-    支持 = += -= *= /= %= <<= >>= &= |= ^=
-    """
-    c = code.strip().rstrip(";").strip()
-    for op in ("<<=", ">>=", "==", "!=", "<=", ">=", "&&", "||",
-               "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "="):
-        idx = c.find(op)
-        if idx > 0:
-            lhs = c[:idx].strip()
-            rhs = c[idx + len(op):].strip()
-            if lhs and rhs:
-                return (lhs, op, rhs)
-    return None
-
-
-def _extract_call(code: str) -> Optional[tuple[str, str, str]]:
-    """从 ``foo(args)`` 或 ``lhs = foo(args)`` 提取 (callee, args, lhs)。
-
-    lhs 为空表示无赋值的裸调用。
-    """
-    c = code.strip().rstrip(";").strip()
-    lhs = ""
-    eq = _split_assignment(c)
-    if eq:
-        lhs, _, rhs = eq
-        c = rhs
-    m = re.search(r"([A-Za-z_]\w*)\s*\((.*)\)\s*$", c, re.DOTALL)
-    if m:
-        return (m.group(1), m.group(2).strip(), lhs)
-    return None
-
-
-def build_logic_steps(
-    body: str,
-    local_vars: Any = None,
-    cfg: Any = None,
-    name_map: Optional[dict[str, str]] = None,
-    *,
-    backend_module: Any = None,
-) -> list[LogicStep]:
-    """为 C 函数体构建结构化 LogicStep 序列（shadow mode）。
-
-    本函数**不替换** ``logic.generate_logic_from_body()`` 的文本渲染，
-    只产出旁路 IR，供 evidence / 确定性 renderer 消费。
-
-    参数
-    -----
-    body : C 函数体文本（不含函数签名）
-    local_vars : 局部变量列表（仅用于上下文，当前未深度使用）
-    cfg : GenConfig
-    name_map : 标识符→中文名映射（当前未深度使用，留给后续 renderer）
-    backend_module : 可选的 backend 模块注入
-
-    返回
-    -----
-    list[LogicStep]，按源码顺序排列
-    """
-    backend = backend_module or legacy_backend()
-    steps: list[LogicStep] = []
-
-    # ── 阶段 1: 行预处理（复用 logic.py 的 helper）──
-    lines = parse_utils._join_c_line_continuations(body).splitlines()
-    line_infos: list[dict[str, Any]] = []
-    for line_no, raw in enumerate(lines, start=1):
-        tmp = raw
-        block_comments = re.findall(r"/\*\s*(.*?)\s*\*/", tmp)
-        block_comments = [c.strip() for c in block_comments if c.strip()]
-        tmp = re.sub(r"/\*.*?\*/", "", tmp)
-        line_comment = None
-        m = re.search(r"//(.*)", tmp)
-        if m:
-            line_comment = m.group(1).strip()
-            tmp = tmp[: m.start()]
-        comments = block_comments[:]
-        if line_comment:
-            comments.append(line_comment)
-        line_infos.append({
-            "raw": raw,
-            "code": tmp.strip(),
-            "comments": comments,
-            "attached": [],
-            "line_no": line_no,
-        })
-
-    # 复用 logic.py 的 inline 展开 + 多行合并
-    try:
-        from .logic import _expand_inline_control_line_infos, _merge_multiline_expression_line_infos
-        line_infos = _merge_multiline_expression_line_infos(
-            _expand_inline_control_line_infos(line_infos)
-        )
-    except Exception:
-        pass  # fallback: 用原始 line_infos
-
-    # ── 阶段 2: 注释挂接 ──
-    comment_mode = parse_utils._get_logic_comment_mode(cfg)
-    use_comment = comment_mode != "off"
-    if use_comment:
-        pending_comments: list[str] = []
-        for info in line_infos:
-            code = info["code"]
-            inline_comments = [c for c in info["comments"]
-                               if not parse_utils._is_non_semantic_comment(c)]
-            core = code.replace("{", "").replace("}", "").replace(";", "").strip()
-            if not core:
-                pending_comments.extend(inline_comments)
-                continue
-            if _is_declaration(code):
-                pending_comments = []
-                continue
-            attached: list[str] = []
-            if inline_comments:
-                attached.extend(inline_comments)
-                pending_comments = []
-            else:
-                if pending_comments:
-                    attached.extend(pending_comments)
-                    pending_comments = []
-            info["attached"] = tuple(attached)
-    else:
-        for info in line_infos:
-            info["attached"] = ()
-
-    # ── 阶段 3: 大括号深度 ──
-    brace_depth = 0
-    for info in line_infos:
-        info["brace_depth_before"] = brace_depth
-        code = info["code"]
-        brace_depth += code.count("{")
-        brace_depth -= code.count("}")
-        info["brace_depth_after"] = brace_depth
-
-    # ── 阶段 4: 主循环 + block_stack ──
-    block_stack: list[dict[str, Any]] = []
-    case_active = False
-    case_depth: Optional[int] = None
-
-    def _scope_depth() -> int:
-        d = len(block_stack)
-        if case_active:
-            d += 1
-        return d
-
-    def _src(info: dict, raw_snippet: str = "") -> SourceRange:
-        return SourceRange(
-            start_line=info.get("line_no", 0),
-            end_line=info.get("line_no", 0),
-            raw_snippet=raw_snippet or info.get("raw", ""),
-        )
-
-    def _next_significant(start_idx: int) -> tuple[Optional[str], Optional[int]]:
-        for j in range(start_idx + 1, len(line_infos)):
-            code = line_infos[j]["code"].strip()
-            core = code.replace("{", "").replace("}", "").replace(";", "").strip()
-            if not core or _is_declaration(code):
-                continue
-            header_local = code.lstrip()
-            depth = line_infos[j].get("brace_depth_before")
-            if re.match(r"^else\s+if\s*\(", header_local):
-                return "ELSE IF", depth
-            if re.match(r"^else\b", header_local):
-                return "ELSE", depth
-            return None, depth
-        return None, None
-
-    for idx, info in enumerate(line_infos):
-        code = info["code"].strip()
-        attached_c: tuple[str, ...] = info.get("attached", ())
-        line_no = info.get("line_no", idx + 1)
-        src = _src(info)
-
-        if case_active and info.get("brace_depth_before", 0) < (case_depth or 0):
-            case_active = False
-            case_depth = None
-
-        # ── `}` 关闭块（必须在 _is_noop 之前，因为 _is_noop("}") 返回 True）──
-        if code in ("}", "};"):
-            close_after = info.get("brace_depth_after", 0)
-            while block_stack and close_after <= block_stack[-1].get("close_depth", -1):
-                top = block_stack.pop()
-                if top.get("type") == "SWITCH":
-                    case_active = False
-                    case_depth = None
-                t = top.get("type")
-                if t == "IF":
-                    nxt, nxt_depth = _next_significant(idx)
-                    same_level = nxt_depth is not None and nxt_depth == close_after
-                    if nxt in ("ELSE", "ELSE IF") and same_level:
-                        block_stack.append(top)
-                        break
-                steps.append(EndBlockStep(
-                    source_range=src,
-                    attached_comments=(),
-                    scope_depth=len(block_stack),
-                    block_type=t or "",
-                ))
-            continue
-
-        if not code or _is_noop(code):
-            continue
-
-        header = code.lstrip()
-
-        # ── if ──
-        if re.match(r"^if\s*\(", header):
-            cond = _extract_condition(header)
-            steps.append(IfStep(
-                source_range=src, attached_comments=attached_c,
-                expression_text=cond, condition=cond,
-                scope_depth=_scope_depth(),
-            ))
-            block_stack.append({"type": "IF", "close_depth": info.get("brace_depth_before", 0)})
-            continue
-
-        # ── else if ──
-        if re.match(r"^else\s+if\s*\(", header):
-            cond = _extract_condition(header)
-            steps.append(ElseIfStep(
-                source_range=src, attached_comments=attached_c,
-                expression_text=cond, condition=cond,
-                scope_depth=max(0, _scope_depth() - 1),
-            ))
-            block_stack.append({"type": "ELSE IF", "close_depth": info.get("brace_depth_before", 0),
-                                 "no_body_indent": True})
-            continue
-
-        # ── else ──
-        if re.match(r"^else\b", header):
-            # 空 ELSE 检测：ELSE 后下一个非空非声明行是 `}`
-            nxt, _ = _next_significant(idx)
-            is_empty = (nxt is None)  # 下一个 significant 是 `}` → nxt 为 None
-            steps.append(ElseStep(
-                source_range=src, attached_comments=attached_c,
-                scope_depth=max(0, _scope_depth() - 1),
-                is_empty=is_empty,
-            ))
-            block_stack.append({"type": "ELSE", "close_depth": info.get("brace_depth_before", 0),
-                                 "no_body_indent": True})
-            continue
-
-        # ── for ──
-        if re.match(r"^for\s*\(", header):
-            init, cond, update = _split_for_header(header)
-            steps.append(ForStep(
-                source_range=src, attached_comments=attached_c,
-                expression_text=header, init=init, condition=cond, update=update,
-                scope_depth=_scope_depth(),
-            ))
-            block_stack.append({"type": "FOR", "close_depth": info.get("brace_depth_before", 0)})
-            continue
-
-        # ── while ──
-        if re.match(r"^while\s*\(", header):
-            cond = _extract_condition(header)
-            steps.append(WhileStep(
-                source_range=src, attached_comments=attached_c,
-                expression_text=cond, condition=cond,
-                scope_depth=_scope_depth(),
-            ))
-            block_stack.append({"type": "WHILE", "close_depth": info.get("brace_depth_before", 0)})
-            continue
-
-        # ── do while ──
-        if re.match(r"^do\s+while\s*\(", header):
-            cond = _extract_condition(header)
-            steps.append(DoWhileStep(
-                source_range=src, attached_comments=attached_c,
-                expression_text=cond, condition=cond,
-                scope_depth=_scope_depth(),
-            ))
-            block_stack.append({"type": "DO WHILE", "close_depth": info.get("brace_depth_before", 0)})
-            continue
-
-        # ── switch ──
-        if re.match(r"^switch\s*\(", header):
-            expr = _extract_condition(header)
-            steps.append(SwitchStep(
-                source_range=src, attached_comments=attached_c,
-                expression_text=expr, expression=expr,
-                scope_depth=_scope_depth(),
-            ))
-            block_stack.append({"type": "SWITCH", "close_depth": info.get("brace_depth_before", 0)})
-            continue
-
-        # ── case ──
-        if re.match(r"^case\b", header):
-            m = re.match(r"^case\s+(.+?)\s*:", header)
-            val = m.group(1).strip() if m else ""
-            steps.append(CaseStep(
-                source_range=src, attached_comments=attached_c,
-                expression_text=val, value=val,
-                scope_depth=_scope_depth(),
-            ))
-            case_active = True
-            case_depth = info.get("brace_depth_before", 0)
-            continue
-
-        # ── default ──
-        if re.match(r"^default\b", header):
-            steps.append(DefaultStep(
-                source_range=src, attached_comments=attached_c,
-                scope_depth=_scope_depth(),
-            ))
-            case_active = True
-            case_depth = info.get("brace_depth_before", 0)
-            continue
-
-        # ── 声明行（带初始化）──
-        if _is_declaration(code):
-            decl = _split_assignment(code)
-            if decl:
-                lhs, op, rhs = decl
-                steps.append(AssignmentStep(
-                    source_range=src, attached_comments=attached_c,
-                    expression_text=code, lhs=lhs, rhs=rhs, op=op,
-                    is_declaration=True, scope_depth=_scope_depth(),
-                ))
-            continue
-
-        # ── return ──
-        if re.match(r"^return\b", header):
-            expr = re.sub(r"^return\s*", "", code).rstrip(";").strip()
-            steps.append(ReturnStep(
-                source_range=src, attached_comments=attached_c,
-                expression_text=expr, expression=expr,
-                scope_depth=_scope_depth(),
-            ))
-            continue
-
-        # ── break ──
-        if re.match(r"^break\b", header):
-            steps.append(BreakStep(
-                source_range=src, attached_comments=attached_c,
-                scope_depth=_scope_depth(),
-            ))
-            continue
-
-        # ── continue ──
-        if re.match(r"^continue\b", header):
-            steps.append(ContinueStep(
-                source_range=src, attached_comments=attached_c,
-                scope_depth=_scope_depth(),
-            ))
-            continue
-
-        # ── 赋值 / 调用 ──
-        call = _extract_call(code)
-        if call:
-            callee, args, lhs = call
-            steps.append(CallStep(
-                source_range=src, attached_comments=attached_c,
-                expression_text=code, callee=callee, args=args, lhs=lhs,
-                scope_depth=_scope_depth(),
-            ))
-            continue
-
-        assign = _split_assignment(code)
-        if assign:
-            lhs, op, rhs = assign
-            steps.append(AssignmentStep(
-                source_range=src, attached_comments=attached_c,
-                expression_text=code, lhs=lhs, rhs=rhs, op=op,
-                scope_depth=_scope_depth(),
-            ))
-            continue
-
-        # ── 纯调用（无赋值）──
-        m = re.match(r"^([A-Za-z_]\w*)\s*\((.*)\)\s*;?\s*$", code, re.DOTALL)
-        if m:
-            callee = m.group(1)
-            args = m.group(2).strip()
-            steps.append(CallStep(
-                source_range=src, attached_comments=attached_c,
-                expression_text=code, callee=callee, args=args,
-                scope_depth=_scope_depth(),
-            ))
-            continue
-
-        # ── 未知 ──
-        steps.append(UnknownStep(
-            source_range=src, attached_comments=attached_c,
-            expression_text=code, code=code,
-            scope_depth=_scope_depth(),
-            confidence=0.5,
-            fallback_reason="unclassified_statement",
-        ))
-
-    return steps
-
-
-# ── 质量摘要 ───────────────────────────────────────────────────────
-
-
-def summarize_logic_steps(steps: Sequence[LogicStep]) -> dict[str, Any]:
-    """生成 LogicStep 序列的质量摘要（供 evidence / 质量评估消费）。"""
-    total = len(steps)
-    if total == 0:
-        return {"total": 0, "kinds": {}, "unknown_ratio": 0.0,
-                "empty_else_count": 0, "avg_confidence": 0.0}
-
-    kind_counts: dict[str, int] = {}
-    unknown_count = 0
-    empty_else_count = 0
-    confidence_sum = 0.0
-    for s in steps:
-        kind_counts[s.kind] = kind_counts.get(s.kind, 0) + 1
-        if s.kind == "unknown":
-            unknown_count += 1
-        if isinstance(s, ElseStep) and s.is_empty:
-            empty_else_count += 1
-        confidence_sum += s.confidence
-
-    return {
-        "total": total,
-        "kinds": kind_counts,
-        "unknown_count": unknown_count,
-        "unknown_ratio": round(unknown_count / total, 3),
-        "empty_else_count": empty_else_count,
-        "avg_confidence": round(confidence_sum / total, 3),
-    }
+    description: str = ""
+
+
+@dataclass
+class HeaderFileIR:
+    """C 头文件语义描述。"""
+    file_name: str = ""
+    brief_description: str = ""
+    macros: List[MacroIR] = field(default_factory=list)
+    functions: List[FunctionIR] = field(default_factory=list)
+
+    def to_json(self) -> str:
+        """序列化为 JSON 字符串。"""
+        return json.dumps(asdict(self), ensure_ascii=False, indent=2)
 
 
 __all__ = [
-    "SourceRange",
-    "LogicStep",
-    "IfStep", "ElseIfStep", "ElseStep", "ForStep", "WhileStep", "DoWhileStep",
-    "SwitchStep", "CaseStep", "DefaultStep", "AssignmentStep", "CallStep",
-    "ReturnStep", "BreakStep", "ContinueStep", "EndBlockStep", "UnknownStep",
-    "LogicStepType",
-    "build_logic_steps",
-    "summarize_logic_steps",
+    "CTypeInfo",
+    "ParameterIR",
+    "FunctionIR",
+    "MacroIR",
+    "HeaderFileIR",
 ]

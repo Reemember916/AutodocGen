@@ -7,7 +7,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from autodoc.logic_ir import (
+from autodoc.logic_step_ir import (
     build_logic_steps, summarize_logic_steps,
     IfStep, ElseIfStep, ElseStep, ForStep, WhileStep, SwitchStep,
     CaseStep, DefaultStep, AssignmentStep, CallStep, ReturnStep,
