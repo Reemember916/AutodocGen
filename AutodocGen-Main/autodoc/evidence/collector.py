@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+import json
+import os
 import re
 from typing import Any, Optional, Sequence
 
@@ -20,6 +22,152 @@ from .models import (
     FunctionEvidence,
     QualitySummary,
 )
+
+
+# ── 旁路采集注册表（模块级，shadow mode）──────────────────────────
+
+_EVIDENCE_REGISTRY: list[tuple[FunctionEvidence, QualitySummary]] = []
+
+
+def record_function_evidence(
+    func_data: dict,
+    logic_steps: Sequence,
+    name_map: Optional[dict] = None,
+    *,
+    lsp_fact_pack: Any = None,
+) -> tuple[FunctionEvidence, QualitySummary]:
+    """旁路采集并注册函数 evidence（shadow mode，不影响生成）。
+
+    从 pipeline 的 prepare_design_context 产出后调用，采集 evidence
+    并存入模块级注册表，供后续 write_evidence_report 序列化。
+    """
+    ev = collect_function_evidence(
+        func_data, logic_steps, name_map, lsp_fact_pack=lsp_fact_pack
+    )
+    qs = build_quality_summary(ev)
+    _EVIDENCE_REGISTRY.append((ev, qs))
+    return ev, qs
+
+
+def get_recorded_evidence() -> list[tuple[FunctionEvidence, QualitySummary]]:
+    """获取已注册的 evidence 列表。"""
+    return list(_EVIDENCE_REGISTRY)
+
+
+def clear_recorded_evidence() -> None:
+    """清空注册表（新一轮生成前调用）。"""
+    _EVIDENCE_REGISTRY.clear()
+
+
+def write_evidence_report(output_path: str) -> str:
+    """将已注册的 evidence 序列化为 JSON 报告。
+
+    返回实际写入路径。不影响 docx 输出。
+    """
+    entries = []
+    for ev, qs in _EVIDENCE_REGISTRY:
+        entry = {
+            "func_name": ev.func_name,
+            "source_file": ev.source_file,
+            "source_range": {
+                "file": ev.source_range.file,
+                "start_line": ev.source_range.start_line,
+                "end_line": ev.source_range.end_line,
+            },
+            "prototype": ev.prototype,
+            "ret_type": ev.ret_type,
+            "quality_summary": {
+                "overall_score": qs.overall_score,
+                "total_steps": qs.total_steps,
+                "unknown_step_count": qs.unknown_step_count,
+                "unknown_ratio": qs.unknown_ratio,
+                "empty_else_count": qs.empty_else_count,
+                "variable_count": qs.variable_count,
+                "low_confidence_var_count": qs.low_confidence_var_count,
+                "expression_count": qs.expression_count,
+                "fallback_expression_count": qs.fallback_expression_count,
+                "avg_step_confidence": qs.avg_step_confidence,
+                "avg_var_confidence": qs.avg_var_confidence,
+                "comment_coverage": qs.comment_coverage,
+                "lsp_available": qs.lsp_available,
+                "lsp_degraded": qs.lsp_degraded,
+                "lsp_quality_score": qs.lsp_quality_score,
+                "quality_flags": list(qs.quality_flags),
+            },
+            "comment": {
+                "has_comment": ev.comment.has_comment,
+                "func_cn_name": ev.comment.func_cn_name,
+                "description": ev.comment.description[:200],
+                "source": ev.comment.source,
+                "confidence": ev.comment.confidence,
+            },
+            "variables": [
+                {
+                    "ident": v.ident,
+                    "cn_name": v.cn_name,
+                    "decl_type": v.decl_type,
+                    "role": v.role,
+                    "direction": v.direction,
+                    "confidence": v.confidence,
+                    "source": v.source,
+                }
+                for v in ev.variables
+            ],
+            "logic_steps": [
+                {
+                    "step_kind": s.step_kind,
+                    "source_line": s.source_line,
+                    "expression_text": s.expression_text[:120],
+                    "scope_depth": s.scope_depth,
+                    "confidence": s.confidence,
+                    "is_empty_else": s.is_empty_else,
+                    "is_declaration": s.is_declaration,
+                    "fallback_reason": s.fallback_reason,
+                }
+                for s in ev.logic_steps
+            ],
+            "expressions": [
+                {
+                    "raw_text": e.raw_text[:120],
+                    "rendered_cn": e.rendered_cn[:120],
+                    "ir_kind": e.ir_kind,
+                    "confidence": e.confidence,
+                    "source": e.source,
+                    "is_low8bit": e.is_low8bit,
+                    "is_checksum": e.is_checksum,
+                }
+                for e in ev.expressions
+            ],
+            "lsp_facts": {
+                "available": ev.lsp_facts.available,
+                "degraded": ev.lsp_facts.degraded,
+                "clangd_version": ev.lsp_facts.clangd_version,
+                "block_count": ev.lsp_facts.block_count,
+                "call_count": ev.lsp_facts.call_count,
+                "member_count": ev.lsp_facts.member_count,
+                "local_count": ev.lsp_facts.local_count,
+                "quality_score": ev.lsp_facts.quality_score,
+            },
+            "flags": {
+                "has_empty_else": ev.has_empty_else,
+                "has_unknown_steps": ev.has_unknown_steps,
+                "has_low_confidence_vars": ev.has_low_confidence_vars,
+                "has_fallback_expressions": ev.has_fallback_expressions,
+            },
+        }
+        entries.append(entry)
+
+    report = {
+        "schema_version": 1,
+        "entry_count": len(entries),
+        "evidence": entries,
+    }
+    out_dir = os.path.dirname(output_path)
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(report, f, ensure_ascii=False, indent=2)
+    return output_path
 
 
 def _safe_str(v: Any) -> str:

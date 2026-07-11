@@ -20,6 +20,48 @@ from . import naming as naming_utils
 from . import revision as revision_utils
 from .models import AIBuildMeta, DesignModel, FunctionBuildResult, FunctionDesign, IOElement, LocalDataElement, ProjectResumeState
 
+# P0#3 Evidence 旁路采集（shadow mode，可选开关：extra_params["evidence_output"]）
+_EVIDENCE_ENABLED = False
+try:
+    from .evidence import record_function_evidence, clear_recorded_evidence, write_evidence_report
+    _EVIDENCE_ENABLED = True
+except Exception:
+    _EVIDENCE_ENABLED = False
+
+
+def _evidence_shadow_collect(func_data: dict, ctx: dict, cfg) -> None:
+    """旁路采集函数 evidence（shadow mode）。
+
+    在 build_function_design_impl 的 prepare_design_context 后调用。
+    不影响 docx 输出；clang 不可用时 fact_pack 为 None，自动降级。
+    """
+    if not _EVIDENCE_ENABLED:
+        return
+    extra = getattr(cfg, "extra_params", None) or {}
+    if not isinstance(extra, dict):
+        return
+    if str(extra.get("evidence_output", "")).strip().lower() not in ("1", "true", "on", "yes"):
+        return
+    body = ctx.get("body") or (func_data.get("body") or "")
+    if not body:
+        return
+    try:
+        from .logic_ir import build_logic_steps
+        logic_steps = build_logic_steps(body, ctx.get("local_vars"), cfg, name_map=ctx.get("global_symbol_map"))
+    except Exception:
+        return
+    # 构造 evidence 用的 func_data（补充 ctx 中已有的字段）
+    ev_func_data = dict(func_data)
+    ev_func_data.setdefault("local_vars", ctx.get("local_vars") or [])
+    ev_func_data.setdefault("params", ctx.get("params") or [])
+    ev_func_data.setdefault("file_context", ctx.get("file_context") or {})
+    name_map = ctx.get("global_symbol_map") or {}
+    fact_pack = ctx.get("lsp_fact_pack")
+    record_function_evidence(
+        ev_func_data, logic_steps, name_map,
+        lsp_fact_pack=fact_pack,
+    )
+
 
 def clone_cfg(cfg, **overrides):
     cfg_type = type(cfg)
@@ -4227,6 +4269,11 @@ def build_function_design_impl(
     backend = backend_module or legacy_backend()
     setattr(cfg, "_current_func_title_debug", {})
     ctx = prepare_design_context(func_data, cfg, backend_module=backend)
+    # ── P0#3 Evidence 旁路采集（shadow mode，不影响生成）──
+    try:
+        _evidence_shadow_collect(func_data, ctx, cfg)
+    except Exception:
+        pass
     revision_profile = revision_utils.load_revision_profile(cfg)
     revision_patch = revision_utils.find_function_patch(
         revision_profile,
@@ -6374,6 +6421,8 @@ def run_single_file_generation(
         from . import runtime as runtime_module
 
     backend.vlog(cfg, f"开始处理单文件：{source}")
+    if _EVIDENCE_ENABLED:
+        clear_recorded_evidence()
     project_root = backend._guess_project_root_for_source(source)
     runtime_ctx = runtime_module.ensure_project_runtime(
         cfg,
@@ -6541,6 +6590,17 @@ def run_single_file_generation(
         except Exception:
             pass
     backend.finalize_project_symbol_memory(cfg)
+    # P0#3 Evidence 报告输出（shadow mode）
+    if _EVIDENCE_ENABLED:
+        try:
+            ev_extra = getattr(cfg, "extra_params", None) or {}
+            ev_out = str((ev_extra or {}).get("evidence_output", "")).strip()
+            if ev_out.lower() in ("1", "true", "on", "yes"):
+                ev_path = os.path.splitext(output)[0] + ".evidence.json"
+                write_evidence_report(ev_path)
+                backend.vlog(cfg, f"[Evidence] 旁路报告已生成：{ev_path}")
+        except Exception:
+            pass
 
 
 def run_single_export_generation(
@@ -6564,6 +6624,8 @@ def run_single_export_generation(
         raise ValueError("source 不能为空")
     if not func_name:
         raise ValueError("func_name 不能为空")
+    if _EVIDENCE_ENABLED:
+        clear_recorded_evidence()
 
     cfg = clone_cfg(cfg, enhanced_single_func_pseudocode=True)
     backend.vlog(cfg, f"导出单函数：{func_name} <- {source}")
@@ -6686,6 +6748,17 @@ def run_single_export_generation(
         except Exception:
             pass
     backend.finalize_project_symbol_memory(cfg)
+    # P0#3 Evidence 报告输出（shadow mode）
+    if _EVIDENCE_ENABLED:
+        try:
+            ev_extra = getattr(cfg, "extra_params", None) or {}
+            ev_out = str((ev_extra or {}).get("evidence_output", "")).strip()
+            if ev_out.lower() in ("1", "true", "on", "yes"):
+                ev_path = os.path.splitext(output)[0] + ".evidence.json"
+                write_evidence_report(ev_path)
+                backend.vlog(cfg, f"[Evidence] 旁路报告已生成：{ev_path}")
+        except Exception:
+            pass
     return output
 
 
@@ -6704,6 +6777,8 @@ def run_project_generation(
         from . import runtime as runtime_module
 
     backend.vlog(cfg, f"开始处理工程目录：{root_dir}")
+    if _EVIDENCE_ENABLED:
+        clear_recorded_evidence()
     if not os.path.isdir(root_dir):
         raise backend.SourceReadError(f"目录不存在：{root_dir}")
     runtime_ctx = runtime_module.ensure_project_runtime(
@@ -7259,6 +7334,17 @@ def run_project_generation(
         except Exception:
             pass
     backend.finalize_project_symbol_memory(cfg)
+    # P0#3 Evidence 报告输出（shadow mode）
+    if _EVIDENCE_ENABLED:
+        try:
+            ev_extra = getattr(cfg, "extra_params", None) or {}
+            ev_out = str((ev_extra or {}).get("evidence_output", "")).strip()
+            if ev_out.lower() in ("1", "true", "on", "yes"):
+                ev_path = os.path.splitext(output)[0] + ".evidence.json"
+                write_evidence_report(ev_path)
+                backend.vlog(cfg, f"[Evidence] 旁路报告已生成：{ev_path}")
+        except Exception:
+            pass
 
 
 def collect_project_module_functions(

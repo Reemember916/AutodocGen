@@ -23,7 +23,23 @@ from .models import (
     FunctionEvidence,
     QualitySummary,
 )
-from .collector import collect_function_evidence, build_quality_summary
+from .collector import (
+    collect_function_evidence,
+    build_quality_summary,
+    record_function_evidence,
+    get_recorded_evidence,
+    clear_recorded_evidence,
+    write_evidence_report,
+)
+from .clang_provider import (
+    CompileCommandHealth,
+    TypedefPointerFact,
+    SymbolTypeFact,
+    CallReferenceFact,
+    ClangEvidence,
+    collect_clang_evidence,
+    to_lsp_fact_evidence,
+)
 
 __all__ = [
     "EvidenceSourceRange",
@@ -36,4 +52,15 @@ __all__ = [
     "QualitySummary",
     "collect_function_evidence",
     "build_quality_summary",
+    "CompileCommandHealth",
+    "TypedefPointerFact",
+    "SymbolTypeFact",
+    "CallReferenceFact",
+    "ClangEvidence",
+    "collect_clang_evidence",
+    "to_lsp_fact_evidence",
+    "record_function_evidence",
+    "get_recorded_evidence",
+    "clear_recorded_evidence",
+    "write_evidence_report",
 ]
