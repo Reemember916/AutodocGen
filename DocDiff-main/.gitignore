@@ -1,0 +1,9 @@
+/.DS_Store
+/.agent
+/.shared
+/.venv
+/.vscode
+__pycache__/
+*.py[cod]
+*.docx
+*.zip

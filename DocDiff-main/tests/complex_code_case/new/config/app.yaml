@@ -1,0 +1,5 @@
+env: prod
+timeout: 45
+retry: 3
+feature_flags:
+  enable_v2_checkout: true

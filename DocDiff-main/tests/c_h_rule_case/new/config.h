@@ -1,0 +1,13 @@
+#define K1 2
+#define K2 4
+#define K3 6
+#define K4 8
+#define K5 10
+#define K6 12
+#define K7 14
+#define K8 16
+#define K9 18
+#define K10 20
+#define K11 22
+#define K12 24
+#define K13 26

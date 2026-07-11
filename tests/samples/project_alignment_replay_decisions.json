@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "alignment_decisions": [
+    {
+      "csu_id": "D/R_SDD01_013_013",
+      "doc_title": "状态禁止",
+      "doc_func_name": "StateCondInjectDisable",
+      "manual_function": "StateCondInjectDisable",
+      "manual_rel_path": "Src/Application/Control/Control_State.c",
+      "status": "unmatched",
+      "notes": "人工确认该 CSU 对应新代码中的 StateCondInjectDisable。"
+    }
+  ]
+}

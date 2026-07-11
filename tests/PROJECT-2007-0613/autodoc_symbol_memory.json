@@ -1,0 +1,4079 @@
+{
+  "functions": {
+    "AirOilModeUpdate": {
+      "cn": "模式更新",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:05:27"
+    },
+    "AnaDataBuffInsert": {
+      "cn": "模拟量数据注入",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:50:50"
+    },
+    "AnaDataCheck": {
+      "cn": "模拟量数据合理性检查",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:12:08"
+    },
+    "AnaDataInit": {
+      "cn": "模拟量初始化",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:50:52"
+    },
+    "AnaDataObtain": {
+      "cn": "模拟量数据采集",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:50:54"
+    },
+    "AnaDataStateGet": {
+      "cn": "模拟量数据状态获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:12:06"
+    },
+    "AnaDataUpdate": {
+      "cn": "模拟量数据更新",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:12:09"
+    },
+    "BITCommon429LoopbackResultGet": {
+      "cn": "429发送回绕结果获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T02:17:46"
+    },
+    "BITCommonADResultGet": {
+      "cn": "AD获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T02:17:28"
+    },
+    "BITCommonCtxInit": {
+      "cn": "上下文初始化",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:41:59"
+    },
+    "BITCommonInfoGet": {
+      "cn": "共用信息获取",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:34:10"
+    },
+    "BITCommonOkCountGet": {
+      "cn": "检测项正常数获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:31:23"
+    },
+    "BITCommonPowerTest": {
+      "cn": "公共电源检测",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:35:02"
+    },
+    "BITCommonStateUpdate": {
+      "cn": "检测项状态写入",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T02:16:51"
+    },
+    "CHVConDataObtain": {
+      "cn": "CHV数据采集",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:36:21"
+    },
+    "CHVControlOut": {
+      "cn": "CHV控制",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:59:01"
+    },
+    "CPLDBusHandshakeInit": {
+      "cn": "CPLD初始化",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:29:24"
+    },
+    "CPLDCCDLHeartCheck": {
+      "cn": "CPLDCCDL校验",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:27:04"
+    },
+    "CPLDCcdlHeartCheckUpdate": {
+      "cn": "CPLD检查更新",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:29:14"
+    },
+    "CPLDHandshake": {
+      "cn": "CPLD双阶段握手",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:29:25"
+    },
+    "Ccdl422RFIFOReset": {
+      "cn": "422RFIFO复位",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:01:53"
+    },
+    "Ccdl422ReadBuff": {
+      "cn": "422数据读取",
+      "confidence": 0.9505,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:22:37"
+    },
+    "Ccdl422RxFifoStatusGet": {
+      "cn": "422状态获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:01:54"
+    },
+    "Ccdl422SendBuff": {
+      "cn": "422数据发送",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:22:35"
+    },
+    "Ccdl429DataSend": {
+      "cn": "429数据发送",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:02:32"
+    },
+    "Ccdl429LabOrderRev": {
+      "cn": "429数据反转",
+      "confidence": 0.892,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:23:44"
+    },
+    "Ccdl429ParityCalc": {
+      "cn": "429奇偶位填充",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:24:05"
+    },
+    "Ccdl429ParityCheck": {
+      "cn": "429奇偶位检查",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:24:43"
+    },
+    "Ccdl429RFIFOReset": {
+      "cn": "429RFIFO复位",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:24:03"
+    },
+    "Ccdl429ReadBuff": {
+      "cn": "429接收读取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:02:32"
+    },
+    "Ccdl429RxFifoStatusGet": {
+      "cn": "429接收状态获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:24:05"
+    },
+    "CcdlCanMboxRx": {
+      "cn": "邮箱数据接收",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:27:02"
+    },
+    "CcdlCanMboxSendFix": {
+      "cn": "邮箱数据发送",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:27:02"
+    },
+    "ChTypeJudge": {
+      "cn": "主备类型判定",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:48:05"
+    },
+    "ChTypeRoundRobinCommitColdStartup": {
+      "cn": "冷启动主通道轮值提交",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:09:12"
+    },
+    "Comm422BuffCheckTimeGet": {
+      "cn": "422报文检索次数获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:38:08"
+    },
+    "Comm422CommInfoGet": {
+      "cn": "422信息获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:12:37"
+    },
+    "Comm422DataBuffRead": {
+      "cn": "422接收数据读取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:38:48"
+    },
+    "Comm422FrameBufferGet": {
+      "cn": "422帧缓冲获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:12:36"
+    },
+    "Comm422FrameCheck": {
+      "cn": "422报文存在性检查",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-27T01:05:09"
+    },
+    "Comm422FrameCleanup": {
+      "cn": "422帧缓冲清理",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:14:09"
+    },
+    "Comm422FrameProcess": {
+      "cn": "422报文处理",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:13:39"
+    },
+    "Comm422Init": {
+      "cn": "422数据初始化",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:14:35"
+    },
+    "Comm422RxBufferClear": {
+      "cn": "422缓冲清零",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:13:02"
+    },
+    "Comm422RxBufferCompact": {
+      "cn": "作动器422接收缓冲压缩",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:37:30"
+    },
+    "Comm422RxBufferIndexGet": {
+      "cn": "422接收位置获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:36:53"
+    },
+    "Comm422RxStateCheck": {
+      "cn": "422接收状态检测",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:14:09"
+    },
+    "Comm422SciErrProcess": {
+      "cn": "422SCI错误处理",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:14:11"
+    },
+    "Comm429KZZZCcdlExtDataGet": {
+      "cn": "429KZZZ数据获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:15:25"
+    },
+    "Comm429KZZZCcdlExtValidGet": {
+      "cn": "429KZZZ有效获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:15:25"
+    },
+    "Comm429KZZZCurrTimeTx": {
+      "cn": "429KZZZ当前发送",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:16:41"
+    },
+    "Comm429KZZZDataProcess": {
+      "cn": "429KZZZ数据处理",
+      "confidence": 0.9635,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:41:09"
+    },
+    "Comm429KZZZDecodeOrigSnapshot": {
+      "cn": "429KZZZ原始",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:39:46"
+    },
+    "Comm429KZZZInit": {
+      "cn": "429KZZZ初始化",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:16:12"
+    },
+    "Comm429KZZZLabelSsmGet": {
+      "cn": "429KZZZ获取",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T00:44:51"
+    },
+    "Comm429KZZZPeriodInfoTx": {
+      "cn": "429KZZZ信息发送",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:36:40"
+    },
+    "Comm429KZZZRxSsmValidGet": {
+      "cn": "429KZZZ有效获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:39:26"
+    },
+    "Comm429KZZZRxStateCheck": {
+      "cn": "429KZZZ状态校验",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:16:12"
+    },
+    "Comm429KZZZRxStateGet": {
+      "cn": "429KZZZ状态获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:16:04"
+    },
+    "Comm429KZZZRxWordMark": {
+      "cn": "429KZZZ接收",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:39:24"
+    },
+    "Comm429KZZZSendCtrlCmd": {
+      "cn": "429KZZZ发送",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:16:12"
+    },
+    "Comm429KZZZSendDual": {
+      "cn": "429KZZZ发送",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:39:24"
+    },
+    "Comm429KZZZSendFrame": {
+      "cn": "429KZZZ发送",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:15:03"
+    },
+    "Comm429KZZZSendFuelDensity": {
+      "cn": "429KZZZ发送",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:16:11"
+    },
+    "Comm429KZZZSendLifeInfo": {
+      "cn": "429KZZZ发送",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:16:26"
+    },
+    "Comm429KZZZSendOilReset": {
+      "cn": "429KZZZ复位",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:41:19"
+    },
+    "Comm429KZZZSendPreFuel": {
+      "cn": "429KZZZ发送",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:16:11"
+    },
+    "Comm429KZZZSendSingle": {
+      "cn": "429KZZZ发送",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:15:03"
+    },
+    "Comm429KZZZTxLastWordGet": {
+      "cn": "429KZZZ获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:39:24"
+    },
+    "Comm429KzzzRxDataGet": {
+      "cn": "429数据获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:15:23"
+    },
+    "Comm429KzzzRxOrigDataGet": {
+      "cn": "429原始数据获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:16:04"
+    },
+    "Comm429RIUDataProcess": {
+      "cn": "429RIU数据处理",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:18:37"
+    },
+    "Comm429RIUInit": {
+      "cn": "429RIU初始化",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:17:33"
+    },
+    "Comm429RIUPeriodInfoTx": {
+      "cn": "429RIU信息发送",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:18:08"
+    },
+    "Comm429RIURxStateCheck": {
+      "cn": "429RIU状态校验",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:17:35"
+    },
+    "Comm429RIUSendHeart": {
+      "cn": "429RIU发送",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:17:27"
+    },
+    "CommCCDL422TxFlagGet": {
+      "cn": "422CCDL标志获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:47:40"
+    },
+    "CommCCDLBaseFrameDecode": {
+      "cn": "通信CCDL",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:49:26"
+    },
+    "CommCCDLBaseFramePack": {
+      "cn": "通信CCDL打包",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:24:06"
+    },
+    "CommCCDLChecksumCalcU16": {
+      "cn": "通信CCDL计算",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:23:18"
+    },
+    "CommCCDLChecksumCalcU8": {
+      "cn": "通信CCDL计算",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:23:18"
+    },
+    "CommCCDLDataBuffRead": {
+      "cn": "通信CCDL数据缓冲读取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:26:41"
+    },
+    "CommCCDLDataSend": {
+      "cn": "通信CCDL数据发送",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:27:42"
+    },
+    "CommCCDLFrameProcess": {
+      "cn": "通信CCDL处理",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:26:53"
+    },
+    "CommCCDLFrameSendToCPLD": {
+      "cn": "通信CCDL发送",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:49:20"
+    },
+    "CommCCDLFramesScanAndDecode": {
+      "cn": "通信CCDL",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:26:44"
+    },
+    "CommCCDLInit": {
+      "cn": "通信CCDL初始化",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:28:54"
+    },
+    "CommCCDLKZZZExtFrameDecode": {
+      "cn": "通信CCDLKZZZ",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:26:27"
+    },
+    "CommCCDLKZZZExtFramePack": {
+      "cn": "通信CCDLKZZZ打包",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:23:37"
+    },
+    "CommCCDLKZZZExtFrameTypeDecode": {
+      "cn": "通信CCDLKZZZ",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:48:35"
+    },
+    "CommCCDLKZZZExtStatusGet": {
+      "cn": "通信CCDLKZZZ状态获取",
+      "confidence": 0.7575000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:22:50"
+    },
+    "CommCCDLKZZZOrigDataGet": {
+      "cn": "通信CCDLKZZZ原始数据获取",
+      "confidence": 0.7835000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:22:47"
+    },
+    "CommCCDLPeerBaseAdvancedGet": {
+      "cn": "通信CCDL获取",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T00:52:50"
+    },
+    "CommCCDLPeerBaseGet": {
+      "cn": "通信CCDL获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:47:43"
+    },
+    "CommCCDLRuntimeTxEnqueue": {
+      "cn": "通信CCDL发送",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:48:41"
+    },
+    "CommCCDLRuntimeTxPhaseProcess": {
+      "cn": "通信CCDL处理",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:51:42"
+    },
+    "CommCCDLRuntimeTxQueueReset": {
+      "cn": "通信CCDL复位",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:49:10"
+    },
+    "CommCCDLRxStateCheck": {
+      "cn": "通信CCDL状态校验",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:23:26"
+    },
+    "CommCCDLTxRandDataGet": {
+      "cn": "通信CCDL数据获取",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:47:42"
+    },
+    "CommCCDLWToRsBuff": {
+      "cn": "通信CCDLW缓冲",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:47:55"
+    },
+    "CommDataSourceUpdate": {
+      "cn": "通信源配置更新",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:09:15"
+    },
+    "CommMaintCommSend": {
+      "cn": "通信发送",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:29:49"
+    },
+    "CommMaintDataGet": {
+      "cn": "信息获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:12:45"
+    },
+    "CommMaintExecStatusUpdate": {
+      "cn": "通信状态更新",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T00:39:41"
+    },
+    "CommMaintTxDataPack": {
+      "cn": "报文打包",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:53:24"
+    },
+    "CommMaintTxDataPackID0": {
+      "cn": "通信数据打包",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:30:08"
+    },
+    "CommMaintTxDataPackID1": {
+      "cn": "通信数据打包",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:53:28"
+    },
+    "CommMaintTxDataPackID2": {
+      "cn": "通信数据打包",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:00:47"
+    },
+    "CommMaintTxDataPackID3": {
+      "cn": "通信故障摘要打包",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:53:36"
+    },
+    "CommMaintTxDataPackID4": {
+      "cn": "通信数据打包",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:01:03"
+    },
+    "ConDataGet": {
+      "cn": "控制数据获取",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:34:43"
+    },
+    "ConOutStateUpdate": {
+      "cn": "出口状态更新",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:36:07"
+    },
+    "ConfigCpuTimer": {
+      "cn": "CPU定时器配置",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:26:32"
+    },
+    "ControlCCDLActiveSourceSelect": {
+      "cn": "作动器通信链路选择",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:05:16"
+    },
+    "ControlErrStoreFlagGet": {
+      "cn": "故障存储触发条件获取",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:55:53"
+    },
+    "ControlFaultActionApply": {
+      "cn": "控制",
+      "confidence": 0.8300000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:03:43"
+    },
+    "ControlFaultDebounceUpdate": {
+      "cn": "故障信号去抖处理",
+      "confidence": 0.8725,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:32:33"
+    },
+    "ControlFaultEvaluate": {
+      "cn": "控制",
+      "confidence": 0.8300000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:03:58"
+    },
+    "ControlFaultRawExists": {
+      "cn": "控制",
+      "confidence": 0.8300000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:03:54"
+    },
+    "ControlKZZZCurrTimeRequestCheck": {
+      "cn": "KZZZ当前校验",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:06:41"
+    },
+    "ControlKZZZTxCacheReset": {
+      "cn": "KZZZ复位",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:59:00"
+    },
+    "ControlMeasureFaultExists": {
+      "cn": "测量异常检查",
+      "confidence": 0.892,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:55:31"
+    },
+    "ControlModeDebounceReset": {
+      "cn": "模式去抖复位",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:43:57"
+    },
+    "ControlModeReentryLatchReset": {
+      "cn": "模式重入复位",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:06:39"
+    },
+    "ControlModeReentryLatchSet": {
+      "cn": "工作模式锁存设置",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:43:58"
+    },
+    "ControlRIUActiveSourceSelect": {
+      "cn": "RIU选择",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:35:02"
+    },
+    "ControlRIURawBitGet": {
+      "cn": "RIU获取",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:36:10"
+    },
+    "ControlRIURawBitsGet": {
+      "cn": "RIU获取",
+      "confidence": 0.918,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:36:13"
+    },
+    "ControlRefuelImbalanceThresholdGet": {
+      "cn": "不平衡告警阈值获取",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:54:47"
+    },
+    "ControlRiuFuelCmdGet": {
+      "cn": "指令获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:07:17"
+    },
+    "CycleDogFeed": {
+      "cn": "看门狗喂狗",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:27:28"
+    },
+    "DichoFindSectorStartAddr": {
+      "cn": "二分法查找扇区起始地址",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:21:05"
+    },
+    "DownLoadDataCommSend": {
+      "cn": "数据下载422发送",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:37:49"
+    },
+    "FdataAverage": {
+      "cn": "浮点数去极值平均",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:12:10"
+    },
+    "FlashAddrIsEmpty": {
+      "cn": "FLASH地址空校验",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:13:22"
+    },
+    "FlashBuffDataUpdateCheck": {
+      "cn": "FLASH缓冲数据更新校验",
+      "confidence": 0.7575000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:13:19"
+    },
+    "FlashBuffStoreCountRecord": {
+      "cn": "存储计数记录",
+      "confidence": 0.892,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:13:22"
+    },
+    "FlashDataRecordInit": {
+      "cn": "FLASH数据记录初始化",
+      "confidence": 0.8099999999999999,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:54:00"
+    },
+    "FlashDataStore": {
+      "cn": "FLASH数据",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:14:30"
+    },
+    "FlashErrStoreDataCheck": {
+      "cn": "FLASH错误数据校验",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:13:33"
+    },
+    "FlashNextSectorAddrGet": {
+      "cn": "FLASH扇区地址获取",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:13:19"
+    },
+    "FlashRecordDataUpdate": {
+      "cn": "FLASH记录数据更新",
+      "confidence": 0.766,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:14:11"
+    },
+    "FlashRecordStartAddr": {
+      "cn": "FLASH记录起始地址",
+      "confidence": 0.7855000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:13:19"
+    },
+    "FlashRecordStartSector": {
+      "cn": "FLASH记录扇区定位",
+      "confidence": 0.8115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:13:21"
+    },
+    "FlashSectorIsErased": {
+      "cn": "FLASH扇区",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:53:37"
+    },
+    "FlashSectorNumByAddr": {
+      "cn": "FLASH扇区地址",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:14:01"
+    },
+    "FlashSingleStoreDataUpdate": {
+      "cn": "FLASH数据更新",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:14:35"
+    },
+    "FlashStartSectorPersistDefer": {
+      "cn": "起始扇区持久化延后",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:22:06"
+    },
+    "FlashStartSectorRestoreFast": {
+      "cn": "起始扇区快速恢复",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:14:05"
+    },
+    "FrameSyn": {
+      "cn": "同步握手判定",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:18:26"
+    },
+    "GroundMaintProcessDataDownLoad": {
+      "cn": "地面数据下载处理",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:37:40"
+    },
+    "GroundMaintProcessDataErase": {
+      "cn": "地面维护信息擦除处理",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:37:40"
+    },
+    "GroundMaintProcessSoftwCRC": {
+      "cn": "地面维护软件CRC处理",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T00:42:00"
+    },
+    "GroundMaintStateUpdate": {
+      "cn": "地面维护状态更新",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:15:06"
+    },
+    "HandShakeProcess": {
+      "cn": "握手处理",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:29:28"
+    },
+    "IFBITCPLDCCDLTest": {
+      "cn": "对端基础帧心跳检测",
+      "confidence": 0.9245000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:50:15"
+    },
+    "IFBITCPLDHeartTest": {
+      "cn": "IFBITCPLD检测",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:32:13"
+    },
+    "IFBITComm429KZZZTest": {
+      "cn": "周期自检429KZZZ检测",
+      "confidence": 0.8029999999999999,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:47:46"
+    },
+    "IFBITComm429KZZZTxTest": {
+      "cn": "周期自检429KZZZ检测",
+      "confidence": 0.8029999999999999,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:51:37"
+    },
+    "IFBITComm429RIUTest": {
+      "cn": "周期自检429RIU检测",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:47:10"
+    },
+    "IFBITComm429RIUTxTest": {
+      "cn": "周期自检429RIU检测",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:32:50"
+    },
+    "IFBITDataInit": {
+      "cn": "周期自检上下文初始化",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:53:11"
+    },
+    "IFBITInfoGet": {
+      "cn": "周期自检检测信息获取",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:45:23"
+    },
+    "IFBITResultGet": {
+      "cn": "周期自检等级结果获取",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:46:07"
+    },
+    "IFBITStateUpdate": {
+      "cn": "周期自检状态更新",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:46:34"
+    },
+    "IFBITSyncTest": {
+      "cn": "周期自检同步检测",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:49:05"
+    },
+    "IFBITTest": {
+      "cn": "周期自检主检测",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:52:28"
+    },
+    "ISR_Timer0": {
+      "cn": "中断0响应",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:25:26"
+    },
+    "ISR_Timer1": {
+      "cn": "中断1响应",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:19:47"
+    },
+    "ISR_Timer2": {
+      "cn": "中断2响应",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:01:19"
+    },
+    "ISR_XNMIInt": {
+      "cn": "XNMI中断响应",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:19:19"
+    },
+    "Init": {
+      "cn": "冷启动系统初始化",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:29:50"
+    },
+    "InitCpuTimers": {
+      "cn": "CPU定时中断初始化",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:26:30"
+    },
+    "InitFlash": {
+      "cn": "闪存初始化",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:26:16"
+    },
+    "InitPieCtrl": {
+      "cn": "PIE中断使能初始化",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T02:41:34"
+    },
+    "InitStatusGet": {
+      "cn": "初始化状态获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:29:16"
+    },
+    "InterChCCDLHeartCheck": {
+      "cn": "CCDL校验",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:29:32"
+    },
+    "IoDataGet": {
+      "cn": "离散量数据获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T02:55:00"
+    },
+    "IoDataInit": {
+      "cn": "离散量初始化",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T02:54:59"
+    },
+    "IoDataObtain": {
+      "cn": "离散量数据采集",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T02:56:10"
+    },
+    "IoDataStateUpdate": {
+      "cn": "离散量数据状态更新",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T02:55:09"
+    },
+    "MBITCPLDCCDLTest": {
+      "cn": "MBITCPLDCCDL检测",
+      "confidence": 0.7575000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:58:25"
+    },
+    "MBITCPLDHeartTest": {
+      "cn": "MBITCPLD检测",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:57:57"
+    },
+    "MBITComm429KZZZTest": {
+      "cn": "维护自检429KZZZ检测",
+      "confidence": 0.7835000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:56:05"
+    },
+    "MBITComm429KZZZTxTest": {
+      "cn": "维护自检429KZZZ检测",
+      "confidence": 0.7835000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:59:40"
+    },
+    "MBITComm429RIUTest": {
+      "cn": "维护自检429RIU检测",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:55:08"
+    },
+    "MBITComm429RIUTxTest": {
+      "cn": "维护自检429RIU检测",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:59:12"
+    },
+    "MBITDataInit": {
+      "cn": "维护自检信息初始化",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T02:01:20"
+    },
+    "MBITInfoGet": {
+      "cn": "维护自检信息获取",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:53:47"
+    },
+    "MBITResultGet": {
+      "cn": "维护自检结果获取",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:54:01"
+    },
+    "MBITStateUpdate": {
+      "cn": "维护自检状态更新",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:54:50"
+    },
+    "MBITSyncTest": {
+      "cn": "维护自检同步结果检测",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:57:32"
+    },
+    "MBITTest": {
+      "cn": "维护自检主检测",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T02:00:28"
+    },
+    "MaintCMDExeStateClear": {
+      "cn": "指令状态清零",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:05:18"
+    },
+    "MaintCommInfoProcess": {
+      "cn": "通信信息处理",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T00:39:56"
+    },
+    "MaintConDataProcess": {
+      "cn": "控制数据处理",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T00:39:55"
+    },
+    "MaintFuncDataProcess": {
+      "cn": "指令数据处理",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:37:29"
+    },
+    "MaintGroundInConditionCheck": {
+      "cn": "地面维护入口检查",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:46:29"
+    },
+    "MaintRIUSimInjectProcess": {
+      "cn": "RIU处理",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-27T12:23:18"
+    },
+    "MaintRxDataProcess": {
+      "cn": "接收数据分发处理",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:37:39"
+    },
+    "MemCopy": {
+      "cn": "内存块复制",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T02:41:55"
+    },
+    "NMIResetRequestClear": {
+      "cn": "NMI复位清零",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:19:01"
+    },
+    "NMIResetRequestGet": {
+      "cn": "NMI复位获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:00:34"
+    },
+    "NMISourceCheck": {
+      "cn": "NMI校验",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:19:03"
+    },
+    "PUBITInfoGet": {
+      "cn": "上电自检检测信息获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:35:32"
+    },
+    "PowerDownConditionCheck": {
+      "cn": "28V掉电条件检查",
+      "confidence": 0.9635,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:08:04"
+    },
+    "PowerDownFlagClear": {
+      "cn": "28V掉电标志清零",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:00:35"
+    },
+    "PowerDownFlagGet": {
+      "cn": "掉电标志获取",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:19:01"
+    },
+    "PowerDownFlagSetValid": {
+      "cn": "28V掉电标志确认",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:19:12"
+    },
+    "PreTaskCheckTimeoutFaultApply": {
+      "cn": "任务前超时故障处理",
+      "confidence": 0.8725,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:06:47"
+    },
+    "PuBITADTest": {
+      "cn": "BITAD检测",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T02:05:39"
+    },
+    "PuBITCPUTest": {
+      "cn": "BITCPU检测",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T02:03:47"
+    },
+    "PuBITDataGet": {
+      "cn": "上电自检结果获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:35:12"
+    },
+    "PuBITDataRebuild": {
+      "cn": "上电自检数据重建",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T02:01:50"
+    },
+    "PuBITFlashTest": {
+      "cn": "上电自检FLASH检测",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:35:56"
+    },
+    "PuBITForceResultUpdate": {
+      "cn": "上电自检结果更新",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:35:14"
+    },
+    "PuBITHotResetBypassInit": {
+      "cn": "上电自检热复位初始化",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T02:03:25"
+    },
+    "PuBITPowerSingleTest": {
+      "cn": "上电自检电源检测",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:36:20"
+    },
+    "PuBITPowerTest": {
+      "cn": "上电自检电源检测",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T00:38:32"
+    },
+    "PuBITSyncTest": {
+      "cn": "上电自检同步检测",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T02:05:16"
+    },
+    "PuBITTest": {
+      "cn": "上电自检检测",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T00:38:40"
+    },
+    "RIU429InfoDataStateCheck": {
+      "cn": "429信息数据状态检查",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:17:25"
+    },
+    "RIU429SendDataGet": {
+      "cn": "RIU429数据获取",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:34:45"
+    },
+    "RandomDataGenerate": {
+      "cn": "随机数据获取",
+      "confidence": 0.892,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:35:21"
+    },
+    "ReceiveModeBuildTargets": {
+      "cn": "构建受油预设分配目标",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:09:12"
+    },
+    "ReceiveModeContextReset": {
+      "cn": "受油上下文初始化",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:01:22"
+    },
+    "ReceiveModeExitToTaskEnd": {
+      "cn": "模式退出处理",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:08:07"
+    },
+    "ReceiveModeFaultLatchedHold": {
+      "cn": "受油故障锁存保持",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:08:57"
+    },
+    "ReceiveModeLoadTankVolume": {
+      "cn": "受油油箱油量获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:39:02"
+    },
+    "ReceiveModeMeasureFaultExists": {
+      "cn": "受油故障判定",
+      "confidence": 0.892,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:01:39"
+    },
+    "ReceiveModeRcvCloseFaultSet": {
+      "cn": "模式故障设置",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:01:21"
+    },
+    "ReceiveModeRiuCmdGet": {
+      "cn": "受油模式指令获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:01:19"
+    },
+    "ReceiveModeSetRcvClose": {
+      "cn": "受油活门关闭命令设置",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:01:43"
+    },
+    "ReceiveModeTaskValidCheck": {
+      "cn": "受油任务指令有效性检查",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:01:50"
+    },
+    "ReceiveModeTriggerFaultWithIsolation": {
+      "cn": "受油故障与隔离处理",
+      "confidence": 0.8725,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:02:15"
+    },
+    "ReceiveStageDispatch": {
+      "cn": "受油模式分发",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:04:57"
+    },
+    "ReceiveStagePreCheck": {
+      "cn": "受油任务前检查",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:02:49"
+    },
+    "ReceiveStagePreset": {
+      "cn": "受油目标量配置",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:02:31"
+    },
+    "ReceiveStageProcess": {
+      "cn": "受油执行阶段处理",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:02:51"
+    },
+    "ReceiveStageStandby": {
+      "cn": "受油待机状态建立",
+      "confidence": 0.918,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:02:17"
+    },
+    "ReceiveStageTaskEnd": {
+      "cn": "受油任务结束处理",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:02:17"
+    },
+    "RedunDataGet": {
+      "cn": "余度数据获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:05:50"
+    },
+    "Redundancy": {
+      "cn": "余度数据全量更新",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:06:07"
+    },
+    "RedundancyCCDL": {
+      "cn": "更新CCDL余度数据",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:05:49"
+    },
+    "RedundancyCCDLDefaultApply": {
+      "cn": "更新CCDL余度数据",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:12:08"
+    },
+    "RedundancyInit": {
+      "cn": "余度数据初始化",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:05:22"
+    },
+    "RedundancyKZZZ": {
+      "cn": "KZZZ余度同步更新",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:05:23"
+    },
+    "RedundancyKZZZSideApply": {
+      "cn": "KZZZ侧数据更新",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:05:37"
+    },
+    "RedundancyKZZZSideReset": {
+      "cn": "KZZZ复位",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:05:20"
+    },
+    "RedundancyRIU": {
+      "cn": "更新RIU余度数据",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:05:32"
+    },
+    "RefuelStagePreCheck": {
+      "cn": "加油前置条件检查",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:07:10"
+    },
+    "RefuelStagePreset": {
+      "cn": "加油预位指令处理",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:07:15"
+    },
+    "RefuelStageProcess": {
+      "cn": "加油执行处理",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:08:15"
+    },
+    "RefuelStageTaskEnd": {
+      "cn": "加油任务终止处理",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:08:03"
+    },
+    "RoleConfirmUpdate": {
+      "cn": "主备角色确认更新",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:09:09"
+    },
+    "RuntimeRoleSet": {
+      "cn": "角色状态更新",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:09:19"
+    },
+    "RuntimeRoleUpdate": {
+      "cn": "运行时角色状态更新",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:09:35"
+    },
+    "SoftwVDataGet": {
+      "cn": "版本数据获取",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:37:04"
+    },
+    "SpeDataAddrGet": {
+      "cn": "特定数据地址获取",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:24:51"
+    },
+    "SpeDataCheck": {
+      "cn": "特定数据合法性检测",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:55:50"
+    },
+    "SpeDataCrcCacu": {
+      "cn": "特定数据校验码计算",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:17:04"
+    },
+    "SpeDataCrcRead": {
+      "cn": "特定数据校验码读取",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:54:52"
+    },
+    "SpeDataFlushPending": {
+      "cn": "特定数据待刷处理",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:55:08"
+    },
+    "SpeDataGet": {
+      "cn": "特定数据获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:54:49"
+    },
+    "SpeDataMirrorUpdate": {
+      "cn": "特定数据镜像更新",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:16:57"
+    },
+    "SpeDataPendingExist": {
+      "cn": "特定数据待写检查",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:17:14"
+    },
+    "SpeDataRead": {
+      "cn": "特定数据读取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:54:55"
+    },
+    "SpeDataRecordInit": {
+      "cn": "特定数据初始化",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:55:30"
+    },
+    "SpeDataWrite": {
+      "cn": "特定数据写入",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:55:09"
+    },
+    "SpeDataWriteDefer": {
+      "cn": "特定数据延迟写入",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:16:58"
+    },
+    "SpiFlashBulkErase": {
+      "cn": "SPI闪存全擦",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:05:40"
+    },
+    "SpiFlashDataRead": {
+      "cn": "SPIFLASH数据读取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:04:58"
+    },
+    "SpiFlashIsBusy": {
+      "cn": "SPI-FLASH工作状态检测",
+      "confidence": 0.7835000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:28:39"
+    },
+    "SpiFlashPageProgram": {
+      "cn": "SPI-FLASH页写",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:30:26"
+    },
+    "SpiFlashReadID": {
+      "cn": "SPIFLASH读取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:04:51"
+    },
+    "SpiFlashReadSR": {
+      "cn": "SPIFLASH读取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:04:50"
+    },
+    "SpiFlashSectorErase": {
+      "cn": "SPIFLASH扇区",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:31:02"
+    },
+    "SpiFlashWriteDis": {
+      "cn": "SPI-FLASH写禁止",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:04:49"
+    },
+    "SpiFlashWriteEn": {
+      "cn": "SPI-FLASH写使能",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:04:49"
+    },
+    "SpiFlashWriteSR": {
+      "cn": "SPIFLASH状态写入",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:29:02"
+    },
+    "StandbyFuncUpdate": {
+      "cn": "待机功能更新",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:45:21"
+    },
+    "StartUpEarlyColdResetOnce": {
+      "cn": "冷启动复位闭环",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:21:21"
+    },
+    "StartUpFlagHotWriteVerify": {
+      "cn": "热启动标志写入校验",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T02:50:40"
+    },
+    "StartUpModeGet": {
+      "cn": "冷热启动模式获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:21:12"
+    },
+    "StartUpModeJudge": {
+      "cn": "冷热启动判定",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T02:53:00"
+    },
+    "StoreDataPack": {
+      "cn": "存储数据打包",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:14:50"
+    },
+    "StorePackF32": {
+      "cn": "F32打包",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:14:01"
+    },
+    "StorePackU16": {
+      "cn": "U16数据打包",
+      "confidence": 0.892,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:14:01"
+    },
+    "StorePackU32": {
+      "cn": "U32数据打包",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:14:02"
+    },
+    "SynMonitor": {
+      "cn": "同步健康检测",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:18:34"
+    },
+    "SynWholeInfGet": {
+      "cn": "同步类型数据获取",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:29:13"
+    },
+    "SyncFrameHealthyGet": {
+      "cn": "帧同步健康状态获取",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:29:05"
+    },
+    "SynchroInit": {
+      "cn": "将同步的相关数据初始化",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:29:21"
+    },
+    "SynchroTx": {
+      "cn": "同步信号发送",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:18:25"
+    },
+    "SysConDataUpdate": {
+      "cn": "系统数据更新",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:05:53"
+    },
+    "SysConInit": {
+      "cn": "系统上电初始化",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:58:34"
+    },
+    "SysControl": {
+      "cn": "系统控制",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:57:20"
+    },
+    "SysControlOut": {
+      "cn": "系统控制输出",
+      "confidence": 0.918,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:59:00"
+    },
+    "SysControlPowerDown": {
+      "cn": "掉电态控制",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:57:24"
+    },
+    "SysStateJudge": {
+      "cn": "系统状态判定",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:48:32"
+    },
+    "SysStateProcess": {
+      "cn": "系统状态机处理",
+      "confidence": 0.9635,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:09:10"
+    },
+    "SysWorkTimeGet": {
+      "cn": "系统工作时间获取",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:57:16"
+    },
+    "SysWorkTimeUpdate": {
+      "cn": "系统工作时间更新",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:57:00"
+    },
+    "TimeCountInit": {
+      "cn": "定时器计数初始化",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:27:28"
+    },
+    "UsrInit": {
+      "cn": "执行用户初始化相关操作",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T01:27:12"
+    },
+    "WDogReset": {
+      "cn": "看门狗复位",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T02:59:30"
+    },
+    "WDogResetTrigger": {
+      "cn": "看门狗复位触发",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T03:02:10"
+    },
+    "WorkModeDataObtain": {
+      "cn": "工作模式数据获取",
+      "confidence": 0.9505,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:06:43"
+    },
+    "WorkModeProcessReceive": {
+      "cn": "受油模式协调处理",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:04:56"
+    },
+    "WorkModeProcessRefuel": {
+      "cn": "加油模式处理",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:07:43"
+    },
+    "WorkModeRIUDataCheck": {
+      "cn": "工作模式RIU数据校验",
+      "confidence": 0.918,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:06:34"
+    },
+    "WorkModeUpdate": {
+      "cn": "工作模式更新",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:06:36"
+    },
+    "WorkStateProcess": {
+      "cn": "工作状态处理",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:06:38"
+    },
+    "WriteToRs422Buff": {
+      "cn": "422接收数据缓冲写入",
+      "confidence": 0.9115000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:38:10"
+    },
+    "addrOpTest": {
+      "cn": "地址操作检测",
+      "confidence": 0.9635,
+      "source": "ai_func",
+      "updated_at": "2026-06-27T22:34:37"
+    },
+    "arithMeticOpTest": {
+      "cn": "算术运算检测",
+      "confidence": 0.9635,
+      "source": "ai_func",
+      "updated_at": "2026-06-27T22:34:18"
+    },
+    "bitLogicOpTest": {
+      "cn": "位逻辑检测",
+      "confidence": 0.9635,
+      "source": "ai_func",
+      "updated_at": "2026-06-27T22:34:17"
+    },
+    "calCRC16Prog": {
+      "cn": "地址块CRC16获取",
+      "confidence": 0.9635,
+      "source": "ai_func",
+      "updated_at": "2026-06-27T22:15:48"
+    },
+    "conditionOpTest": {
+      "cn": "条件检测",
+      "confidence": 0.9635,
+      "source": "ai_func",
+      "updated_at": "2026-06-27T22:34:14"
+    },
+    "cpuTest": {
+      "cn": "CPU整体检测",
+      "confidence": 0.9635,
+      "source": "ai_func",
+      "updated_at": "2026-06-27T23:08:15"
+    },
+    "delayUs": {
+      "cn": "延时控制",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T16:20:58"
+    },
+    "floatOpTest": {
+      "cn": "浮点值误差检测",
+      "confidence": 0.9635,
+      "source": "ai_func",
+      "updated_at": "2026-06-27T22:33:14"
+    },
+    "main": {
+      "cn": "主程序初始化执行",
+      "confidence": 0.8725,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T14:59:15"
+    },
+    "rsvd_ISR": {
+      "cn": "中断看门狗触发",
+      "confidence": 0.892,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:25:25"
+    },
+    "spiFlashDataTrans": {
+      "cn": "SPI闪存数据传输",
+      "confidence": 0.8725,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T15:04:51"
+    },
+    "sysTime": {
+      "cn": "系统时间",
+      "confidence": 0.9100000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T02:43:09"
+    },
+    "wDogDisable": {
+      "cn": "看门狗禁止",
+      "confidence": 0.957,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T02:59:14"
+    },
+    "wDogEnable": {
+      "cn": "看门狗中断使能",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T02:58:49"
+    },
+    "wDogFeed": {
+      "cn": "看门狗喂狗",
+      "confidence": 0.9375000000000001,
+      "source": "ai_func",
+      "updated_at": "2026-06-28T02:58:22"
+    }
+  },
+  "macros": {},
+  "members": {
+    "ChTypeCode_u16": {
+      "cn": "通道类型判别结果码",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:15"
+    },
+    "ChType_u16": {
+      "cn": "静态主备身份",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:18"
+    },
+    "Comm429_Aperi_Flag_u32": {
+      "cn": "429通信非周期发送标志",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:57:31"
+    },
+    "LATCH_EN_u16": {
+      "cn": "锁存使能",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:58:27"
+    },
+    "OilMode_u16": {
+      "cn": "高低压加油模式",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:26"
+    },
+    "PuBIT": {
+      "cn": "发布位",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T14:57:45"
+    },
+    "STB1_fault_u16": {
+      "cn": "STB1故障",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-28T15:55:25"
+    },
+    "STB2_fault_u16": {
+      "cn": "STB2故障标志",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-28T15:55:25"
+    },
+    "STB3_fault_u16": {
+      "cn": "STB3故障",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-28T15:55:25"
+    },
+    "STB4_fault_u16": {
+      "cn": "STB4故障",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-28T15:55:25"
+    },
+    "airOilEndState_u16": {
+      "cn": "空中加油结束状态",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:27"
+    },
+    "all": {
+      "cn": "控制信号数据",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:21"
+    },
+    "arbMasterChId_u16": {
+      "cn": "本次启动仲裁得到的主通道ID",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:15"
+    },
+    "bit11": {
+      "cn": "位11",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-22T22:28:38"
+    },
+    "bit13": {
+      "cn": "位13",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-22T22:28:38"
+    },
+    "bit15": {
+      "cn": "位15",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-22T22:28:38"
+    },
+    "bit9": {
+      "cn": "位9",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-22T22:28:38"
+    },
+    "checkState_u16": {
+      "cn": "数据检查状态",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:54:57"
+    },
+    "commCnt_u16": {
+      "cn": "通信故障连续计数",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:54:39"
+    },
+    "commFault_u16": {
+      "cn": "RIU通信故障",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:14"
+    },
+    "commandIssued_u16": {
+      "cn": "任务前检查命令已下发标志",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:57:21"
+    },
+    "commandSent_u16": {
+      "cn": "预位指令已发送标志",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:57:27"
+    },
+    "conFuncLast_u16": {
+      "cn": "上一拍控制功能",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:27"
+    },
+    "conFunc_u16": {
+      "cn": "控制功能",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:23"
+    },
+    "conMode_u16": {
+      "cn": "控制模式",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:57:23"
+    },
+    "conOutState_u16": {
+      "cn": "控制输出状态",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:14"
+    },
+    "currState_u16": {
+      "cn": "当前采集的IO引脚状态",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:54:56"
+    },
+    "dataCount_u16": {
+      "cn": "有效数据计数",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:57:21"
+    },
+    "dataState_u16": {
+      "cn": "数据状态",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:23"
+    },
+    "dataU_u16": {
+      "cn": "整形数",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:57:31"
+    },
+    "dataU_u32": {
+      "cn": "整型数据",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:24"
+    },
+    "hasFault_u16": {
+      "cn": "综合故障标志",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:16"
+    },
+    "imbalanceCnt_u16": {
+      "cn": "不平衡故障连续计数",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:54:40"
+    },
+    "imbalanceFault_u16": {
+      "cn": "油量不平衡故障",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:15"
+    },
+    "localChvPermit_u16": {
+      "cn": "本端CHV资格判据",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:20"
+    },
+    "localPreferredMasterChId_u16": {
+      "cn": "上一周期值",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-28T15:53:14"
+    },
+    "maintFunc_u16": {
+      "cn": "地面维护功能",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:24"
+    },
+    "measureChecked_u16": {
+      "cn": "测量系统状态检查结果",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:57:22"
+    },
+    "measureCnt_u16": {
+      "cn": "测量故障连续计数",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:54:39"
+    },
+    "measureFault_u16": {
+      "cn": "测量系统故障标志",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:15"
+    },
+    "myChID_u16": {
+      "cn": "本通道ID号",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:19"
+    },
+    "pageTotal_u16": {
+      "cn": "页面总数",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:39:36"
+    },
+    "peerAlive_u16": {
+      "cn": "当前拍对端基础帧在线状态",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:21"
+    },
+    "peerCtrlSeen_u16": {
+      "cn": "标志位",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-28T15:53:22"
+    },
+    "peerPreferredMasterChId_u16": {
+      "cn": "对端基础帧上报的冷启动",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:14"
+    },
+    "presetReady_u16": {
+      "cn": "预设准备完成标志",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:57:27"
+    },
+    "rcvChecked_u16": {
+      "cn": "RCV关闭状态检查结果",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:57:22"
+    },
+    "rcvTimeoutFault_u16": {
+      "cn": "RCV超时故障标志",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:57:22"
+    },
+    "reason_u16": {
+      "cn": "故障原因码",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:16"
+    },
+    "runtimeRole_u16": {
+      "cn": "动态控制权归属",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:17"
+    },
+    "rxState_u16": {
+      "cn": "通信接收状态",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:56:53"
+    },
+    "sysStateLast_u16": {
+      "cn": "系统状态上一拍",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:21"
+    },
+    "sysState_u16": {
+      "cn": "系统状态",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:21"
+    },
+    "sysWorkTimeSum_u16": {
+      "cn": "系统累计工作时间",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:56:47"
+    },
+    "sysWorkTime_u16": {
+      "cn": "系统单次工作时间",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:56:47"
+    },
+    "tank0_sensor_fault_u16": {
+      "cn": "标志位",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:55:25"
+    },
+    "tank1_sensor_fault_u16": {
+      "cn": "标志位",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:55:26"
+    },
+    "tank2_sensor_fault_u16": {
+      "cn": "标志位",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:55:26"
+    },
+    "tank3_sensor_fault_u16": {
+      "cn": "标志位",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:55:26"
+    },
+    "tank4_sensor_fault_u16": {
+      "cn": "标志位",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:55:26"
+    },
+    "valveChecked_u16": {
+      "cn": "阀位关闭状态检查结果",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:57:22"
+    },
+    "valveTimeoutFault_u16": {
+      "cn": "阀位超时故障标志",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:57:22"
+    },
+    "workModeLast_u16": {
+      "cn": "工作模式上一拍",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:22"
+    },
+    "workMode_u16": {
+      "cn": "工作模式",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T15:53:22"
+    }
+  },
+  "symbols": {
+    "CPUTEST_ADDR_OP_OK": {
+      "cn": "地址操作成功",
+      "confidence": 0.9359999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-27T23:11:23"
+    },
+    "CpuTimer0Regs": {
+      "cn": "CPU定时器0寄存器",
+      "confidence": 0.85,
+      "source": "infer_符号名含Regs后缀，usage_patterns显示取地址和作为函数参数，典型硬件寄存器结构体特征",
+      "updated_at": "2026-06-28T15:25:56"
+    },
+    "CpuTimer1Regs": {
+      "cn": "CPU定时器1寄存器",
+      "confidence": 0.85,
+      "source": "infer_符号名含Regs后缀，usage_patterns显示取地址和作为函数参数传递，典型寄存器结构体特征",
+      "updated_at": "2026-06-28T15:26:08"
+    },
+    "CpuTimer2Regs": {
+      "cn": "CPU定时器2寄存器",
+      "confidence": 0.85,
+      "source": "infer_符号名含Regs后缀，usage_patterns显示取地址和作为函数参数传递，典型的硬件寄存器结构体特征",
+      "updated_at": "2026-06-28T15:26:12"
+    },
+    "GPIO_PortB": {
+      "cn": "GPIO端口B",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:52:53"
+    },
+    "GPIO_PortC": {
+      "cn": "GPIO端口C",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:52:54"
+    },
+    "PuBIT": {
+      "cn": "发布位",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-28T14:57:31"
+    },
+    "SPE_DATA_STATE_ERR": {
+      "cn": "数据状态异常",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:54:59"
+    },
+    "Source": {
+      "cn": "来源",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-22T23:31:29"
+    },
+    "SysCtrlRegs": {
+      "cn": "系统控制寄存器",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T02:57:17"
+    },
+    "VALID": {
+      "cn": "有效标志",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T15:30:03"
+    },
+    "VALVE_STATE_OPEN": {
+      "cn": "阀开到位状态值",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T16:07:20"
+    },
+    "WORK_MODE_RECEIVE": {
+      "cn": "受油模式",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:39:07"
+    },
+    "baudRate": {
+      "cn": "限幅值",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:31:30"
+    },
+    "bit0": {
+      "cn": "位0",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:21:36"
+    },
+    "bit1": {
+      "cn": "位1",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:21:36"
+    },
+    "bit14": {
+      "cn": "位14",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-28T14:16:28"
+    },
+    "bit16": {
+      "cn": "位16",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-27T12:59:52"
+    },
+    "bit19": {
+      "cn": "位19",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-28T00:48:04"
+    },
+    "bit2": {
+      "cn": "位2",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-28T01:23:51"
+    },
+    "bit21": {
+      "cn": "位21",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-27T12:59:51"
+    },
+    "bit22": {
+      "cn": "位22",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-27T12:59:52"
+    },
+    "bit3": {
+      "cn": "位3",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:21:36"
+    },
+    "bit4": {
+      "cn": "位4",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-28T01:23:51"
+    },
+    "crc_ta": {
+      "cn": "CRC查表",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-27T22:07:45"
+    },
+    "da": {
+      "cn": "标志位",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-27T22:15:35"
+    },
+    "data": {
+      "cn": "从SCI口发送一个字节",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:31:47"
+    },
+    "flag": {
+      "cn": "标志位",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-22T23:31:47"
+    },
+    "g_timer0_Count_u32": {
+      "cn": "定时器0计数值",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T15:01:40"
+    },
+    "hour": {
+      "cn": "小时",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-28T14:19:40"
+    },
+    "l_BaseAddr_u32": {
+      "cn": "偏移量",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:31:11"
+    },
+    "l_GpioBit_u32": {
+      "cn": "GPIO位",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:52:53"
+    },
+    "l_GpioPort_u8": {
+      "cn": "GPIO端口",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:52:53"
+    },
+    "l_IDData_u16": {
+      "cn": "通道编码",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T15:57:58"
+    },
+    "l_IntEnable_u8": {
+      "cn": "标志位",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:31:54"
+    },
+    "l_IntFlag_u8": {
+      "cn": "标志位",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:31:56"
+    },
+    "l_LSRData_u16": {
+      "cn": "寄存器数据",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-28T02:44:41"
+    },
+    "l_LbMode_u8": {
+      "cn": "模式字",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:32:05"
+    },
+    "l_MaintFunc_u16": {
+      "cn": "维护功能",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-27T12:06:12"
+    },
+    "l_SoftwVData_un16": {
+      "cn": "软件版本数据",
+      "confidence": 0.9080000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:24:19"
+    },
+    "l_WDFlag_u16": {
+      "cn": "喂狗复位标志",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-28T02:47:22"
+    },
+    "l_addrLen_u32": {
+      "cn": "下载地址长度",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-27T12:06:12"
+    },
+    "l_baseAddr_u32": {
+      "cn": "偏移量",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-22T23:30:57"
+    },
+    "l_buff_u16": {
+      "cn": "数据缓存区",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-27T12:06:13"
+    },
+    "l_ccdlChType_t": {
+      "cn": "CCDL链路状态",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:21:55"
+    },
+    "l_ccdlPreferredMaster_t": {
+      "cn": "CCDL链路状态",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:21:55"
+    },
+    "l_commFaultRaw_u16": {
+      "cn": "原始通信故障",
+      "confidence": 0.8880000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:33:08"
+    },
+    "l_commID_u16": {
+      "cn": "通信源标识",
+      "confidence": 0.8880000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T16:06:45"
+    },
+    "l_componentState_u32": {
+      "cn": "标志位",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:18:48"
+    },
+    "l_condition_u16": {
+      "cn": "进入条件",
+      "confidence": 0.8900000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:45:31"
+    },
+    "l_consumedLen_u16": {
+      "cn": "已消耗长度",
+      "confidence": 0.9320000000000002,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:27:04"
+    },
+    "l_controlFaultMask_u16": {
+      "cn": "控制故障掩码",
+      "confidence": 0.8880000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:30:27"
+    },
+    "l_conv_un32": {
+      "cn": "转换结果",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T14:53:04"
+    },
+    "l_count_u16": {
+      "cn": "计数",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:09:14"
+    },
+    "l_crcData_u16": {
+      "cn": "校验数据",
+      "confidence": 0.95,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:55:33"
+    },
+    "l_currAddr_u32": {
+      "cn": "当前下载地址",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-27T12:06:13"
+    },
+    "l_currTimeAsk_u16": {
+      "cn": "当前时间请求位图",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:36:16"
+    },
+    "l_currVol_af": {
+      "cn": "各箱油量",
+      "confidence": 0.882,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:40:47"
+    },
+    "l_dCount_u32": {
+      "cn": "延时基准计数",
+      "confidence": 0.8880000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T02:38:16"
+    },
+    "l_dataH_u16": {
+      "cn": "数据高",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:58:17"
+    },
+    "l_dataL_u16": {
+      "cn": "低字节数据",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-27T12:06:04"
+    },
+    "l_dataState_u16": {
+      "cn": "来源状态码",
+      "confidence": 0.944,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:43:33"
+    },
+    "l_downloadParaChanged_u16": {
+      "cn": "下载参数是否变化",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-27T12:06:12"
+    },
+    "l_errStoreFlag_u16": {
+      "cn": "故障存储触发标志",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:53:27"
+    },
+    "l_exeResult_u16": {
+      "cn": "结果",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:24:53"
+    },
+    "l_fallbackMasterChId_u16": {
+      "cn": "后备主通道ID",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T14:47:34"
+    },
+    "l_faultInfo_un16": {
+      "cn": "故障反馈",
+      "confidence": 0.9120000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:32:50"
+    },
+    "l_flag_u16": {
+      "cn": "标志位",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:29:28"
+    },
+    "l_flashWinLen_u32": {
+      "cn": "下载窗口长度",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-27T12:06:13"
+    },
+    "l_frameCnt_u16": {
+      "cn": "扩展帧计数",
+      "confidence": 0.9080000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:24:07"
+    },
+    "l_frameIndex_u16": {
+      "cn": "有效帧起始索引",
+      "confidence": 0.95,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:13:43"
+    },
+    "l_frameLen_u16": {
+      "cn": "标志位",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:20:56"
+    },
+    "l_fuelPump_un8": {
+      "cn": "泵低压反馈",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:45:47"
+    },
+    "l_funcChanged_u16": {
+      "cn": "维护功能是否变化",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-27T12:06:12"
+    },
+    "l_hasLastHeart_u16": {
+      "cn": "心跳基线有效标志",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:56:34"
+    },
+    "l_headErrCnt_u16": {
+      "cn": "帧头错误计数",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:09:14"
+    },
+    "l_heartLast_u16": {
+      "cn": "上一拍心跳值",
+      "confidence": 0.9359999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:56:29"
+    },
+    "l_hlSensor_un16": {
+      "cn": "高液位反馈",
+      "confidence": 0.9120000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:40:21"
+    },
+    "l_hlStatus_u16": {
+      "cn": "状态字",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:23:19"
+    },
+    "l_ifBitResult_u32": {
+      "cn": "周期自检结果位图",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:21:46"
+    },
+    "l_ifbit_u32": {
+      "cn": "周期自检结果快照",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:22:24"
+    },
+    "l_ii_u16": {
+      "cn": "循环计数",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-28T02:43:47"
+    },
+    "l_ii_u32": {
+      "cn": "循环计数",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-28T02:37:44"
+    },
+    "l_imbalanceFaultRaw_u16": {
+      "cn": "原始不平衡故障",
+      "confidence": 0.8880000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:33:09"
+    },
+    "l_index_u16": {
+      "cn": "循环计数器",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T16:08:25"
+    },
+    "l_info_t": {
+      "cn": "信息",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-27T12:06:09"
+    },
+    "l_isOk_u16": {
+      "cn": "检测结果",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:11:37"
+    },
+    "l_jj_u16": {
+      "cn": "信息数据循环索引",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:18:56"
+    },
+    "l_jyzzState_u32": {
+      "cn": "状态字",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:18:48"
+    },
+    "l_leftDataState_u16": {
+      "cn": "左吊舱数据源状态",
+      "confidence": 0.9120000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T16:05:44"
+    },
+    "l_leftOk_u16": {
+      "cn": "左通道正常",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T15:52:03"
+    },
+    "l_leftPreFuelReqChanged_u16": {
+      "cn": "上一周期值",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:19:22"
+    },
+    "l_leftPreFuelReqCnt_u16": {
+      "cn": "左预燃油请求计数",
+      "confidence": 0.8880000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:19:14"
+    },
+    "l_len_u16": {
+      "cn": "数据长度",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-27T12:06:17"
+    },
+    "l_lifeReqChanged_u16": {
+      "cn": "生命周期请求变化标志",
+      "confidence": 0.8700000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:18:51"
+    },
+    "l_lifeReqCnt_u16": {
+      "cn": "生命周期请求计数",
+      "confidence": 0.8880000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:19:14"
+    },
+    "l_lifeReqData_un": {
+      "cn": "生命周期请求报文数据",
+      "confidence": 0.8700000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:18:51"
+    },
+    "l_localHealthy_u16": {
+      "cn": "本地健康状态",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T14:47:31"
+    },
+    "l_localPreferredValid_u16": {
+      "cn": "上一周期值",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:35:34"
+    },
+    "l_lowPowerCnt_u16": {
+      "cn": "低压确认计数",
+      "confidence": 0.8880000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:47:32"
+    },
+    "l_lowPowerState_u16": {
+      "cn": "电源自检状态",
+      "confidence": 0.9200000000000002,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:47:32"
+    },
+    "l_lpPreFuel_u16": {
+      "cn": "上一周期值",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:22:58"
+    },
+    "l_mBitResult_u32": {
+      "cn": "维护自检结果位图",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:21:46"
+    },
+    "l_maintCond_u16": {
+      "cn": "维护进入条件",
+      "confidence": 0.9200000000000002,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:47:47"
+    },
+    "l_maintIoStatus_u16": {
+      "cn": "维护开关状态",
+      "confidence": 0.9320000000000002,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:45:32"
+    },
+    "l_markerPending_u16": {
+      "cn": "标志位",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:30:43"
+    },
+    "l_max_f": {
+      "cn": "最大",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-22T23:09:10"
+    },
+    "l_maxlen_u8": {
+      "cn": "标志位",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-22T23:30:57"
+    },
+    "l_mbit_u32": {
+      "cn": "维护自检结果快照",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:22:24"
+    },
+    "l_measureFaultRaw_u16": {
+      "cn": "原始测量故障",
+      "confidence": 0.8880000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:33:09"
+    },
+    "l_now_u32": {
+      "cn": "系统时间",
+      "confidence": 0.9380000000000002,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:18:50"
+    },
+    "l_oddState_u16": {
+      "cn": "状态字",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:30:26"
+    },
+    "l_oilCmd_un32": {
+      "cn": "加油指令",
+      "confidence": 0.9080000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:45:32"
+    },
+    "l_oilMode_u16": {
+      "cn": "模式字",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:18:01"
+    },
+    "l_oilResetLeftReq_u16": {
+      "cn": "油液复位请求",
+      "confidence": 0.8700000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:18:52"
+    },
+    "l_oilResetReqChanged_u16": {
+      "cn": "油液复位请求变化标志",
+      "confidence": 0.8700000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:18:51"
+    },
+    "l_oilResetReqCnt_u16": {
+      "cn": "油液复位请求计数",
+      "confidence": 0.8880000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:19:14"
+    },
+    "l_oilResetReqData_un": {
+      "cn": "油液复位请求报文数据",
+      "confidence": 0.8700000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:18:51"
+    },
+    "l_oilResetRightReq_u16": {
+      "cn": "油液复位请求",
+      "confidence": 0.8700000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:18:52"
+    },
+    "l_okCnt_u16": {
+      "cn": "正常计数",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:58:33"
+    },
+    "l_overCnt_u16": {
+      "cn": "超限油箱计数",
+      "confidence": 0.9120000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:40:41"
+    },
+    "l_override_u16": {
+      "cn": "覆盖状态值",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:51:50"
+    },
+    "l_pCommBuff_u16": {
+      "cn": "接收缓冲指针",
+      "confidence": 0.95,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:28:16"
+    },
+    "l_pMaintData_t": {
+      "cn": "维护数据",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-27T12:06:15"
+    },
+    "l_p_maintData_t": {
+      "cn": "维护数据",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-22T22:24:53"
+    },
+    "l_p_rxMaintData_t": {
+      "cn": "接收维护数据",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-22T22:24:33"
+    },
+    "l_passCnt_u16": {
+      "cn": "通过次数",
+      "confidence": 0.948,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:11:18"
+    },
+    "l_pdCondition_u16": {
+      "cn": "掉电条件",
+      "confidence": 0.9320000000000002,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:47:46"
+    },
+    "l_peerPreferredValid_u16": {
+      "cn": "上一周期值",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:35:34"
+    },
+    "l_peerRandData_u16": {
+      "cn": "对端随机数",
+      "confidence": 0.8760000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T16:10:07"
+    },
+    "l_pendingMask_u16": {
+      "cn": "标志位",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:29:50"
+    },
+    "l_powerDownFlag_u16": {
+      "cn": "掉电标志",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-27T12:06:13"
+    },
+    "l_puBitStatus_u16": {
+      "cn": "上电自检状态",
+      "confidence": 0.9200000000000002,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:30:26"
+    },
+    "l_rData_u16": {
+      "cn": "接收数据",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-28T02:43:47"
+    },
+    "l_rData_u32": {
+      "cn": "返回结果",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:58:01"
+    },
+    "l_randData_u16": {
+      "cn": "随机仲裁数据",
+      "confidence": 0.9080000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:25:41"
+    },
+    "l_rcvData_un16": {
+      "cn": "受油活门反馈",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:40:48"
+    },
+    "l_rdata_f": {
+      "cn": "返回结果",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:31:01"
+    },
+    "l_rdata_un": {
+      "cn": "临时429字",
+      "confidence": 0.9120000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:36:16"
+    },
+    "l_readFlag_u16": {
+      "cn": "读取标志",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-28T02:47:22"
+    },
+    "l_receivePresetSuccess_u16": {
+      "cn": "上一周期值",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:18:24"
+    },
+    "l_redunData_t": {
+      "cn": "RIU链路状态",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:23:10"
+    },
+    "l_regAddr_u32": {
+      "cn": "偏移量",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:30:57"
+    },
+    "l_remainLen_u32": {
+      "cn": "剩余发送长度",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-27T12:06:13"
+    },
+    "l_remain_u16": {
+      "cn": "剩余",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-27T12:06:09"
+    },
+    "l_res_t": {
+      "cn": "单项余度数据",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:43:17"
+    },
+    "l_results_u16": {
+      "cn": "结果",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:52:52"
+    },
+    "l_retry_u16": {
+      "cn": "尝试次数",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-28T02:47:22"
+    },
+    "l_rightDataState_u16": {
+      "cn": "右吊舱数据源状态",
+      "confidence": 0.9120000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T16:05:45"
+    },
+    "l_rightOk_u16": {
+      "cn": "右通道正常",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T15:52:03"
+    },
+    "l_rightPreFuelReqChanged_u16": {
+      "cn": "上一周期值",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:19:22"
+    },
+    "l_rightPreFuelReqCnt_u16": {
+      "cn": "右预燃油请求计数",
+      "confidence": 0.8880000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:19:14"
+    },
+    "l_rpPreFuel_u16": {
+      "cn": "上一周期值",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:22:58"
+    },
+    "l_rslt_t": {
+      "cn": "返回结果",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:52:56"
+    },
+    "l_rslt_u16": {
+      "cn": "返回结果",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:20:02"
+    },
+    "l_rxCnt_u16": {
+      "cn": "接收计数",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T15:26:24"
+    },
+    "l_rxFifoState_u16": {
+      "cn": "状态值",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:21:15"
+    },
+    "l_sIndex_u32": {
+      "cn": "待存储计数索引",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:52:18"
+    },
+    "l_s_commFault_u16": {
+      "cn": "上一周期值",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:22:24"
+    },
+    "l_s_commSource_u16": {
+      "cn": "上一周期值",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:22:24"
+    },
+    "l_s_hasFault_u16": {
+      "cn": "上一周期值",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:22:24"
+    },
+    "l_s_ifbit_u32": {
+      "cn": "上拍周期自检结果快照",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:22:24"
+    },
+    "l_s_imbalanceFault_u16": {
+      "cn": "上一周期值",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:22:24"
+    },
+    "l_s_mbit_u32": {
+      "cn": "上拍维护自检结果快照",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:22:24"
+    },
+    "l_s_measureFault_u16": {
+      "cn": "上一周期值",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:22:24"
+    },
+    "l_s_reason_u16": {
+      "cn": "上一周期值",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:22:24"
+    },
+    "l_sendLen_u16": {
+      "cn": "当前帧发送长度",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-27T12:06:13"
+    },
+    "l_softvReqChanged_u16": {
+      "cn": "软件版本请求变化标志",
+      "confidence": 0.9000000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:21:27"
+    },
+    "l_softvReqCnt_u16": {
+      "cn": "软件版本请求计数",
+      "confidence": 0.8880000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:19:13"
+    },
+    "l_softvReqData_un": {
+      "cn": "软件版本请求报文数据",
+      "confidence": 0.8700000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:18:51"
+    },
+    "l_softvReqValid_u16": {
+      "cn": "软件版本请求有效标志",
+      "confidence": 0.8700000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:18:52"
+    },
+    "l_startAddr_u32": {
+      "cn": "下载起始地址",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-27T12:06:12"
+    },
+    "l_startupFlag_u16": {
+      "cn": "CPLD冷热启动标志",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-28T02:47:22"
+    },
+    "l_state_t": {
+      "cn": "状态值",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:17:59"
+    },
+    "l_statusMask_u16": {
+      "cn": "状态字",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:22:05"
+    },
+    "l_status_t": {
+      "cn": "状态值",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:22:05"
+    },
+    "l_storeSector_t": {
+      "cn": "状态字",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:29:26"
+    },
+    "l_sum_f": {
+      "cn": "数据和值",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:09:10"
+    },
+    "l_tData_u32": {
+      "cn": "控制指令数据",
+      "confidence": 0.9120000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:16:19"
+    },
+    "l_tIndex_u32": {
+      "cn": "临时缓存数据索引",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T16:14:20"
+    },
+    "l_tailSendCnt_u16": {
+      "cn": "补发计数",
+      "confidence": 0.9120000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:56:45"
+    },
+    "l_tailWaitCnt_u16": {
+      "cn": "补发等待计数",
+      "confidence": 0.9000000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:56:45"
+    },
+    "l_targetState_u16": {
+      "cn": "状态快照",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:24:49"
+    },
+    "l_taskCmd_un32": {
+      "cn": "加油指令",
+      "confidence": 0.9320000000000002,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:45:48"
+    },
+    "l_tempData_u16": {
+      "cn": "读取数据",
+      "confidence": 0.9320000000000002,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:55:23"
+    },
+    "l_tempIO_u16": {
+      "cn": "管脚状态",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-28T02:54:53"
+    },
+    "l_tempStatus_u16": {
+      "cn": "通信状态",
+      "confidence": 0.95,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:14:22"
+    },
+    "l_temp_2_u16": {
+      "cn": "临时2",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-27T12:06:01"
+    },
+    "l_timeoutSec_u16": {
+      "cn": "限幅值",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:17:48"
+    },
+    "l_timerNow_u32": {
+      "cn": "当前定时器计数",
+      "confidence": 0.9320000000000002,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:58:40"
+    },
+    "l_totalVol_f": {
+      "cn": "当前总油量",
+      "confidence": 0.948,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:40:47"
+    },
+    "l_txData_un": {
+      "cn": "发送数据字",
+      "confidence": 0.9120000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:15:10"
+    },
+    "l_txResult_u16": {
+      "cn": "发送结果",
+      "confidence": 0.95,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:09:04"
+    },
+    "l_validMask_u16": {
+      "cn": "有效性位图",
+      "confidence": 0.8880000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:30:27"
+    },
+    "l_valve1Data_un16": {
+      "cn": "第一组阀位反馈",
+      "confidence": 0.9120000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:44:34"
+    },
+    "l_valve2Data_un32": {
+      "cn": "第二组阀位反馈",
+      "confidence": 0.9000000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:40:33"
+    },
+    "l_valveClosed_u16": {
+      "cn": "阀位检查结果",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:45:22"
+    },
+    "l_valveData2_un32": {
+      "cn": "阀位反馈",
+      "confidence": 0.9120000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:45:17"
+    },
+    "l_ventValveOpen_u16": {
+      "cn": "通气阀打开状态",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:40:46"
+    },
+    "l_waitCnt_u16": {
+      "cn": "发送等待计数",
+      "confidence": 0.8880000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:56:46"
+    },
+    "l_wingTankCnt_u16": {
+      "cn": "翼箱计数",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:40:41"
+    },
+    "l_workMode_u16": {
+      "cn": "模式字",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:18:01"
+    },
+    "lc_p_conData_t": {
+      "cn": "控制数据指针",
+      "confidence": 0.968,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T16:14:26"
+    },
+    "len": {
+      "cn": "长度",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-27T22:06:29"
+    },
+    "lp_activeBuff_u8": {
+      "cn": "活动缓冲",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-22T22:21:19"
+    },
+    "minute": {
+      "cn": "分钟",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-28T14:19:40"
+    },
+    "month": {
+      "cn": "月份",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-28T14:19:31"
+    },
+    "parityMode": {
+      "cn": "SCI通信奇偶校验设置",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:31:39"
+    },
+    "rData": {
+      "cn": "返回结果",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-22T23:31:47"
+    },
+    "s_KZZZ429TxCnt_u32": {
+      "cn": "KZZZ429发送计数",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-22T22:17:27"
+    },
+    "s_RIU429TimeoutCnt_u32": {
+      "cn": "RIU429超时计数",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-28T14:17:22"
+    },
+    "s_RIU429TxCnt_u32": {
+      "cn": "RIU429发送计数",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-22T22:19:08"
+    },
+    "s_commCCDL422TxFlag_u16": {
+      "cn": "发送忙闲标志",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:23:07"
+    },
+    "s_controlFaultDebounce_t": {
+      "cn": "控制故障去抖",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-22T22:22:21"
+    },
+    "s_controlModeDebounce_t": {
+      "cn": "控制模式去抖",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-22T22:24:14"
+    },
+    "s_controlModeReentryLatch_u16": {
+      "cn": "标志位",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-22T22:24:00"
+    },
+    "s_flashRecords_t": {
+      "cn": "记录扇区结构",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:52:58"
+    },
+    "s_initStateStartTime_u32": {
+      "cn": "初始化状态启动时间",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:30:02"
+    },
+    "s_l_clrCount_u16": {
+      "cn": "标志清除计数",
+      "confidence": 0.8880000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:47:32"
+    },
+    "s_l_holdStarted_u16": {
+      "cn": "状态字",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:24:33"
+    },
+    "s_lastLeftPreFuelReqCnt_u16": {
+      "cn": "左预燃油请求计数上周期值",
+      "confidence": 0.9000000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:19:13"
+    },
+    "s_lastLifeReqCnt_u16": {
+      "cn": "生命周期请求计数上周期值",
+      "confidence": 0.9000000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:19:13"
+    },
+    "s_lastOilResetReqCnt_u16": {
+      "cn": "油液复位请求计数上周期值",
+      "confidence": 0.9000000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:19:13"
+    },
+    "s_lastRightPreFuelReqCnt_u16": {
+      "cn": "右预燃油请求计数上周期值",
+      "confidence": 0.9000000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:19:13"
+    },
+    "s_lastSoftvReqCnt_u16": {
+      "cn": "软件版本请求计数上周期值",
+      "confidence": 0.9000000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:19:13"
+    },
+    "s_lastTxWordKZZZ_u32": {
+      "cn": "上一周期值",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-22T22:17:15"
+    },
+    "s_maintCMDExeCnt_u16": {
+      "cn": "维护命令执行计数",
+      "confidence": 0.85,
+      "source": "infer_符号名含Cnt后缀，usage_patterns为accumulate，u16类型符合计数器特征",
+      "updated_at": "2026-06-28T14:47:11"
+    },
+    "s_maintCMDExeState_u16": {
+      "cn": "状态字",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-22T22:24:54"
+    },
+    "s_mySoftwVData_un16": {
+      "cn": "软件版本数据",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T15:36:56"
+    },
+    "s_powerDownFlag_u16": {
+      "cn": "标志位",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-22T23:30:15"
+    },
+    "s_preTaskCheckCtx_t": {
+      "cn": "上一周期值",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-22T22:24:20"
+    },
+    "s_puBITData_u16": {
+      "cn": "上电自检结果",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T15:36:31"
+    },
+    "s_riuSimLastSubcmd_u16": {
+      "cn": "上一周期值",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-22T22:17:48"
+    },
+    "s_rsMaintData_t": {
+      "cn": "维护数据",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:12:49"
+    },
+    "s_speDataPendingMask_u16": {
+      "cn": "待刷写数据掩码",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:55:25"
+    },
+    "s_startUpJudgeState_u32": {
+      "cn": "状态字",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-22T23:30:43"
+    },
+    "s_startUpMode_u16": {
+      "cn": "上电启动模式",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T02:49:37"
+    },
+    "s_stateCondBitMask_u16": {
+      "cn": "状态字",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-22T22:24:01"
+    },
+    "s_stateCondExpireTime_u32": {
+      "cn": "状态字",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-22T22:24:01"
+    },
+    "s_stateCondIFBitLevel_u16": {
+      "cn": "状态字",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-22T22:24:01"
+    },
+    "s_stateCondIoMask_u16": {
+      "cn": "状态字",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-22T22:24:01"
+    },
+    "s_stateCondLastSubcmd_u16": {
+      "cn": "上一周期值",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-22T22:24:01"
+    },
+    "s_stateCondMBitLevel_u16": {
+      "cn": "状态字",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-22T22:24:01"
+    },
+    "s_stateCondMaintIo_u16": {
+      "cn": "状态字",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-22T22:24:01"
+    },
+    "s_stateCondPower28vIo_u16": {
+      "cn": "状态字",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-22T22:24:01"
+    },
+    "s_stateCondPuBitKeyFault_u16": {
+      "cn": "状态字",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-22T22:24:01"
+    },
+    "s_syncFrameHealthy_u16": {
+      "cn": "帧同步健康状态",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T16:18:29"
+    },
+    "s_sysConData_t": {
+      "cn": "系统累计工作时间",
+      "confidence": 0.9299999999999999,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T14:34:51"
+    },
+    "sciID": {
+      "cn": "SCI通信数据位数设置",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:31:37"
+    },
+    "second": {
+      "cn": "秒",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-06-28T14:19:40"
+    },
+    "startAddr": {
+      "cn": "启动地址",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-27T22:06:29"
+    },
+    "tldata": {
+      "cn": "遥测数据",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-27T22:34:12"
+    },
+    "v_SendID_u16": {
+      "cn": "标志位",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:21:36"
+    },
+    "v_adcRef_u8": {
+      "cn": "ADC参考电源配置",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-27T13:09:44"
+    },
+    "v_bitStartIndex_u16": {
+      "cn": "电源结果位起始索引",
+      "confidence": 0.81,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T01:38:24"
+    },
+    "v_bufflen_u8": {
+      "cn": "标志位",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:31:02"
+    },
+    "v_ccdlID_u16": {
+      "cn": "CCDL标识",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:52:56"
+    },
+    "v_consumedLen_u16": {
+      "cn": "标志位",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:16:46"
+    },
+    "v_data_f": {
+      "cn": "限幅值",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:17:38"
+    },
+    "v_errStoreFlag_u16": {
+      "cn": "标志位",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:29:19"
+    },
+    "v_eventGroup_u16": {
+      "cn": "标志位",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:18:47"
+    },
+    "v_index_u16": {
+      "cn": "延迟落盘的特定数据掩码",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:29:43"
+    },
+    "v_info_u32": {
+      "cn": "信息",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:58:04"
+    },
+    "v_lastTxData_u32": {
+      "cn": "结束发送数据",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:58:17"
+    },
+    "v_len_16": {
+      "cn": "长度16",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:09:10"
+    },
+    "v_loopbackHAddr_u16": {
+      "cn": "偏移量",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:15:27"
+    },
+    "v_loopbackLAddr_u16": {
+      "cn": "偏移量",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:15:27"
+    },
+    "v_newState_u16": {
+      "cn": "新状态",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:58:04"
+    },
+    "v_num_u16": {
+      "cn": "数量",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:52:58"
+    },
+    "v_offset_u16": {
+      "cn": "偏移量",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:29:22"
+    },
+    "v_outTarget_f": {
+      "cn": "输出目标速度",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-06-28T14:39:55"
+    },
+    "v_pBuff_f": {
+      "cn": "缓冲",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:09:10"
+    },
+    "v_pBuff_u16": {
+      "cn": "缓冲",
+      "confidence": 0.82,
+      "source": "rule_rule",
+      "updated_at": "2026-06-28T02:44:41"
+    },
+    "v_pSpeData_t": {
+      "cn": "状态字",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:29:44"
+    },
+    "v_pbuff_un": {
+      "cn": "数据缓冲",
+      "confidence": 0.8700000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T15:02:46"
+    },
+    "v_sIndex_u16": {
+      "cn": "维护通信接收数据处理",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-27T12:06:13"
+    },
+    "v_seqnum_u8": {
+      "cn": "序列器最大转换通道数设置",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-27T13:09:45"
+    },
+    "v_startIndex_u16": {
+      "cn": "获取正常检测项的计数",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-28T01:34:30"
+    },
+    "v_wData_u16": {
+      "cn": "延迟落盘的特定数据掩码",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T23:29:43"
+    },
+    "v_workMode_u16": {
+      "cn": "模式字",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:24:00"
+    },
+    "vp_channelBuff_u8": {
+      "cn": "ADC转换通道配置",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-27T13:09:46"
+    },
+    "vp_data_t": {
+      "cn": "获取正常检测项的计数",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-28T01:34:30"
+    },
+    "vp_faultLevel_u16": {
+      "cn": "该检测项故障处理等级",
+      "confidence": 0.9000000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T01:34:22"
+    },
+    "vp_rBuff_u16": {
+      "cn": "接收缓冲指针",
+      "confidence": 0.8880000000000001,
+      "source": "ai_symbol",
+      "updated_at": "2026-06-28T15:03:57"
+    },
+    "vp_resultBits_u32": {
+      "cn": "结果",
+      "confidence": 0.84,
+      "source": "rule_rule",
+      "updated_at": "2026-06-22T22:15:20"
+    }
+  },
+  "updated_at": "2026-06-30T08:37:30",
+  "version": 1
+}

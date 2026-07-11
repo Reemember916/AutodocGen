@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+output/
+tmp/
+
+autodocgen.ini
+*.log
+error.log
+tool.log
+
+ai_repro/
+.autodoc/
+
+.DS_Store
+.worktrees/
