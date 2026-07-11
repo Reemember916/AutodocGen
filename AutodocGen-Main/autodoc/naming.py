@@ -2613,11 +2613,23 @@ def _project_title_index_items(*, backend_module=None) -> list[dict[str, Any]]:
     return list((_normalize_title_index_payload(data, backend_module=backend) or {}).get("items") or [])
 
 
+_SYMBOL_INDEX_CACHE: list[dict[str, Any]] = []
+_SYMBOL_INDEX_CACHE_KEY: int = 0
+
+
 def _project_symbol_index_items(*, backend_module=None) -> list[dict[str, Any]]:
+    global _SYMBOL_INDEX_CACHE, _SYMBOL_INDEX_CACHE_KEY
     backend = backend_module or legacy_backend()
     with backend._NAMING_INDEX_LOCK:
-        data = copy.deepcopy(backend._PROJECT_SYMBOL_INDEX_DATA)
-    return list((_normalize_symbol_index_payload(data, backend_module=backend) or {}).get("items") or [])
+        data = backend._PROJECT_SYMBOL_INDEX_DATA
+    data_id = id(data)
+    if data_id == _SYMBOL_INDEX_CACHE_KEY and _SYMBOL_INDEX_CACHE:
+        return _SYMBOL_INDEX_CACHE
+    # normalize 不修改输入（创建新 dict），无需 deepcopy
+    items = list((_normalize_symbol_index_payload(data, backend_module=backend) or {}).get("items") or [])
+    _SYMBOL_INDEX_CACHE = items
+    _SYMBOL_INDEX_CACHE_KEY = data_id
+    return items
 
 
 def _rebuild_project_naming_indexes(project_root: str, cfg: Optional[Any], *, backend_module=None) -> tuple[dict[str, Any], dict[str, Any]]:
