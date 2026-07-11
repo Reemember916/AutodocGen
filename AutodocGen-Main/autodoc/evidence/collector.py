@@ -376,7 +376,7 @@ def collect_function_evidence(
     has_empty_else = any(s.is_empty_else for s in step_evs)
     has_unknown = any(s.step_kind == "unknown" for s in step_evs)
     has_low_conf_vars = any(v.confidence < 0.5 for v in var_evs)
-    has_fallback_expr = any(e.source in ("raw", "fallback", "empty") for e in expr_evs)
+    has_fallback_expr = any(e.source in ("raw", "empty") for e in expr_evs)
 
     return FunctionEvidence(
         func_name=_safe_str(func_info.get("func_name")),
@@ -410,7 +410,9 @@ def build_quality_summary(ev: FunctionEvidence) -> QualitySummary:
     low_conf_var_count = sum(1 for v in ev.variables if v.confidence < 0.5)
 
     expr_count = len(ev.expressions)
-    fallback_expr_count = sum(1 for e in ev.expressions if e.source in ("raw", "fallback", "empty"))
+    # fallback 表达式:已解析但无中文模板(comparison/shift/logical)不扣分,
+    # 仅 raw/empty(无法解析)才扣分
+    fallback_expr_count = sum(1 for e in ev.expressions if e.source in ("raw", "empty"))
 
     avg_step_conf = 0.0
     if total_steps > 0:

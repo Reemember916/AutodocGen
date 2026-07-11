@@ -1,10 +1,206 @@
-"""Small C expression parser/renderer for design-document logic text."""
+"""Small C expression parser/renderer for design-document logic text.
+
+P0#4: tree-sitter expression node -> ExprIR 成为优先路径，
+现有字符串 parser 退为 fallback。失败时仅该表达式降级。
+"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 import re
-from typing import Optional, Sequence
+from typing import Any, Optional, Sequence
+
+
+# ── tree-sitter 表达式 parser（P0#4 优先路径）──────────────────────
+
+_TS_PARSER = None
+_TS_READY = False
+
+
+def _get_ts_parser():
+    """惰性初始化 tree-sitter C parser。"""
+    global _TS_PARSER, _TS_READY
+    if _TS_READY:
+        return _TS_PARSER
+    _TS_READY = True
+    try:
+        import tree_sitter_c as tsc
+        from tree_sitter import Language, Parser
+
+        _TS_PARSER = Parser(Language(tsc.language()))
+    except Exception:
+        _TS_PARSER = None
+    return _TS_PARSER
+
+
+def _ts_text(source_bytes: bytes, node: Any) -> str:
+    try:
+        return source_bytes[node.start_byte:node.end_byte].decode("utf-8", errors="replace")
+    except Exception:
+        return ""
+
+
+def _ts_child(node: Any, field_name: str) -> Any:
+    """获取 node 的指定 field 子节点。"""
+    try:
+        return node.child_by_field_name(field_name)
+    except Exception:
+        return None
+
+
+def _ts_children(node: Any) -> list:
+    try:
+        return list(node.children or [])
+    except Exception:
+        return []
+
+
+def _ts_node_type(node: Any) -> str:
+    return getattr(node, "type", "") or ""
+
+
+def _build_exprir_from_ts(node: Any, source_bytes: bytes) -> Optional[ExprIR]:
+    """从 tree-sitter expression node 递归构建 ExprIR。
+
+    覆盖范围: identifier / literal / call / subscript / field /
+    unary / binary / cast / parenthesized。
+    """
+    if node is None:
+        return None
+    nt = _ts_node_type(node)
+    text = _ts_text(source_bytes, node)
+
+    # parenthesized_expression → 递归内部
+    if nt == "parenthesized_expression":
+        children = _ts_children(node)
+        inner = None
+        for c in children:
+            if _ts_node_type(c) not in ("(", ")"):
+                inner = c
+                break
+        return _build_exprir_from_ts(inner, source_bytes) or ExprIR(kind="raw", text=text)
+
+    # cast_expression → 递归 value
+    if nt == "cast_expression":
+        value_node = _ts_child(node, "value")
+        if value_node is not None:
+            inner = _build_exprir_from_ts(value_node, source_bytes)
+            if inner:
+                return inner
+        return ExprIR(kind="raw", text=text)
+
+    # identifier
+    if nt == "identifier":
+        return ExprIR(kind="identifier", text=text, name=text)
+
+    # number_literal / string_literal / char_literal
+    if nt in ("number_literal", "string_literal", "char_literal"):
+        return ExprIR(kind="literal", text=text, value=text)
+
+    # call_expression: function + arguments
+    if nt == "call_expression":
+        func_node = _ts_child(node, "function")
+        args_node = _ts_child(node, "arguments")
+        func_name = _ts_text(source_bytes, func_node) if func_node else text
+        # 提取实参
+        arg_irs: list[ExprIR] = []
+        if args_node is not None:
+            for ac in _ts_children(args_node):
+                if _ts_node_type(ac) == "argument_list" or _ts_node_type(ac) == "(" or _ts_node_type(ac) == ")":
+                    continue
+                arg_ir = _build_exprir_from_ts(ac, source_bytes)
+                if arg_ir:
+                    arg_irs.append(arg_ir)
+        return ExprIR(kind="call", text=text, name=func_name, children=tuple(arg_irs))
+
+    # subscript_expression: array[index]
+    if nt == "subscript_expression":
+        return ExprIR(kind="raw_ref", text=text)
+
+    # field_expression: arg.field 或 arg->field
+    if nt == "field_expression":
+        return ExprIR(kind="raw_ref", text=text)
+
+    # unary_expression: operator + argument
+    if nt == "unary_expression":
+        op_node = _ts_child(node, "operator")
+        arg_node = _ts_child(node, "argument")
+        op = _ts_text(source_bytes, op_node) if op_node else ""
+        # ~ → unary；其他一元运算符 (!, -, +, &, *) → raw
+        if op == "~" and arg_node is not None:
+            child = _build_exprir_from_ts(arg_node, source_bytes)
+            if child:
+                return ExprIR(kind="unary", text=text, op="~", children=(child,))
+        return ExprIR(kind="raw", text=text)
+
+    # binary_expression: left + operator + right
+    if nt == "binary_expression":
+        left_node = _ts_child(node, "left")
+        right_node = _ts_child(node, "right")
+        op_node = _ts_child(node, "operator")
+        op = _ts_text(source_bytes, op_node) if op_node else ""
+        if left_node and right_node and op:
+            left = _build_exprir_from_ts(left_node, source_bytes)
+            right = _build_exprir_from_ts(right_node, source_bytes)
+            if left and right:
+                return ExprIR(kind="binary", text=text, op=op, children=(left, right))
+        return ExprIR(kind="raw", text=text)
+
+    # assignment_expression（赋值出现在条件中时）
+    if nt == "assignment_expression":
+        left_node = _ts_child(node, "left")
+        right_node = _ts_child(node, "right")
+        op_node = _ts_child(node, "operator")
+        op = _ts_text(source_bytes, op_node) if op_node else "="
+        if left_node and right_node:
+            left = _build_exprir_from_ts(left_node, source_bytes)
+            right = _build_exprir_from_ts(right_node, source_bytes)
+            if left and right:
+                return ExprIR(kind="binary", text=text, op=op, children=(left, right))
+        return ExprIR(kind="raw", text=text)
+
+    # conditional_expression (ternary): a ? b : c
+    if nt == "conditional_expression":
+        return ExprIR(kind="raw", text=text)
+
+    # 兜底
+    return ExprIR(kind="raw", text=text)
+
+
+def parse_expression_from_ts(expr_text: str) -> ExprIR | None:
+    """用 tree-sitter 解析 C 表达式，构建 ExprIR（优先路径）。
+
+    将表达式包装为 ``int __ts_var = <expr>;`` 解析，
+    然后从 init_declarator 的 value 提取表达式 AST。
+    失败时返回 None，调用方应回退字符串 parser。
+    """
+    parser = _get_ts_parser()
+    if parser is None:
+        return None
+    raw = str(expr_text or "").strip()
+    if not raw:
+        return None
+    # 包装为完整 C 声明语句
+    wrapper = f"int __ts_var = {raw};"
+    source_bytes = wrapper.encode("utf-8", errors="replace")
+    try:
+        tree = parser.parse(source_bytes)
+    except Exception:
+        return None
+    if tree is None or tree.root_node is None:
+        return None
+
+    # 遍历找到 init_declarator 的 value（即表达式）
+    stack = [tree.root_node]
+    while stack:
+        current = stack.pop()
+        nt = _ts_node_type(current)
+        if nt == "init_declarator":
+            value_node = _ts_child(current, "value")
+            if value_node is not None:
+                return _build_exprir_from_ts(value_node, source_bytes)
+        stack.extend(reversed(_ts_children(current)))
+    return None
 
 
 @dataclass(frozen=True)
@@ -247,6 +443,17 @@ def _looks_like_ref_chain(value: str) -> bool:
 
 
 def parse_c_expression(expr_text: str) -> ExprIR | None:
+    """解析 C 表达式为 ExprIR。
+
+    P0#4: tree-sitter 优先路径，字符串 parser 退为 fallback。
+    tree-sitter 不可用或解析失败时仅该表达式降级到字符串 parser。
+    """
+    # 优先路径: tree-sitter
+    ts_result = parse_expression_from_ts(expr_text)
+    if ts_result is not None:
+        return ts_result
+
+    # 回退: 字符串 parser
     value = _strip_outer_parens(expr_text)
     if not value or not _balanced(value):
         return None
