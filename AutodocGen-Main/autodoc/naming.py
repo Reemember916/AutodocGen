@@ -2615,10 +2615,12 @@ def _project_title_index_items(*, backend_module=None) -> list[dict[str, Any]]:
 
 _SYMBOL_INDEX_CACHE: list[dict[str, Any]] = []
 _SYMBOL_INDEX_CACHE_KEY: int = 0
+# token → record 索引列表，用于 retrieve_symbol_context 快速查找候选
+_TOKEN_INVERTED_INDEX: dict[str, list[int]] = {}
 
 
 def _project_symbol_index_items(*, backend_module=None) -> list[dict[str, Any]]:
-    global _SYMBOL_INDEX_CACHE, _SYMBOL_INDEX_CACHE_KEY
+    global _SYMBOL_INDEX_CACHE, _SYMBOL_INDEX_CACHE_KEY, _TOKEN_INVERTED_INDEX
     backend = backend_module or legacy_backend()
     with backend._NAMING_INDEX_LOCK:
         data = backend._PROJECT_SYMBOL_INDEX_DATA
@@ -2629,6 +2631,18 @@ def _project_symbol_index_items(*, backend_module=None) -> list[dict[str, Any]]:
     items = list((_normalize_symbol_index_payload(data, backend_module=backend) or {}).get("items") or [])
     _SYMBOL_INDEX_CACHE = items
     _SYMBOL_INDEX_CACHE_KEY = data_id
+    # 构建 token 倒排索引
+    token_idx: dict[str, list[int]] = {}
+    for i, item in enumerate(items):
+        sym = utils_module._safe_strip(item.get("symbol"))
+        if not sym:
+            continue
+        for tok in text_utils._split_ident_tokens(sym):
+            key = tok.lower()
+            if key not in token_idx:
+                token_idx[key] = []
+            token_idx[key].append(i)
+    _TOKEN_INVERTED_INDEX = token_idx
     return items
 
 
@@ -2923,7 +2937,15 @@ def retrieve_symbol_context(symbol_record: dict, cfg: Optional[Any] = None, *, b
     current_members = {utils_module._safe_strip(x) for x in (current_owner_semantic.get("member_accesses") or ()) if utils_module._safe_strip(x)}
     semantic_maps = semantic_utils.project_semantic_record_maps(backend_module=backend)
     scored: list[tuple[int, dict[str, Any]]] = []
-    for record in _project_symbol_index_items(backend_module=backend):
+    all_items = _project_symbol_index_items(backend_module=backend)
+    # 用 token 倒排索引快速定位候选记录，避免全量扫描
+    candidate_indices: set[int] = set()
+    for tok in symbol_tokens:
+        candidate_indices.update(_TOKEN_INVERTED_INDEX.get(tok, ()))
+    if not candidate_indices:
+        return []
+    for idx in sorted(candidate_indices):
+        record = all_items[idx]
         if utils_module._safe_strip(record.get("symbol")) == symbol and utils_module._safe_strip(record.get("owner_func")) == utils_module._safe_strip((symbol_record or {}).get("owner_func")):
             continue
         rec_tokens = {tok.lower() for tok in text_utils._split_ident_tokens(utils_module._safe_strip(record.get("symbol")))}
