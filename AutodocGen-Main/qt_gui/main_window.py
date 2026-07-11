@@ -75,9 +75,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self._gui_log_queue: "queue.Queue[str]" = queue.Queue()
 
         self.setWindowTitle(f"CSCI 详细设计生成器{self._title_suffix}")
-        self.resize(1100, 700)
-        self.setMinimumWidth(900)
-        self.setMinimumHeight(600)
+        self.resize(1200, 720)
+        self.setMinimumWidth(1000)
+        self.setMinimumHeight(620)
 
         self._build_ui()
         # Settings 页较重，按需加载；这里不强制构建/应用
@@ -432,8 +432,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self._sidebar = QtWidgets.QFrame()
         self._sidebar.setObjectName("sidebar")
-        self._sidebar.setMinimumWidth(140)
-        self._sidebar.setMaximumWidth(200)
+        self._sidebar.setMinimumWidth(120)
+        self._sidebar.setMaximumWidth(180)
         sb = QtWidgets.QVBoxLayout(self._sidebar)
         sb.setContentsMargins(14, 14, 14, 14)
         sb.setSpacing(6)
@@ -491,7 +491,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self._progress = QtWidgets.QProgressBar()
         self._progress.setObjectName("progress_bar")
-        self._progress.setFixedWidth(140)
+        self._progress.setFixedWidth(180)
         self._progress.setTextVisible(True)
         self._progress.setFormat("")
         self._progress.setRange(0, 1)
@@ -516,7 +516,7 @@ class MainWindow(QtWidgets.QMainWindow):
         top_splitter.addWidget(self._stack)
         top_splitter.setStretchFactor(0, 0)
         top_splitter.setStretchFactor(1, 1)
-        top_splitter.setSizes([60, 540])
+        top_splitter.setSizes([56, 580])
         main.addWidget(top_splitter, 1)
 
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
@@ -525,7 +525,7 @@ class MainWindow(QtWidgets.QMainWindow):
         splitter.addWidget(self._main_area)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
-        splitter.setSizes([180, 720])
+        splitter.setSizes([160, 840])
 
         root.addWidget(splitter, 1)
         self.setCentralWidget(self._central)
@@ -2046,7 +2046,7 @@ class MainWindow(QtWidgets.QMainWindow):
         splitter.addWidget(self._right_panel)
         splitter.setStretchFactor(0, 3)
         splitter.setStretchFactor(1, 2)
-        splitter.setSizes([520, 340])
+        splitter.setSizes([640, 380])
 
         self._refresh_recent_summary()
         self._sync_source_mode()
