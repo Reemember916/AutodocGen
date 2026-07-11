@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import replace
+import copy
+import hashlib
 import os
 import re
 import string
@@ -22,6 +24,123 @@ from docx.text.paragraph import Paragraph as DocxParagraph
 from ._legacy_support import legacy_backend
 from . import utils
 from .models import DesignModel, FunctionDesign
+
+# ── docx 渲染元素缓存（增量复跑时跳过渲染，直接插入缓存的 XML 元素）──
+_RENDER_CACHE: dict[str, list] = {}
+_RENDER_CACHE_HITS = 0
+_RENDER_CACHE_MISSES = 0
+_RENDER_CACHE_REPLAY_TIME = 0.0
+
+
+def _render_cache_key(source_file: str, func_name: str, body: str) -> str:
+    body_hash = hashlib.sha1((body or "").encode("utf-8", errors="replace")).hexdigest()[:8]
+    return f"{source_file}::{func_name}::{body_hash}"
+
+
+def try_replay_rendered(doc, cache_key: str) -> bool:
+    """尝试从缓存插入已渲染的 XML 元素。成功返回 True。"""
+    global _RENDER_CACHE_HITS, _RENDER_CACHE_MISSES, _RENDER_CACHE_REPLAY_TIME
+    cached = _RENDER_CACHE.get(cache_key)
+    if not cached:
+        _RENDER_CACHE_MISSES += 1
+        return False
+    import time as _time
+    t0 = _time.time()
+    body = doc.element.body
+    for elem in cached:
+        body.append(copy.deepcopy(elem))
+    _RENDER_CACHE_REPLAY_TIME += _time.time() - t0
+    _RENDER_CACHE_HITS += 1
+    return True
+
+
+def load_render_cache(path: str) -> None:
+    """从磁盘加载渲染缓存（XML 字符串 → lxml 元素）。"""
+    import json
+    from lxml import etree
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        for key, xml_strs in data.items():
+            elems = []
+            for xml_str in xml_strs:
+                try:
+                    elems.append(etree.fromstring(xml_str))
+                except Exception:
+                    pass
+            if elems:
+                _RENDER_CACHE[key] = elems
+        import sys as _sys
+        print(f"[render_cache] loaded {len(_RENDER_CACHE)} entries from {path}", file=_sys.stderr)
+    except Exception as exc:
+        import sys as _sys
+        print(f"[render_cache] load failed: {exc}", file=_sys.stderr)
+
+
+def capture_rendered_elements(doc, body_start_count: int, cache_key: str) -> None:
+    """捕获渲染后新增的 XML 元素并存入缓存。"""
+    body = doc.element.body
+    current = list(body)
+    if len(current) <= body_start_count:
+        return
+    new_elements = current[body_start_count:]
+    _RENDER_CACHE[cache_key] = copy.deepcopy(new_elements)
+
+
+def clear_render_cache() -> None:
+    """清空渲染缓存（新一轮生成前调用）。"""
+    _RENDER_CACHE.clear()
+
+
+def save_render_cache(path: str) -> None:
+    """将渲染缓存序列化到磁盘（lxml 元素 → XML 字符串）。"""
+    import json
+    from lxml import etree
+    import sys as _sys
+    import time as _time
+    t0 = _time.time()
+    out = {}
+    for key, elems in _RENDER_CACHE.items():
+        try:
+            out[key] = [etree.tostring(e, encoding="unicode") for e in elems]
+        except Exception:
+            pass
+    try:
+        import os as _os
+        _os.makedirs(_os.path.dirname(path) or ".", exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(out, f, ensure_ascii=False)
+        t1 = _time.time()
+        total = _RENDER_CACHE_HITS + _RENDER_CACHE_MISSES
+        hit_rate = (_RENDER_CACHE_HITS / total * 100) if total > 0 else 0
+        print(f"[render_cache] saved {len(out)} entries in {t1-t0:.2f}s, hits={_RENDER_CACHE_HITS}, misses={_RENDER_CACHE_MISSES}, rate={hit_rate:.1f}%, replay_time={_RENDER_CACHE_REPLAY_TIME:.2f}s", file=_sys.stderr)
+    except Exception as exc:
+        print(f"[render_cache] save failed: {exc}", file=_sys.stderr)
+
+
+def load_render_cache(path: str) -> None:
+    """从磁盘加载渲染缓存（XML 字符串 → lxml 元素）。"""
+    import json
+    from lxml import etree
+    import sys as _sys
+    import time as _time
+    t0 = _time.time()
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        for key, xml_strs in data.items():
+            elems = []
+            for xml_str in xml_strs:
+                try:
+                    elems.append(etree.fromstring(xml_str))
+                except Exception:
+                    pass
+            if elems:
+                _RENDER_CACHE[key] = elems
+        t1 = _time.time()
+        print(f"[render_cache] loaded {len(_RENDER_CACHE)} entries in {t1-t0:.2f}s from {path}", file=_sys.stderr)
+    except Exception as exc:
+        print(f"[render_cache] load failed: {exc}", file=_sys.stderr)
 
 
 _UNIT_TABLE_HEADERS = ("序号", "软件单元名称", "函数原型", "唯一标识", "存放位置", "开发状态", "用途")

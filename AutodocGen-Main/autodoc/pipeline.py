@@ -5396,7 +5396,15 @@ def execute_project_module_tasks(
         ):
             try:
                 cfg._current_render_func_data = task.get("func_data") or {}
-                render_module.render_function_design(doc, design, cfg)
+                _rkey = render_module._render_cache_key(
+                    task.get("source_file", ""),
+                    task.get("func_name", ""),
+                    (task.get("func_data") or {}).get("body", ""),
+                )
+                _body_start = len(list(doc.element.body))
+                if not render_module.try_replay_rendered(doc, _rkey):
+                    render_module.render_function_design(doc, design, cfg)
+                    render_module.capture_rendered_elements(doc, _body_start, _rkey)
                 _collect_review_function(cfg, design, task)
                 _collect_design_workspace_pair(cfg, design, task)
             finally:
@@ -5503,7 +5511,15 @@ def execute_single_file_tasks(
         ):
             try:
                 cfg._current_render_func_data = task.get("func_data") or {}
-                render_module.render_function_design(doc, design, cfg)
+                _rkey = render_module._render_cache_key(
+                    task.get("source_file", ""),
+                    task.get("func_name", ""),
+                    (task.get("func_data") or {}).get("body", ""),
+                )
+                _body_start = len(list(doc.element.body))
+                if not render_module.try_replay_rendered(doc, _rkey):
+                    render_module.render_function_design(doc, design, cfg)
+                    render_module.capture_rendered_elements(doc, _body_start, _rkey)
                 _collect_review_function(cfg, design, task)
                 _collect_design_workspace_pair(cfg, design, task)
             finally:
@@ -5583,7 +5599,16 @@ def execute_single_export_task(
         )
         try:
             cfg._current_render_func_data = task.get("func_data") or {}
-            render_module.render_function_design(doc, design, cfg)
+            # docx 渲染缓存：未变函数直接复用缓存的 XML 元素
+            _rkey = render_module._render_cache_key(
+                task.get("source_file", ""),
+                task.get("func_name", ""),
+                (task.get("func_data") or {}).get("body", ""),
+            )
+            _body_start = len(list(doc.element.body))
+            if not render_module.try_replay_rendered(doc, _rkey):
+                render_module.render_function_design(doc, design, cfg)
+                render_module.capture_rendered_elements(doc, _body_start, _rkey)
             _collect_review_function(cfg, design, task)
             _collect_design_workspace_pair(cfg, design, task)
         finally:
@@ -6424,6 +6449,12 @@ def run_single_file_generation(
     if _EVIDENCE_ENABLED:
         clear_recorded_evidence()
     project_root = backend._guess_project_root_for_source(source)
+    # 加载 docx 渲染缓存
+    try:
+        if project_root:
+            render_module.load_render_cache(os.path.join(project_root, ".autodoc", "render_cache.json"))
+    except Exception:
+        pass
     runtime_ctx = runtime_module.ensure_project_runtime(
         cfg,
         project_root=project_root,
@@ -6590,6 +6621,12 @@ def run_single_file_generation(
         except Exception:
             pass
     backend.finalize_project_symbol_memory(cfg)
+    # 保存 docx 渲染缓存
+    try:
+        if project_root:
+            render_module.save_render_cache(os.path.join(project_root, ".autodoc", "render_cache.json"))
+    except Exception:
+        pass
     # P0#3 Evidence 报告输出（shadow mode）
     if _EVIDENCE_ENABLED:
         try:
@@ -6779,6 +6816,12 @@ def run_project_generation(
     backend.vlog(cfg, f"开始处理工程目录：{root_dir}")
     if _EVIDENCE_ENABLED:
         clear_recorded_evidence()
+    # 加载 docx 渲染缓存（增量复跑时跳过未变函数的渲染）
+    try:
+        from . import render as _render_mod
+        _render_mod.load_render_cache(os.path.join(root_dir, ".autodoc", "render_cache.json"))
+    except Exception:
+        pass
     if not os.path.isdir(root_dir):
         raise backend.SourceReadError(f"目录不存在：{root_dir}")
     runtime_ctx = runtime_module.ensure_project_runtime(
@@ -7327,6 +7370,13 @@ def run_project_generation(
             backend.vlog(cfg, f"[增量] 状态已保存，跳过 {skipped_count} 个函数")
         except Exception as exc:
             backend.vlog(cfg, f"[增量] 状态保存失败: {exc}")
+
+    # 保存 docx 渲染缓存（下次复跑可直接插入 XML 元素，跳过渲染）
+    try:
+        from . import render as _render_mod
+        _render_mod.save_render_cache(os.path.join(root_dir, ".autodoc", "render_cache.json"))
+    except Exception:
+        pass
 
     if generation.open_after_done and os.name == "nt":
         try:
