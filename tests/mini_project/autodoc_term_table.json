@@ -1,0 +1,354 @@
+{
+  "functions": {
+    "CheckSensor": {
+      "aliases": [],
+      "candidates": [],
+      "cn": "检测指定传感器通道的状态",
+      "confidence": 0.84,
+      "evidence": [
+        "检测指定传感器通道的状态，读取原始数据并校验有效范围。"
+      ],
+      "ident": "CheckSensor",
+      "internal": false,
+      "kind": "functions",
+      "locked": false,
+      "scope": "project",
+      "source": "comment_rule",
+      "source_rank": 76,
+      "updated_at": "2026-07-11T18:39:25",
+      "usage": "检测指定传感器通道的状态，读取原始数据并校验有效范围。"
+    },
+    "Comm422FrameCheck": {
+      "aliases": [],
+      "candidates": [],
+      "cn": "422校验",
+      "confidence": 0.84,
+      "evidence": [
+        "校验 RS422 通信接收报文帧头，确认报文完整性。\n检测帧头1（低8位）和帧头2是否匹配，并计算校验和。"
+      ],
+      "ident": "Comm422FrameCheck",
+      "internal": false,
+      "kind": "functions",
+      "locked": false,
+      "scope": "project",
+      "source": "comment_rule",
+      "source_rank": 76,
+      "updated_at": "2026-07-11T18:39:25",
+      "usage": "校验 RS422 通信接收报文帧头，确认报文完整性。\n检测帧头1（低8位）和帧头2是否匹配，并计算校验和。"
+    },
+    "FdataAverage": {
+      "aliases": [],
+      "candidates": [],
+      "cn": "计算浮点数据缓冲区的平均值",
+      "confidence": 0.84,
+      "evidence": [
+        "计算浮点数据缓冲区的平均值，支持可变长度。"
+      ],
+      "ident": "FdataAverage",
+      "internal": false,
+      "kind": "functions",
+      "locked": false,
+      "scope": "project",
+      "source": "comment_rule",
+      "source_rank": 76,
+      "updated_at": "2026-07-11T18:39:25",
+      "usage": "计算浮点数据缓冲区的平均值，支持可变长度。"
+    },
+    "GPIO_Init": {
+      "aliases": [],
+      "candidates": [],
+      "cn": "通用IO初始化",
+      "confidence": 0.84,
+      "evidence": [
+        "初始化 GPIO 引脚方向与初始电平，配置所有数字 I/O 通道。"
+      ],
+      "ident": "GPIO_Init",
+      "internal": false,
+      "kind": "functions",
+      "locked": false,
+      "scope": "project",
+      "source": "comment_rule",
+      "source_rank": 76,
+      "updated_at": "2026-07-11T18:39:25",
+      "usage": "初始化 GPIO 引脚方向与初始电平，配置所有数字 I/O 通道。"
+    },
+    "GPIO_ReadChannel": {
+      "aliases": [],
+      "candidates": [],
+      "cn": "通用IO读取",
+      "confidence": 0.84,
+      "evidence": [
+        "读取指定 GPIO 通道的输入电平状态。"
+      ],
+      "ident": "GPIO_ReadChannel",
+      "internal": false,
+      "kind": "functions",
+      "locked": false,
+      "scope": "project",
+      "source": "comment_rule",
+      "source_rank": 76,
+      "updated_at": "2026-07-11T18:39:25",
+      "usage": "读取指定 GPIO 通道的输入电平状态。"
+    },
+    "GPIO_WriteChannel": {
+      "aliases": [],
+      "candidates": [],
+      "cn": "通用IO",
+      "confidence": 0.84,
+      "evidence": [
+        "设置指定 GPIO 通道的输出电平。"
+      ],
+      "ident": "GPIO_WriteChannel",
+      "internal": false,
+      "kind": "functions",
+      "locked": false,
+      "scope": "project",
+      "source": "comment_rule",
+      "source_rank": 76,
+      "updated_at": "2026-07-11T18:39:25",
+      "usage": "设置指定 GPIO 通道的输出电平。"
+    },
+    "InitSystem": {
+      "aliases": [],
+      "candidates": [],
+      "cn": "系统上电初始化",
+      "confidence": 0.84,
+      "evidence": [
+        "系统上电初始化：配置时钟、外设、全局变量，完成后进入主循环。"
+      ],
+      "ident": "InitSystem",
+      "internal": false,
+      "kind": "functions",
+      "locked": false,
+      "scope": "project",
+      "source": "comment_rule",
+      "source_rank": 76,
+      "updated_at": "2026-07-11T18:39:25",
+      "usage": "系统上电初始化：配置时钟、外设、全局变量，完成后进入主循环。"
+    },
+    "TimeCountInit": {
+      "aliases": [],
+      "candidates": [],
+      "cn": "初始化任务时间计数器",
+      "confidence": 0.84,
+      "evidence": [
+        "初始化任务时间计数器，清零所有计时变量。"
+      ],
+      "ident": "TimeCountInit",
+      "internal": false,
+      "kind": "functions",
+      "locked": false,
+      "scope": "project",
+      "source": "comment_rule",
+      "source_rank": 76,
+      "updated_at": "2026-07-11T18:39:25",
+      "usage": "初始化任务时间计数器，清零所有计时变量。"
+    }
+  },
+  "macros": {
+    "TASK_PERIOD_MS": {
+      "aliases": [],
+      "candidates": [],
+      "cn": "应用层配置",
+      "confidence": 0.92,
+      "evidence": [
+        "macros"
+      ],
+      "ident": "TASK_PERIOD_MS",
+      "internal": false,
+      "kind": "macros",
+      "locked": false,
+      "scope": "project",
+      "source": "comment_prebuild",
+      "source_rank": 84,
+      "updated_at": "2026-07-11T18:39:25",
+      "usage": ""
+    }
+  },
+  "members": {},
+  "symbols": {
+    "count": {
+      "aliases": [],
+      "candidates": [],
+      "cn": "计数",
+      "confidence": 0.68,
+      "evidence": [
+        "FdataAverage"
+      ],
+      "ident": "count",
+      "internal": true,
+      "kind": "symbols",
+      "locked": false,
+      "scope": "param",
+      "source": "comment_rule",
+      "source_rank": 76,
+      "updated_at": "2026-07-11T18:39:25",
+      "usage": ""
+    },
+    "l_count_u16": {
+      "aliases": [],
+      "candidates": [],
+      "cn": "计数",
+      "confidence": 0.68,
+      "evidence": [
+        "Comm422FrameCheck"
+      ],
+      "ident": "l_count_u16",
+      "internal": true,
+      "kind": "symbols",
+      "locked": false,
+      "scope": "local",
+      "source": "comment_rule",
+      "source_rank": 76,
+      "updated_at": "2026-07-11T18:39:25",
+      "usage": ""
+    },
+    "l_ii_u16": {
+      "aliases": [],
+      "candidates": [],
+      "cn": "循环索引",
+      "confidence": 0.68,
+      "evidence": [
+        "Comm422FrameCheck",
+        "FdataAverage"
+      ],
+      "ident": "l_ii_u16",
+      "internal": true,
+      "kind": "symbols",
+      "locked": false,
+      "scope": "local",
+      "source": "comment_rule",
+      "source_rank": 76,
+      "updated_at": "2026-07-11T18:39:25",
+      "usage": ""
+    },
+    "l_jj_u16": {
+      "aliases": [],
+      "candidates": [],
+      "cn": "循环索引",
+      "confidence": 0.68,
+      "evidence": [
+        "Comm422FrameCheck"
+      ],
+      "ident": "l_jj_u16",
+      "internal": true,
+      "kind": "symbols",
+      "locked": false,
+      "scope": "local",
+      "source": "comment_rule",
+      "source_rank": 76,
+      "updated_at": "2026-07-11T18:39:25",
+      "usage": ""
+    },
+    "l_max_f32": {
+      "aliases": [],
+      "candidates": [],
+      "cn": "最大32",
+      "confidence": 0.68,
+      "evidence": [
+        "FdataAverage"
+      ],
+      "ident": "l_max_f32",
+      "internal": true,
+      "kind": "symbols",
+      "locked": false,
+      "scope": "local",
+      "source": "comment_rule",
+      "source_rank": 76,
+      "updated_at": "2026-07-11T18:39:25",
+      "usage": ""
+    },
+    "l_min_f32": {
+      "aliases": [],
+      "candidates": [],
+      "cn": "最小32",
+      "confidence": 0.68,
+      "evidence": [
+        "FdataAverage"
+      ],
+      "ident": "l_min_f32",
+      "internal": true,
+      "kind": "symbols",
+      "locked": false,
+      "scope": "local",
+      "source": "comment_rule",
+      "source_rank": 76,
+      "updated_at": "2026-07-11T18:39:25",
+      "usage": ""
+    },
+    "l_sum_f32": {
+      "aliases": [],
+      "candidates": [],
+      "cn": "求和32",
+      "confidence": 0.68,
+      "evidence": [
+        "FdataAverage"
+      ],
+      "ident": "l_sum_f32",
+      "internal": true,
+      "kind": "symbols",
+      "locked": false,
+      "scope": "local",
+      "source": "comment_rule",
+      "source_rank": 76,
+      "updated_at": "2026-07-11T18:39:25",
+      "usage": ""
+    },
+    "l_sum_u16": {
+      "aliases": [],
+      "candidates": [],
+      "cn": "求和",
+      "confidence": 0.68,
+      "evidence": [
+        "Comm422FrameCheck"
+      ],
+      "ident": "l_sum_u16",
+      "internal": true,
+      "kind": "symbols",
+      "locked": false,
+      "scope": "local",
+      "source": "comment_rule",
+      "source_rank": 76,
+      "updated_at": "2026-07-11T18:39:25",
+      "usage": ""
+    },
+    "len": {
+      "aliases": [],
+      "candidates": [],
+      "cn": "长度",
+      "confidence": 0.68,
+      "evidence": [
+        "Comm422FrameCheck"
+      ],
+      "ident": "len",
+      "internal": true,
+      "kind": "symbols",
+      "locked": false,
+      "scope": "param",
+      "source": "comment_rule",
+      "source_rank": 76,
+      "updated_at": "2026-07-11T18:39:25",
+      "usage": ""
+    },
+    "p_avg": {
+      "aliases": [],
+      "candidates": [],
+      "cn": "平均",
+      "confidence": 0.68,
+      "evidence": [
+        "FdataAverage"
+      ],
+      "ident": "p_avg",
+      "internal": true,
+      "kind": "symbols",
+      "locked": false,
+      "scope": "param",
+      "source": "comment_rule",
+      "source_rank": 76,
+      "updated_at": "2026-07-11T18:39:25",
+      "usage": ""
+    }
+  },
+  "updated_at": "2026-07-11T18:39:25",
+  "version": 2
+}

@@ -1,0 +1,22 @@
+{
+  "functions": {},
+  "macros": {},
+  "members": {
+    "status": {
+      "cn": "状态字",
+      "confidence": 0.99,
+      "source": "rule_preferred_cn",
+      "updated_at": "2026-07-11T18:39:25"
+    }
+  },
+  "symbols": {
+    "g_sensor_data": {
+      "cn": "标志位",
+      "confidence": 0.95,
+      "source": "rule_memory_cn",
+      "updated_at": "2026-07-11T18:39:25"
+    }
+  },
+  "updated_at": "2026-07-11T18:39:25",
+  "version": 1
+}
