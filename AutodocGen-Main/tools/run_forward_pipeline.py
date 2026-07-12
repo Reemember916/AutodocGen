@@ -103,8 +103,8 @@ def _run_demo() -> None:
     print("=" * 60)
     print()
 
-    # 输出目录：自动在项目根创建 Generated/
-    demo_out_dir = os.path.join(ROOT, "Generated")
+    # 输出目录：tests/PROJECT-2007-0613/Include/Generated/
+    demo_out_dir = os.path.join(ROOT, "tests", "PROJECT-2007-0613", "Include", "Generated")
     os.makedirs(demo_out_dir, exist_ok=True)
     md_path = os.path.join(demo_out_dir, "demo_requirement.md")
     h_path = os.path.join(demo_out_dir, "APP_Config.h")

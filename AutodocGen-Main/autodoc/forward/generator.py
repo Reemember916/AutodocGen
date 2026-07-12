@@ -73,31 +73,29 @@ def render_c_header(ir: HeaderFileIR) -> str:
         desc = func.description.strip() if func.description else "（待补充）"
         lines.append(f" * [功能描述] {desc}")
 
-        # 输入参数说明
+        # 输入参数说明（每行一个参数，带 * - 前缀）
         in_params = [p for p in func.parameters if p.direction in ("IN", "INOUT")]
+        lines.append(" * [输入参数说明]")
         if in_params:
-            in_desc_parts = []
             for p in in_params:
                 if p.business_meaning:
-                    in_desc_parts.append(f"{p.name}: [业务含义] {p.business_meaning}")
+                    lines.append(f" * - {p.name}: [业务含义] {p.business_meaning}")
                 else:
-                    in_desc_parts.append(f"{p.name}: [类型] {p.type_info.base_type}")
-            lines.append(f" * [输入参数说明] {'; '.join(in_desc_parts)}")
+                    lines.append(f" * - {p.name}: [类型] {p.type_info.base_type}")
         else:
-            lines.append(" * [输入参数说明] 无")
+            lines.append(" * - 无")
 
-        # 输出参数说明
+        # 输出参数说明（每行一个参数，带 * - 前缀）
         out_params = [p for p in func.parameters if p.direction in ("OUT", "INOUT")]
+        lines.append(" * [输出参数说明]")
         if out_params:
-            out_desc_parts = []
             for p in out_params:
                 if p.business_meaning:
-                    out_desc_parts.append(f"{p.name}: [业务含义] {p.business_meaning}")
+                    lines.append(f" * - {p.name}: [业务含义] {p.business_meaning}")
                 else:
-                    out_desc_parts.append(f"{p.name}: [类型] {p.type_info.base_type}")
-            lines.append(f" * [输出参数说明] {'; '.join(out_desc_parts)}")
+                    lines.append(f" * - {p.name}: [类型] {p.type_info.base_type}")
         else:
-            lines.append(" * [输出参数说明] 无")
+            lines.append(" * - 无")
 
         lines.append(" */")
 
