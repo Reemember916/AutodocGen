@@ -226,6 +226,14 @@ class ConsistencyReviewPanel(QtWidgets.QWidget):
         for btn in (self._btn_accept_doc, self._btn_accept_code, self._btn_ignore):
             btn.setEnabled(False)
 
+        # ── Status bar at bottom ──
+        self._status_label = QtWidgets.QLabel("就绪 — 请从左侧选择变更项")
+        self._status_label.setStyleSheet(
+            "background: #f8fafc; border: 1px solid #e2e8f0; "
+            "border-radius: 6px; padding: 6px 10px; color: #475569;"
+        )
+        root_layout.addWidget(self._status_label)
+
     # ── internal slots ──────────────────────────────────────────────
 
     def _on_item_clicked(self, item: QtWidgets.QTreeWidgetItem, _column: int) -> None:
@@ -235,6 +243,7 @@ class ConsistencyReviewPanel(QtWidgets.QWidget):
             self._doc_view.clear()
             self._code_view.clear()
             self._current_item = None
+            self._status_label.setText("就绪 — 请从左侧选择变更项")
             for btn in (self._btn_accept_doc, self._btn_accept_code, self._btn_ignore):
                 btn.setEnabled(False)
             return
@@ -244,6 +253,10 @@ class ConsistencyReviewPanel(QtWidgets.QWidget):
 
         for btn in (self._btn_accept_doc, self._btn_accept_code, self._btn_ignore):
             btn.setEnabled(True)
+
+        name = data.get("name", "?")
+        kind = data.get("kind", "?")
+        self._status_label.setText(f"已选中: {kind} '{name}' — 请选择签批决策")
 
     def _populate_diff(self, data: dict) -> None:
         """Render the doc and code snapshots into the two text views."""
@@ -264,7 +277,7 @@ class ConsistencyReviewPanel(QtWidgets.QWidget):
         self._doc_view.setPlainText(doc_text)
         self._code_view.setPlainText(code_text)
 
-    # ── sign-off slots (emit typed signals + debug logs) ────────────
+    # ── sign-off slots (emit typed signals + debug logs + GUI feedback) ─
 
     def _on_accept_doc(self) -> None:
         if self._current_item is None:
@@ -276,6 +289,12 @@ class ConsistencyReviewPanel(QtWidgets.QWidget):
             f"[签批决策] 接受文档更新 | {kind}: {name} | "
             f"将执行正向同步 (文档→代码)"
         )
+        self._status_label.setText(f"✓ 已批准文档更新: {name}")
+        if self.isVisible():
+            QtWidgets.QMessageBox.information(
+                self, "签批确认",
+                f"已接受文档更新: {kind} '{name}'\n将执行正向同步 (文档→代码)"
+            )
         self.accept_doc_signal.emit(name)
 
     def _on_accept_code(self) -> None:
@@ -288,6 +307,12 @@ class ConsistencyReviewPanel(QtWidgets.QWidget):
             f"[签批决策] 接受代码更新 | {kind}: {name} | "
             f"将执行反向同步 (代码→文档)"
         )
+        self._status_label.setText(f"✓ 已批准代码更新: {name}")
+        if self.isVisible():
+            QtWidgets.QMessageBox.information(
+                self, "签批确认",
+                f"已接受代码更新: {kind} '{name}'\n将执行反向同步 (代码→文档)"
+            )
         self.accept_code_signal.emit(name)
 
     def _on_ignore(self) -> None:
@@ -300,6 +325,7 @@ class ConsistencyReviewPanel(QtWidgets.QWidget):
             f"[签批决策] 暂不处理 | {kind}: {name} | "
             f"已跳过，留待后续批次"
         )
+        self._status_label.setText(f"○ 已忽略: {name}")
         self.ignore_signal.emit(name)
 
     # ── helpers ─────────────────────────────────────────────────────
