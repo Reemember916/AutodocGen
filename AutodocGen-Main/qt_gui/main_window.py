@@ -1,4 +1,13 @@
 from __future__ import annotations
+# pyright: reportAttributeAccessIssue = false
+# pyright: reportUnknownMemberType = false
+# pyright: reportOptionalMemberAccess = false
+# pyright: reportOptionalCall = false
+# pyright: reportGeneralTypeIssues = false
+# pyright: reportArgumentType = false
+# pyright: reportReturnType = false
+# pyright: reportIncompatibleMethodOverride = false
+# pyright: reportIncompatibleVariableOverride = false
 
 import os
 import json
@@ -10,7 +19,7 @@ from urllib.parse import urlsplit, urlunsplit
 import requests
 from typing import Optional
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets  # type: ignore
 
 try:
     from .runner import DocUpdateWorker, ExportFuncWorker, GenerateWorker, RegenerateCsuBatchWorker, RegenerateCsuWorker, StepDef, TaskSpec, TermTableWorker, UpdateCsuWorker

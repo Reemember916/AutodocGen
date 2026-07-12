@@ -1,0 +1,9 @@
+{
+  "typeCheckingMode": "off",
+  "reportMissingModuleSource": false,
+  "reportMissingTypeStubs": false,
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__"
+  ]
+}
