@@ -1,8 +1,8 @@
-"""Review Hub — test launcher for ConsistencyReviewPanel.
+"""Review Hub — test launcher for ConsistencyReviewPanel + RoundTripPipelineHub.
 
 Constructs a synthetic verdict dict (TIMEOUT 500 vs 1000 conflict,
-forward/backward deltas) and opens the review panel for end-to-end
-visual inspection.
+forward/backward deltas) and opens the review panel wired to the
+pipeline hub for physical file write-back.
 
 Usage:
     python tools/open_review_hub.py
@@ -12,12 +12,14 @@ from __future__ import annotations
 
 import os
 import sys
+import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from autodoc.hub.review_panel import ConsistencyReviewPanel
+from autodoc.hub.pipeline_hub import RoundTripPipelineHub
 
 # Universal Qt import
 _QtWidgets = None
@@ -208,25 +210,41 @@ def main() -> None:
 
     app.setApplicationName("AutoDocGen Review Hub")
 
-    win = _QtWidgets.QMainWindow()
-    win.resize(1100, 680)
+    # ── Create temp files for physical write-back verification ──
+    tmp_dir = tempfile.mkdtemp(prefix="autodoc_review_hub_")
+    doc_path = os.path.join(tmp_dir, "demo_design.md")
+    code_path = os.path.join(tmp_dir, "demo_code.h")
 
+    with open(doc_path, "w", encoding="utf-8") as f:
+        f.write("# 原始设计文档\n\n待同步...\n")
+    with open(code_path, "w", encoding="utf-8") as f:
+        f.write("/* 原始代码文件 */\n\n// 待同步...\n")
+
+    print(f"[启动] 临时文件目录: {tmp_dir}")
+    print(f"[启动] doc_path: {doc_path}")
+    print(f"[启动] code_path: {code_path}")
+    print()
+
+    # ── Build panel + hub ──
     panel = ConsistencyReviewPanel()
     panel.load_verdict(SYNTHETIC_VERDICT)
 
-    # Connect sign-off signals to console logging
-    panel.accept_doc.connect(
-        lambda name, data: print(f"[流水线] 批准文档更新 → 正向同步: {name}")
+    hub = RoundTripPipelineHub(
+        panel=panel,
+        doc_path=doc_path,
+        code_path=code_path,
+        ir_verdict=SYNTHETIC_VERDICT,
     )
-    panel.accept_code.connect(
-        lambda name, data: print(f"[流水线] 批准代码更新 → 反向同步: {name}")
-    )
-    panel.ignored.connect(
-        lambda name, data: print(f"[流水线] 已忽略: {name}")
-    )
+    hub.connect_signals()
 
+    win = _QtWidgets.QMainWindow()
+    win.setWindowTitle("双向同步评审中心 — MVP-11 总控大合拢")
+    win.resize(1100, 680)
     win.setCentralWidget(panel)
     win.show()
+
+    print("[启动] 评审面板已显示，点击签批按钮将触发物理文件写回")
+    print(f"[启动] 验证: 签批后检查 {tmp_dir} 下的文件内容")
 
     sys.exit(app.exec_())
 

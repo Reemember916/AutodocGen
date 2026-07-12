@@ -5,6 +5,9 @@ Three-zone layout:
 2. [MIDDLE] Dual-pane diff (QTextEdit × 2) — doc-side vs code-side.
 3. [RIGHT]  Sign-off controls (QPushButton) — accept doc / accept code / ignore.
 
+Every sign-off button emits a typed Signal + prints a [DEBUG] line so
+the pipeline hub can pick it up and perform physical file I/O.
+
 Compatible with Windows 7, PySide2, PySide6, and PyQt5.
 """
 
@@ -50,10 +53,6 @@ Signal = _QT_SIGNAL
 
 # ── colour constants ────────────────────────────────────────────────────
 
-_COLOUR_CONFLICT = "#fecaca"     # red-100
-_COLOUR_FORWARD = "#dbeafe"      # blue-100
-_COLOUR_BACKWARD = "#bbf7d0"     # green-100
-
 _GROUP_LABELS = {
     "CONFLICTS":    "🔴 语义冲突 (Conflicts)",
     "FORWARD_CHANGES":  "🔵 正向变更 (Forward)",
@@ -64,17 +63,16 @@ _GROUP_LABELS = {
 class ConsistencyReviewPanel(QtWidgets.QWidget):
     """Visual review and sign-off panel for bidirectional IR diffs.
 
-    Usage::
-
-        panel = ConsistencyReviewPanel()
-        panel.load_verdict(verdict_dict)
-        panel.show()
+    Signals (connect these in the pipeline hub for physical I/O):
+      accept_doc_signal(str)   — user chose "accept doc-side change"
+      accept_code_signal(str)  — user chose "accept code-side change"
+      ignore_signal(str)       — user chose "skip / ignore"
     """
 
-    # Signals emitted when the user clicks a sign-off button
-    accept_doc = Signal(str, dict)   # item_name, item_dict
-    accept_code = Signal(str, dict)  # item_name, item_dict
-    ignored = Signal(str, dict)      # item_name, item_dict
+    # ── typed signals (pipeline hub connects to these) ──────────────
+    accept_doc_signal = Signal(str)    # emits item name
+    accept_code_signal = Signal(str)   # emits item name
+    ignore_signal = Signal(str)        # emits item name
 
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
@@ -220,7 +218,6 @@ class ConsistencyReviewPanel(QtWidgets.QWidget):
 
         root_splitter.addWidget(right_panel)
 
-        # Stretch factors: tree 2, diff 3, sign-off 1
         root_splitter.setStretchFactor(0, 2)
         root_splitter.setStretchFactor(1, 3)
         root_splitter.setStretchFactor(2, 1)
@@ -267,38 +264,43 @@ class ConsistencyReviewPanel(QtWidgets.QWidget):
         self._doc_view.setPlainText(doc_text)
         self._code_view.setPlainText(code_text)
 
+    # ── sign-off slots (emit typed signals + debug logs) ────────────
+
     def _on_accept_doc(self) -> None:
         if self._current_item is None:
             return
         name = self._current_item.get("name", "?")
         kind = self._current_item.get("kind", "?")
+        print(f"[DEBUG] 按钮 [接受文档更新] 被点击，正在发射信号...")
         print(
             f"[签批决策] 接受文档更新 | {kind}: {name} | "
             f"将执行正向同步 (文档→代码)"
         )
-        self.accept_doc.emit(name, self._current_item)
+        self.accept_doc_signal.emit(name)
 
     def _on_accept_code(self) -> None:
         if self._current_item is None:
             return
         name = self._current_item.get("name", "?")
         kind = self._current_item.get("kind", "?")
+        print(f"[DEBUG] 按钮 [接受代码更新] 被点击，正在发射信号...")
         print(
             f"[签批决策] 接受代码更新 | {kind}: {name} | "
             f"将执行反向同步 (代码→文档)"
         )
-        self.accept_code.emit(name, self._current_item)
+        self.accept_code_signal.emit(name)
 
     def _on_ignore(self) -> None:
         if self._current_item is None:
             return
         name = self._current_item.get("name", "?")
         kind = self._current_item.get("kind", "?")
+        print(f"[DEBUG] 按钮 [暂不处理/忽略] 被点击，正在发射信号...")
         print(
             f"[签批决策] 暂不处理 | {kind}: {name} | "
             f"已跳过，留待后续批次"
         )
-        self.ignored.emit(name, self._current_item)
+        self.ignore_signal.emit(name)
 
     # ── helpers ─────────────────────────────────────────────────────
 
@@ -308,9 +310,6 @@ class ConsistencyReviewPanel(QtWidgets.QWidget):
         cnf = len(verdict_dict.get("CONFLICTS", []))
         total = fwd + bwd + cnf
         summary = f"共 {total} 项变更  ·  🔴冲突 {cnf}  ·  🔵正向 {fwd}  ·  🟢逆向 {bwd}"
-        self.setWindowTitle(
-            f"双向同步评审中心 — {summary}" if self.isWindow() else ""
-        )
         print(f"[ReviewPanel] 已加载判决: {summary}")
 
     def set_summary_text(self, text: str) -> None:
