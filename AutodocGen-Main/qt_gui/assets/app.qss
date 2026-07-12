@@ -177,6 +177,16 @@ QTabBar::tab:selected {
   font-weight: 600;
 }
 
+/* Scroll area */
+QScrollArea {
+  background: transparent;
+  border: none;
+}
+
+QScrollArea > QWidget > QWidget {
+  background: transparent;
+}
+
 /* Right panel */
 QFrame#right_panel {
   background: #ffffff;
