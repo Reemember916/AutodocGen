@@ -1,0 +1,1 @@
+"""Backward static analysis: AST-based facts extraction from C source code."""
