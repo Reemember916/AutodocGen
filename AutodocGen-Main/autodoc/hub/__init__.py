@@ -1,0 +1,1 @@
+"""Bidirectional sync hub: semantic diff and conflict resolution for IR pairs."""
