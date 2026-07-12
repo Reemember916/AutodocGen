@@ -1,11 +1,11 @@
 """Visual review panel — ConsistencyReviewPanel.
 
-Three-layer structure:
-1. Change-list tree (QTreeWidget) — categorised by verdict type.
-2. Dual-pane diff (QTextEdit × 2) — doc vs code side-by-side.
-3. Sign-off controls (QPushButton) — approve / reject / skip.
+Three-zone layout:
+1. [LEFT]  Change-list tree (QTreeWidget) — Conflicts / Forward / Backward.
+2. [MIDDLE] Dual-pane diff (QTextEdit × 2) — doc-side vs code-side.
+3. [RIGHT]  Sign-off controls (QPushButton) — accept doc / accept code / ignore.
 
-Compatible with Windows 7 / PyQt5 (the project's existing Qt binding).
+Compatible with Windows 7, PySide2, PySide6, and PyQt5.
 """
 
 from __future__ import annotations
@@ -13,25 +13,56 @@ from __future__ import annotations
 import json
 from typing import Any, Optional
 
-from PyQt5 import QtCore, QtWidgets  # type: ignore
+# ── Universal Qt import (PySide2 / PySide6 / PyQt5) ──────────────────
+_QT_CLASSES: Any = None
+_QT_SIGNAL: Any = None
+
+for _mod_name in ("PySide6", "PySide2", "PyQt5"):
+    try:
+        if _mod_name.startswith("PySide"):
+            from importlib import import_module
+
+            _qtc = import_module(f"{_mod_name}.QtCore")
+            _qtw = import_module(f"{_mod_name}.QtWidgets")
+            _qtg = import_module(f"{_mod_name}.QtGui")
+            _QT_SIGNAL = _qtc.Signal
+        else:
+            import PyQt5.QtCore as _qtc  # type: ignore
+            import PyQt5.QtGui as _qtg  # type: ignore
+            import PyQt5.QtWidgets as _qtw  # type: ignore
+            _QT_SIGNAL = _qtc.pyqtSignal
+
+        _QT_CLASSES = (_qtc, _qtg, _qtw)
+        break
+    except Exception:
+        continue
+
+if _QT_CLASSES is None:
+    raise ImportError(
+        "No Qt bindings found. Install PySide6, PySide2, or PyQt5."
+    )
+
+QtCore, QtGui, QtWidgets = _QT_CLASSES
+
+# Alias Signal to the binding-appropriate class
+Signal = _QT_SIGNAL
 
 
 # ── colour constants ────────────────────────────────────────────────────
 
-_COLOUR_FORWARD = "#dbeafe"    # blue-100
-_COLOUR_BACKWARD = "#fef3c7"  # amber-100
-_COLOUR_CONFLICT = "#fecaca"   # red-100
-_COLOUR_ALIGNED = "#bbf7d0"   # green-100
-_COLOUR_NONE = "#f1f5f9"      # slate-100
+_COLOUR_CONFLICT = "#fecaca"     # red-100
+_COLOUR_FORWARD = "#dbeafe"      # blue-100
+_COLOUR_BACKWARD = "#bbf7d0"     # green-100
 
-_LABEL_FORWARD = "→ 正向 (文档→代码)"
-_LABEL_BACKWARD = "← 反向 (代码→文档)"
-_LABEL_CONFLICT = "⚠ 冲突 (需人工签署)"
-_LABEL_ALIGNED = "✓ 已对齐"
+_GROUP_LABELS = {
+    "CONFLICTS":    "🔴 语义冲突 (Conflicts)",
+    "FORWARD_CHANGES":  "🔵 正向变更 (Forward)",
+    "BACKWARD_CHANGES": "🟢 逆向变更 (Backward)",
+}
 
 
 class ConsistencyReviewPanel(QtWidgets.QWidget):
-    """Visual review and sign-off panel for the bidirectional diff resolver.
+    """Visual review and sign-off panel for bidirectional IR diffs.
 
     Usage::
 
@@ -41,9 +72,9 @@ class ConsistencyReviewPanel(QtWidgets.QWidget):
     """
 
     # Signals emitted when the user clicks a sign-off button
-    approved = QtCore.pyqtSignal(str, dict)   # item_name, item_dict
-    rejected = QtCore.pyqtSignal(str, dict)   # item_name, item_dict
-    skipped = QtCore.pyqtSignal(str, dict)    # item_name, item_dict
+    accept_doc = Signal(str, dict)   # item_name, item_dict
+    accept_code = Signal(str, dict)  # item_name, item_dict
+    ignored = Signal(str, dict)      # item_name, item_dict
 
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
@@ -55,22 +86,19 @@ class ConsistencyReviewPanel(QtWidgets.QWidget):
     def load_verdict(self, verdict_dict: dict) -> None:
         """Load a verdict from ``BiDirectionalResolver.compare_ir()``.
 
-        Populates the change tree with four top-level groups.
+        Populates the change tree with three top-level groups:
+        CONFLICTS, FORWARD_CHANGES, BACKWARD_CHANGES.
         """
         self._verdict = verdict_dict
         self._tree.clear()
         self._tree.setColumnCount(2)
-        self._tree.setHeaderLabels(["变更项", "状态"])
+        self._tree.setHeaderLabels(["变更项", "来源"])
 
-        groups = [
-            ("FORWARD_CHANGES", "→ 正向 (文档→代码)", _COLOUR_FORWARD),
-            ("BACKWARD_CHANGES", "← 反向 (代码→文档)", _COLOUR_BACKWARD),
-            ("CONFLICTS", "⚠ 冲突 (需人工签署)", _COLOUR_CONFLICT),
-            ("ALIGNED", "✓ 已对齐", _COLOUR_ALIGNED),
-        ]
+        group_keys = ["CONFLICTS", "FORWARD_CHANGES", "BACKWARD_CHANGES"]
 
-        for key, label, colour in groups:
+        for key in group_keys:
             items = verdict_dict.get(key, [])
+            label = _GROUP_LABELS.get(key, key)
             root = QtWidgets.QTreeWidgetItem([f"{label}  ({len(items)})", ""])
             root.setData(0, QtCore.Qt.UserRole, {"_group_key": key})
             for item in items:
@@ -87,34 +115,42 @@ class ConsistencyReviewPanel(QtWidgets.QWidget):
     # ── UI construction ─────────────────────────────────────────────
 
     def _setup_ui(self) -> None:
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(10)
+        # ── Root layout: horizontal splitter ──
+        root_splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        root_layout = QtWidgets.QVBoxLayout(self)
+        root_layout.setContentsMargins(8, 8, 8, 8)
+        root_layout.setSpacing(6)
+        root_layout.addWidget(root_splitter, 1)
 
-        # ── Layer 1: Summary bar ──
-        self._summary_bar = QtWidgets.QFrame()
-        self._summary_bar.setObjectName("review_summary")
-        summary_layout = QtWidgets.QHBoxLayout(self._summary_bar)
-        summary_layout.setContentsMargins(8, 4, 8, 4)
-        self._summary_label = QtWidgets.QLabel("就绪")
-        self._summary_label.setStyleSheet("font-weight: 600; font-size: 13px;")
-        summary_layout.addWidget(self._summary_label)
-        summary_layout.addStretch()
-        layout.addWidget(self._summary_bar)
+        # ── [LEFT] Change-list tree ──
+        left_panel = QtWidgets.QWidget()
+        left_layout = QtWidgets.QVBoxLayout(left_panel)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(4)
 
-        # ── Layer 1: Change-list tree ──
+        left_header = QtWidgets.QLabel("变更清单")
+        left_header.setStyleSheet("font-weight: 700; font-size: 13px;")
+        left_layout.addWidget(left_header)
+
         self._tree = QtWidgets.QTreeWidget()
         self._tree.setHeaderHidden(False)
         self._tree.setAlternatingRowColors(True)
         self._tree.setAnimated(True)
         self._tree.setRootIsDecorated(True)
         self._tree.itemClicked.connect(self._on_item_clicked)
-        layout.addWidget(self._tree, 3)
+        left_layout.addWidget(self._tree, 1)
 
-        # ── Layer 2: Dual-pane diff ──
-        diff_label = QtWidgets.QLabel("变更详情对比")
-        diff_label.setStyleSheet("font-weight: 600; font-size: 13px;")
-        layout.addWidget(diff_label)
+        root_splitter.addWidget(left_panel)
+
+        # ── [MIDDLE] Dual-pane diff ──
+        middle_panel = QtWidgets.QWidget()
+        middle_layout = QtWidgets.QVBoxLayout(middle_panel)
+        middle_layout.setContentsMargins(0, 0, 0, 0)
+        middle_layout.setSpacing(4)
+
+        diff_header = QtWidgets.QLabel("变更详情对比")
+        diff_header.setStyleSheet("font-weight: 700; font-size: 13px;")
+        middle_layout.addWidget(diff_header)
 
         diff_splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
 
@@ -136,42 +172,62 @@ class ConsistencyReviewPanel(QtWidgets.QWidget):
         diff_splitter.addWidget(self._code_view)
         diff_splitter.setStretchFactor(0, 1)
         diff_splitter.setStretchFactor(1, 1)
-        layout.addWidget(diff_splitter, 4)
+        middle_layout.addWidget(diff_splitter, 1)
 
-        # ── Layer 3: Sign-off controls ──
-        btn_layout = QtWidgets.QHBoxLayout()
-        btn_layout.setSpacing(12)
+        root_splitter.addWidget(middle_panel)
 
-        self._btn_approve = QtWidgets.QPushButton("✓ 批准采纳")
-        self._btn_approve.setStyleSheet(
+        # ── [RIGHT] Sign-off controls ──
+        right_panel = QtWidgets.QWidget()
+        right_layout = QtWidgets.QVBoxLayout(right_panel)
+        right_layout.setContentsMargins(4, 0, 0, 0)
+        right_layout.setSpacing(12)
+
+        right_header = QtWidgets.QLabel("签批决策")
+        right_header.setStyleSheet("font-weight: 700; font-size: 13px;")
+        right_layout.addWidget(right_header)
+
+        right_layout.addStretch(1)
+
+        self._btn_accept_doc = QtWidgets.QPushButton("接受文档更新")
+        self._btn_accept_doc.setToolTip("采纳文档侧的变更，同步到代码")
+        self._btn_accept_doc.setStyleSheet(
+            "background: #2563eb; color: white; font-weight: 600; "
+            "padding: 10px 16px; border-radius: 8px; border: none;"
+        )
+        self._btn_accept_doc.clicked.connect(self._on_accept_doc)
+
+        self._btn_accept_code = QtWidgets.QPushButton("接受代码更新")
+        self._btn_accept_code.setToolTip("采纳代码侧的变更，同步到文档")
+        self._btn_accept_code.setStyleSheet(
             "background: #16a34a; color: white; font-weight: 600; "
-            "padding: 8px 20px; border-radius: 8px; border: none;"
+            "padding: 10px 16px; border-radius: 8px; border: none;"
         )
-        self._btn_approve.clicked.connect(self._on_approve)
+        self._btn_accept_code.clicked.connect(self._on_accept_code)
 
-        self._btn_reject = QtWidgets.QPushButton("✗ 驳回")
-        self._btn_reject.setStyleSheet(
-            "background: #dc2626; color: white; font-weight: 600; "
-            "padding: 8px 20px; border-radius: 8px; border: none;"
-        )
-        self._btn_reject.clicked.connect(self._on_reject)
-
-        self._btn_skip = QtWidgets.QPushButton("跳过")
-        self._btn_skip.setStyleSheet(
+        self._btn_ignore = QtWidgets.QPushButton("暂不处理 / 忽略")
+        self._btn_ignore.setToolTip("跳过此项，稍后处理")
+        self._btn_ignore.setStyleSheet(
             "background: #6b7280; color: white; font-weight: 600; "
-            "padding: 8px 20px; border-radius: 8px; border: none;"
+            "padding: 10px 16px; border-radius: 8px; border: none;"
         )
-        self._btn_skip.clicked.connect(self._on_skip)
+        self._btn_ignore.clicked.connect(self._on_ignore)
 
-        btn_layout.addWidget(self._btn_approve)
-        btn_layout.addWidget(self._btn_reject)
-        btn_layout.addWidget(self._btn_skip)
-        btn_layout.addStretch()
+        right_layout.addWidget(self._btn_accept_doc)
+        right_layout.addWidget(self._btn_accept_code)
+        right_layout.addWidget(self._btn_ignore)
 
-        for btn in (self._btn_approve, self._btn_reject, self._btn_skip):
+        right_layout.addStretch(2)
+
+        root_splitter.addWidget(right_panel)
+
+        # Stretch factors: tree 2, diff 3, sign-off 1
+        root_splitter.setStretchFactor(0, 2)
+        root_splitter.setStretchFactor(1, 3)
+        root_splitter.setStretchFactor(2, 1)
+        root_splitter.setSizes([280, 440, 160])
+
+        for btn in (self._btn_accept_doc, self._btn_accept_code, self._btn_ignore):
             btn.setEnabled(False)
-
-        layout.addLayout(btn_layout)
 
     # ── internal slots ──────────────────────────────────────────────
 
@@ -179,22 +235,18 @@ class ConsistencyReviewPanel(QtWidgets.QWidget):
         """Show the doc/code side-by-side for the selected item."""
         data = item.data(0, QtCore.Qt.UserRole)
         if not data or "_group_key" in data:
-            # Top-level group header — ignore
             self._doc_view.clear()
             self._code_view.clear()
             self._current_item = None
-            for btn in (self._btn_approve, self._btn_reject, self._btn_skip):
+            for btn in (self._btn_accept_doc, self._btn_accept_code, self._btn_ignore):
                 btn.setEnabled(False)
             return
 
         self._current_item = data
         self._populate_diff(data)
 
-        # Enable sign-off buttons only for non-ALIGNED items
-        group_key = item.text(1) if item.columnCount() > 1 else ""
-        enabled = group_key != "ALIGNED"
-        for btn in (self._btn_approve, self._btn_reject, self._btn_skip):
-            btn.setEnabled(enabled)
+        for btn in (self._btn_accept_doc, self._btn_accept_code, self._btn_ignore):
+            btn.setEnabled(True)
 
     def _populate_diff(self, data: dict) -> None:
         """Render the doc and code snapshots into the two text views."""
@@ -215,39 +267,53 @@ class ConsistencyReviewPanel(QtWidgets.QWidget):
         self._doc_view.setPlainText(doc_text)
         self._code_view.setPlainText(code_text)
 
-    def _on_approve(self) -> None:
+    def _on_accept_doc(self) -> None:
         if self._current_item is None:
             return
         name = self._current_item.get("name", "?")
-        print(f"[签批决策] 批准: {name}")
-        self.approved.emit(name, self._current_item)
+        kind = self._current_item.get("kind", "?")
+        print(
+            f"[签批决策] 接受文档更新 | {kind}: {name} | "
+            f"将执行正向同步 (文档→代码)"
+        )
+        self.accept_doc.emit(name, self._current_item)
 
-    def _on_reject(self) -> None:
+    def _on_accept_code(self) -> None:
         if self._current_item is None:
             return
         name = self._current_item.get("name", "?")
-        print(f"[签批决策] 驳回: {name}")
-        self.rejected.emit(name, self._current_item)
+        kind = self._current_item.get("kind", "?")
+        print(
+            f"[签批决策] 接受代码更新 | {kind}: {name} | "
+            f"将执行反向同步 (代码→文档)"
+        )
+        self.accept_code.emit(name, self._current_item)
 
-    def _on_skip(self) -> None:
+    def _on_ignore(self) -> None:
         if self._current_item is None:
             return
         name = self._current_item.get("name", "?")
-        print(f"[签批决策] 跳过: {name}")
-        self.skipped.emit(name, self._current_item)
+        kind = self._current_item.get("kind", "?")
+        print(
+            f"[签批决策] 暂不处理 | {kind}: {name} | "
+            f"已跳过，留待后续批次"
+        )
+        self.ignored.emit(name, self._current_item)
 
     # ── helpers ─────────────────────────────────────────────────────
 
-    @staticmethod
-    def _update_summary(verdict_dict: dict) -> None:
-        """Update the summary bar with counts."""
+    def _update_summary(self, verdict_dict: dict) -> None:
         fwd = len(verdict_dict.get("FORWARD_CHANGES", []))
         bwd = len(verdict_dict.get("BACKWARD_CHANGES", []))
         cnf = len(verdict_dict.get("CONFLICTS", []))
-        aln = len(verdict_dict.get("ALIGNED", []))
-        total = fwd + bwd + cnf + aln
-        # Summary is updated by the caller via set_summary_text
-        # This method is kept for internal use
+        total = fwd + bwd + cnf
+        summary = f"共 {total} 项变更  ·  🔴冲突 {cnf}  ·  🔵正向 {fwd}  ·  🟢逆向 {bwd}"
+        self.setWindowTitle(
+            f"双向同步评审中心 — {summary}" if self.isWindow() else ""
+        )
+        print(f"[ReviewPanel] 已加载判决: {summary}")
 
     def set_summary_text(self, text: str) -> None:
-        self._summary_label.setText(text)
+        """Set the window title summary (caller convenience)."""
+        if self.isWindow():
+            self.setWindowTitle(f"双向同步评审中心 — {text}")
