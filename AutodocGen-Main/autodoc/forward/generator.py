@@ -78,8 +78,10 @@ def render_c_header(ir: HeaderFileIR) -> str:
         if in_params:
             in_desc_parts = []
             for p in in_params:
-                meaning = p.business_meaning or f"（{p.name} 的业务含义待补充）"
-                in_desc_parts.append(f"{p.name}: {meaning}")
+                if p.business_meaning:
+                    in_desc_parts.append(f"{p.name}: [业务含义] {p.business_meaning}")
+                else:
+                    in_desc_parts.append(f"{p.name}: [类型] {p.type_info.base_type}")
             lines.append(f" * [输入参数说明] {'; '.join(in_desc_parts)}")
         else:
             lines.append(" * [输入参数说明] 无")
@@ -89,8 +91,10 @@ def render_c_header(ir: HeaderFileIR) -> str:
         if out_params:
             out_desc_parts = []
             for p in out_params:
-                meaning = p.business_meaning or f"（{p.name} 的业务含义待补充）"
-                out_desc_parts.append(f"{p.name}: {meaning}")
+                if p.business_meaning:
+                    out_desc_parts.append(f"{p.name}: [业务含义] {p.business_meaning}")
+                else:
+                    out_desc_parts.append(f"{p.name}: [类型] {p.type_info.base_type}")
             lines.append(f" * [输出参数说明] {'; '.join(out_desc_parts)}")
         else:
             lines.append(" * [输出参数说明] 无")

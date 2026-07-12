@@ -103,9 +103,11 @@ def _run_demo() -> None:
     print("=" * 60)
     print()
 
-    tmp_dir = tempfile.mkdtemp(prefix="autodoc_forward_demo_")
-    md_path = os.path.join(tmp_dir, "demo_requirement.md")
-    h_path = os.path.join(tmp_dir, "APP_Config.h")
+    # 输出目录：自动在项目根创建 Generated/
+    demo_out_dir = os.path.join(ROOT, "Generated")
+    os.makedirs(demo_out_dir, exist_ok=True)
+    md_path = os.path.join(demo_out_dir, "demo_requirement.md")
+    h_path = os.path.join(demo_out_dir, "APP_Config.h")
 
     # ── 动态生成 Markdown 需求文档 ──
     _log("生成测试 Markdown 需求文档...")
@@ -164,16 +166,15 @@ static uint16_t OLD_DEAD_ZONE(uint16_t input) {
 
     print()
     print("─" * 60)
-    print("  最终生成的 APP_Config.h 内容:")
+    print(f"  最终生成的 {os.path.basename(h_path)} 内容:")
     print("─" * 60)
     with open(h_path, "r", encoding="utf-8") as f:
         print(f.read())
     print("─" * 60)
+    print(f"  输出文件: {h_path}")
+    print()
 
-    # 清理
-    import shutil
-    shutil.rmtree(tmp_dir, ignore_errors=True)
-    _log("Demo 测试目录已清理。")
+    _log("Demo 完成。")
 
 
 if __name__ == "__main__":
