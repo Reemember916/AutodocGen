@@ -155,9 +155,11 @@ def sync_project(auto_mode: bool = False) -> None:
     code_ir = extractor.extract_header(code_content, os.path.basename(CODE_PATH))
     _log(f"      从代码提取 IR: {len(code_ir.functions)} 函数, {len(code_ir.macros)} 宏")
 
-    # For now, use a stub doc_ir (will be enhanced with forward extractor)
-    from autodoc.logic_ir import HeaderFileIR
-    doc_ir = HeaderFileIR(file_name=os.path.basename(MD_PATH))
+    # Extract IR from MD document
+    from autodoc.forward.extractor import MarkdownExtractor
+    doc_ir = MarkdownExtractor().parse(md_content)
+    doc_ir.file_name = os.path.basename(MD_PATH)
+    _log(f"      从文档提取 IR: {len(doc_ir.functions)} 函数, {len(doc_ir.macros)} 宏")
 
     # Resolve
     resolver = BiDirectionalResolver()

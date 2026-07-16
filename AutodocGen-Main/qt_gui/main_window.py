@@ -1884,8 +1884,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.btn_pick_project.clicked.connect(self._pick_project_dir)
         self.btn_load_project = QtWidgets.QPushButton("加载")
         self.btn_load_project.clicked.connect(self._load_project_from_ui)
-        self.btn_refresh_term_table = QtWidgets.QPushButton("刷新术语表")
-        self.btn_refresh_term_table.setToolTip("扫描当前工程，生成/更新 autodoc_term_table.json，并注入本次运行的符号字典")
+        self.btn_refresh_term_table = QtWidgets.QPushButton("术语表")
+        self.btn_refresh_term_table.setToolTip("扫描当前工程，生成/更新 autodoc_term_table.json")
         self.btn_refresh_term_table.clicked.connect(self._start_refresh_term_table)
         self.btn_open_term_table = QtWidgets.QPushButton("查看")
         self.btn_open_term_table.setToolTip("查看当前工程的 autodoc_term_table.json 摘要")
@@ -1935,14 +1935,18 @@ class MainWindow(QtWidgets.QMainWindow):
         out_outer.addLayout(out_form)
         left_layout.addWidget(card_out)
 
-        card_update = QtWidgets.QFrame()
-        card_update.setObjectName("card")
-        update_outer = QtWidgets.QVBoxLayout(card_update)
-        update_outer.setContentsMargins(12, 12, 12, 12)
+        self._grp_update = QtWidgets.QGroupBox("文档增量更新")
+        self._grp_update.setCheckable(True)
+        self._grp_update.setChecked(False)
+        self._grp_update.setObjectName("card")
+        self._grp_update.setStyleSheet(
+            "QGroupBox#card { font-weight: 600; font-size: 13px; "
+            "border: 1px solid #e2e8f0; border-radius: 12px; "
+            "margin-top: 8px; padding: 16px 12px 12px 12px; }"
+        )
+        update_outer = QtWidgets.QVBoxLayout(self._grp_update)
+        update_outer.setContentsMargins(0, 4, 0, 0)
         update_outer.setSpacing(8)
-        update_title = QtWidgets.QLabel("文档增量更新")
-        update_title.setObjectName("card_title")
-        update_outer.addWidget(update_title)
 
         update_form = QtWidgets.QFormLayout()
         update_form.setHorizontalSpacing(10)
@@ -1993,7 +1997,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cmb_doc_update_mode.addItems(["plan-only", "apply-safe", "apply-review"])
         self.chk_doc_renumber_module_csu = QtWidgets.QCheckBox("重排模块 CSU 编号")
         self.chk_doc_renumber_module_csu.setToolTip("默认关闭；开启后 apply-review 会按模块内 H4 顺序重排 CSU ID")
-        self.btn_start_doc_update = QtWidgets.QPushButton("运行增量更新")
+        self.btn_start_doc_update = QtWidgets.QPushButton("增量更新")
         self.btn_start_doc_update.clicked.connect(self._start_doc_update)
         mode_row2.addWidget(self.cmb_doc_update_mode)
         mode_row2.addWidget(self.chk_doc_renumber_module_csu)
@@ -2001,7 +2005,54 @@ class MainWindow(QtWidgets.QMainWindow):
         update_form.addRow("模式", _wrap_layout(mode_row2))
 
         update_outer.addLayout(update_form)
-        left_layout.addWidget(card_update)
+        left_layout.addWidget(self._grp_update)
+
+        card_forward = QtWidgets.QFrame()
+        card_forward.setObjectName("card")
+        fwd_outer = QtWidgets.QVBoxLayout(card_forward)
+        fwd_outer.setContentsMargins(12, 12, 12, 12)
+        fwd_outer.setSpacing(8)
+        fwd_title = QtWidgets.QLabel("前向生成 (MD → C)")
+        fwd_title.setObjectName("card_title")
+        fwd_outer.addWidget(fwd_title)
+
+        fwd_form = QtWidgets.QFormLayout()
+        fwd_form.setHorizontalSpacing(10)
+        fwd_form.setVerticalSpacing(8)
+
+        fwd_md_row = QtWidgets.QHBoxLayout()
+        self.ed_fwd_md = QtWidgets.QLineEdit()
+        self.ed_fwd_md.setPlaceholderText("选择 .md 需求文档")
+        self.ed_fwd_md.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        self.btn_fwd_md = QtWidgets.QPushButton("浏览…")
+        self.btn_fwd_md.clicked.connect(lambda: self._pick_file_into(self.ed_fwd_md, "选择 Markdown 文档", "Markdown 文件 (*.md);;所有文件 (*.*)"))
+        fwd_md_row.addWidget(self.ed_fwd_md, 1)
+        fwd_md_row.addWidget(self.btn_fwd_md)
+        fwd_form.addRow("MD 文档", _wrap_layout(fwd_md_row))
+
+        fwd_c_row = QtWidgets.QHBoxLayout()
+        self.ed_fwd_c = QtWidgets.QLineEdit()
+        self.ed_fwd_c.setPlaceholderText("输出 C 文件路径")
+        self.ed_fwd_c.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        self.btn_fwd_c = QtWidgets.QPushButton("浏览…")
+        self.btn_fwd_c.clicked.connect(lambda: self._pick_file_into(self.ed_fwd_c, "选择输出 C 文件", "C 文件 (*.c *.h);;所有文件 (*.*)"))
+        fwd_c_row.addWidget(self.ed_fwd_c, 1)
+        fwd_c_row.addWidget(self.btn_fwd_c)
+        fwd_form.addRow("输出 C 文件", _wrap_layout(fwd_c_row))
+
+        fwd_btn_row = QtWidgets.QHBoxLayout()
+        self.btn_fwd_generate = QtWidgets.QPushButton("生成代码骨架")
+        self.btn_fwd_generate.setStyleSheet(
+            "background: #2563eb; color: white; font-weight: 600; "
+            "padding: 8px 20px; border-radius: 8px; border: none;"
+        )
+        self.btn_fwd_generate.clicked.connect(self._start_fwd_generate)
+        fwd_btn_row.addWidget(self.btn_fwd_generate)
+        fwd_btn_row.addStretch(1)
+        fwd_form.addRow("", _wrap_layout(fwd_btn_row))
+
+        fwd_outer.addLayout(fwd_form)
+        left_layout.addWidget(card_forward)
 
         card_recent = QtWidgets.QFrame()
         card_recent.setObjectName("card")
@@ -2627,6 +2678,28 @@ class MainWindow(QtWidgets.QMainWindow):
             impl=DocUpdateWorker(backend=self.backend, task=task, settings=settings),
             kind="doc_update",
         )
+
+    def _start_fwd_generate(self) -> None:
+        md_path = self.ed_fwd_md.text().strip()
+        c_path = self.ed_fwd_c.text().strip()
+        if not md_path:
+            QtWidgets.QMessageBox.warning(self, "提示", "请选择 Markdown 文档")
+            return
+        if not c_path:
+            QtWidgets.QMessageBox.warning(self, "提示", "请填写输出 C 文件路径")
+            return
+        if not os.path.exists(md_path):
+            QtWidgets.QMessageBox.warning(self, "提示", f"文件不存在: {md_path}")
+            return
+        try:
+            from tools.run_forward_pipeline import run_pipeline
+            self._append_log(f"开始前向生成: {md_path} → {c_path}")
+            run_pipeline(md_path, c_path)
+            self._append_log(f"前向生成完成: {c_path}")
+            QtWidgets.QMessageBox.information(self, "完成", f"代码骨架已生成:\n{c_path}")
+        except Exception as e:
+            self._append_log(f"前向生成失败: {e}")
+            QtWidgets.QMessageBox.critical(self, "失败", str(e))
 
     def _reset_steps(self, steps: list[StepDef]) -> None:
         model = QtGui.QStandardItemModel()
