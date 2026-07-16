@@ -187,6 +187,10 @@ def _extract_parameters(
         if not p_type:
             continue
 
+        # C 语言约定: void 作为唯一参数表示"无参数"（如 Foo(void)）
+        if p_type == "void" and not p_name:
+            continue
+
         name = p_name if p_name else f"unnamed_{len(params)}"
         params.append(
             ParameterIR(
