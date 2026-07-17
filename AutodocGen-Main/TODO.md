@@ -1,6 +1,15 @@
 # AutoDocGen 待优化清单
 
-> 最后更新: 2026-07-12
+> 最后更新: 2026-07-17
+
+---
+
+## 当前阶段建议
+
+1. **审查闭环收尾**（进行中 / 本轮）
+2. **生产可验证基线**：固定 Python 环境 + 全量 pytest + 3 条 E2E
+3. **AST-backed Expression IR**
+4. Win7 部署链路
 
 ---
 
@@ -13,31 +22,35 @@
 - **目标**: `Tree-sitter expression node -> ExprIR` 成为优先路径，现有字符串 parser 退为 fallback
 - **验收**: 低 8 位和 checksum 回归全部通过；raw/fallback 不混入半成品中文
 
-### 2. 前向流水线集成到 GUI
+### 2. 生产可验证基线
 
-- **文件**: `qt_gui/main_window.py` + `autodoc/forward/`
-- **现状**: `tools/run_forward_pipeline.py` 独立可用，但 GUI 未集成
-- **目标**: GUI 主页增加"前向生成"选项卡，支持 Markdown 输入 → C 骨架输出
-
-### 3. GUI 布局自适应
-
-- **文件**: `qt_gui/main_window.py` + `qt_gui/assets/app.qss`
-- **现状**: 已添加 QScrollArea 包裹 + 弹性分割器，1024×768 基本完整
-- **目标**: 进一步打磨低分辨率下的显示效果
+- 固定开发环境（目标 Python 3.8.20 + 当前开发版本）
+- 全量 pytest 全绿
+- 固化 3 条端到端：
+  - C → DOCX → Review → 决策回写
+  - Markdown → C 骨架
+  - 改 C → 差异计划 → 更新文档
+- AI 测试与离线单测分离
 
 ---
 
 ## P1 — 重要优化
 
-### 4. Tree-sitter 预处理替代正则
+### 3. Tree-sitter 预处理替代正则
 
 - **文件**: `autodoc/parse.py` + `autodoc/callgraph.py` + `autodoc/struct_tree.py`
 - **方案**: shadow mode 先行，逐步替换 find_function_prototypes / extract_function_body / comment 提取等
 
-### 5. Win7 部署链路重建
+### 4. Win7 部署链路重建
 
 - **文件**: `tools/tree-sitter/`（新建），`tools/clangd/win7/llvm/`（恢复）
 - **方案**: 提供 clangd.exe 绿色包 + tree_sitter_c.dll 预编译二进制
+
+### 5. GUI “重试失败函数”真实实现
+
+- **文件**: `qt_gui/main_window.py`
+- **现状**: 目前仅提示用户重新生成
+- **目标**: 真正重建并执行失败函数任务
 
 ---
 
@@ -91,3 +104,6 @@
 | 32 | 生产环境总装脚本 (production_round_trip.py) | 2026-07-12 |
 | 33 | GUI 布局自适应 (QScrollArea + 弹性分割器) | 2026-07-12 |
 | 34 | CAsTExtractor (void) 参数误识别修复 | 2026-07-12 |
+| 35 | GUI 前向生成入口集成 | 2026-07-12 |
+| 36 | 交互式审查闭环（generation_review_decisions → revision_profile → 回写 DOCX） | 2026-07-17 |
+| 37 | 审查决策命名拆分：generation vs update | 2026-07-17 |

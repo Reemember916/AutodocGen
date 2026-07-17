@@ -2,6 +2,10 @@
 
 本文说明如何使用 AutoDocGen 的嵌入式 C 项目设计文档增量更新能力。
 
+> 注意：增量更新审查导出的是 `update_review_decisions.json`。
+> 首次生成文档审查导出的是 `generation_review_decisions.json`，二者不可混用。
+> 首次生成审查见 [generation-review-workflow.md](generation-review-workflow.md)。
+
 目标输入：
 
 - 旧版本代码目录
@@ -98,12 +102,12 @@ new_design.update_review.html
 - `insert_after_csu`：插入到某个 CSU 后
 - `delete_csu`：删除 CSU
 
-HTML 会在浏览器本地自动保存审查进度，刷新页面后会恢复。也可以导入已有的 `review_decisions.json`。
+HTML 会在浏览器本地自动保存审查进度，刷新页面后会恢复。也可以导入已有的 `update_review_decisions.json`。
 
 完成审查后，点击导出，得到：
 
 ```text
-review_decisions.json
+update_review_decisions.json
 ```
 
 ## 5. 应用人工决策
@@ -115,7 +119,7 @@ python3 tools/update_doc_from_code_diff.py \
   --old-doc /path/to/old_design.docx \
   --out /path/to/new_design_reviewed.docx \
   --mode apply-review \
-  --review-decisions /path/to/review_decisions.json
+  --review-decisions /path/to/update_review_decisions.json
 ```
 
 `apply-review` 会先执行 safe 项，再执行人工决策。
@@ -160,7 +164,7 @@ GUI 首页有“文档增量更新”卡片。
 - 旧代码目录
 - 新代码目录
 - 旧 Word 文档
-- 可选 `review_decisions.json`
+- 可选 `update_review_decisions.json`
 - 模式：`plan-only`、`apply-safe`、`apply-review`
 - 可选“重排模块 CSU 编号”
 

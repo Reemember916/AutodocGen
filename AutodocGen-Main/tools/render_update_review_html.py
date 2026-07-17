@@ -557,6 +557,7 @@ def _html_shell(plan: dict[str, Any]) -> str:
     function exportDecisions() {{
       const payload = {{
         schema_version: 1,
+        decision_kind: 'update_review',
         generated_at: new Date().toISOString(),
         source_plan: plan.metadata || {{}},
         decisions: Object.values(decisions).filter(x => x.decision || x.notes || x.target_csu_id || x.insert_after_csu_id),
@@ -566,7 +567,7 @@ def _html_shell(plan: dict[str, Any]) -> str:
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'review_decisions.json';
+      a.download = 'update_review_decisions.json';
       a.click();
       URL.revokeObjectURL(url);
     }}

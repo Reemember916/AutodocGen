@@ -92,7 +92,8 @@ flowchart TB
     end
 
     subgraph Review ["审查工作区区"]
-        Q1["autodoc/review_workspace.py · 审查工作区"]
+        Q1["autodoc/review_workspace.py · 首次生成审查页"]
+        Q2["autodoc/review_decisions.py · 决策转换"]
         Q2["autodoc/design_workspace.py · 设计工作区"]
     end
 
@@ -268,7 +269,8 @@ AutodocGen-Main/
 │   ├── lsp_transport.py        # LSP 传输层
 │   ├── lsp_facts.py            # LSP 事实提取
 │   ├── design_workspace.py     # 设计工作区
-│   ├── review_workspace.py     # 审查工作区
+│   ├── review_workspace.py     # 审查工作区（首次生成交互审查页）
+│   ├── review_decisions.py     # 审查决策 → revision_profile 转换
 │   ├── context_pack.py         # 上下文打包
 │   ├── _legacy_support.py      # 旧版向后兼容
 │   ├── evidence/               # 旁路证据采集
@@ -293,3 +295,16 @@ AutodocGen-Main/
 | **旁路证据** | evidence 系统默认关闭 (`shadow mode`)，不影响 docx 输出 |
 | **LSP 集成** | 可选 clangd LSP 获取精确类型/成员/调用上下文 |
 | **前后向双管道** | `源码→文档` (backend) + `Markdown→C` (forward) |
+
+
+## 首次生成审查闭环
+
+1. 生成文档时开启 `review_output=html`，得到 `review_bundle.json + index.html`
+2. 浏览器打开 `index.html` 做人工修订，导出 `generation_review_decisions.json`
+3. 通过 CLI `review-apply` / `doc --review-decisions` 或 GUI“应用并生成”回写 DOCX
+
+注意：
+
+- 首次生成决策文件：`generation_review_decisions.json`
+- 增量更新决策文件：`update_review_decisions.json`
+- 详细步骤见 `AutodocGen-Main/docs/generation-review-workflow.md`

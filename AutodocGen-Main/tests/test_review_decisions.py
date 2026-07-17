@@ -98,6 +98,8 @@ def test_review_html_contains_interactive_controls_and_safe_embedded_json():
     assert 'id="searchInput"' in html
     assert 'id="statusControl"' in html
     assert 'id="exportBtn"' in html
+    assert 'generation_review_decisions.json' in html
+    assert "decision_kind:'generation_review'" in html
     assert 'id="importFile"' in html
     assert "localStorage.setItem(storageKey" in html
     assert "bundle_fingerprint" in html

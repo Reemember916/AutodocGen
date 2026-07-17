@@ -673,14 +673,27 @@ td input { width:100%; min-width:90px; border:1px solid #b9c0c4; border-radius:3
     persist(); renderAll(); toast(`已通过 ${count} 个无警告函数`);
   });
   function exportDecisions() {
+    // Only export human-touched decisions (edited/status-changed/imported).
+    // Untouched baseline functions stay out of the file.
     const clean = {};
     for (const [key, value] of Object.entries(decisions)) {
+      if (!value || !value.touched) continue;
       const copy = structuredClone(value); delete copy.touched; delete copy.stale; clean[key] = copy;
     }
-    const result = {schema_version:1, generated_at:new Date().toISOString(), source_bundle:'review_bundle.json', bundle_fingerprint:payload.bundle_fingerprint, project_root:bundle.project_root || '', output_docx:bundle.output_docx || '', functions:clean};
+    const result = {
+      schema_version:1,
+      decision_kind:'generation_review',
+      generated_at:new Date().toISOString(),
+      source_bundle:'review_bundle.json',
+      bundle_fingerprint:payload.bundle_fingerprint,
+      project_root:bundle.project_root || '',
+      output_docx:bundle.output_docx || '',
+      functions:clean
+    };
     const blob = new Blob([JSON.stringify(result, null, 2)], {type:'application/json'});
     const url = URL.createObjectURL(blob); const anchor = document.createElement('a');
-    anchor.href = url; anchor.download = 'review_decisions.json'; anchor.click(); URL.revokeObjectURL(url);
+    anchor.href = url; anchor.download = 'generation_review_decisions.json'; anchor.click(); URL.revokeObjectURL(url);
+    toast(`已导出 ${Object.keys(clean).length} 个已修改函数决策`);
   }
   el('exportBtn').addEventListener('click', exportDecisions);
   el('importBtn').addEventListener('click', () => el('importFile').click());

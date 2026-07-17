@@ -1935,17 +1935,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
         review_row = QtWidgets.QHBoxLayout()
         self.ed_generation_review_decisions = QtWidgets.QLineEdit()
-        self.ed_generation_review_decisions.setPlaceholderText("可选：人工审查页导出的 review_decisions.json")
+        self.ed_generation_review_decisions.setPlaceholderText("可选：首次生成审查页导出的 generation_review_decisions.json")
         self.ed_generation_review_decisions.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
         self.btn_pick_generation_review = QtWidgets.QPushButton("浏览…")
         self.btn_pick_generation_review.clicked.connect(
             lambda: self._pick_file_into(
                 self.ed_generation_review_decisions,
-                "选择人工审查决策",
-                "JSON 文件 (*.json);;所有文件 (*.*)",
+                "选择首次生成审查决策",
+                "生成审查决策 (generation_review_decisions.json);;JSON 文件 (*.json);;所有文件 (*.*)",
             )
         )
         self.btn_apply_generation_review = QtWidgets.QPushButton("应用并生成")
+        self.btn_apply_generation_review.setToolTip("加载 generation_review_decisions.json，转换为 revision profile 后重新生成文档")
         self.btn_apply_generation_review.clicked.connect(self._start_review_regenerate)
         review_row.addWidget(self.ed_generation_review_decisions, 1)
         review_row.addWidget(self.btn_pick_generation_review)
@@ -2003,10 +2004,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         decision_row = QtWidgets.QHBoxLayout()
         self.ed_doc_review_decisions = QtWidgets.QLineEdit()
-        self.ed_doc_review_decisions.setPlaceholderText("可选：review_decisions.json")
+        self.ed_doc_review_decisions.setPlaceholderText("可选：增量更新审查页导出的 update_review_decisions.json")
         self.ed_doc_review_decisions.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
         self.btn_doc_review_decisions = QtWidgets.QPushButton("浏览…")
-        self.btn_doc_review_decisions.clicked.connect(lambda: self._pick_file_into(self.ed_doc_review_decisions, "选择 review_decisions.json", "JSON 文件 (*.json);;所有文件 (*.*)"))
+        self.btn_doc_review_decisions.clicked.connect(lambda: self._pick_file_into(self.ed_doc_review_decisions, "选择增量更新审查决策", "增量审查决策 (update_review_decisions.json);;JSON 文件 (*.json);;所有文件 (*.*)"))
         decision_row.addWidget(self.ed_doc_review_decisions, 1)
         decision_row.addWidget(self.btn_doc_review_decisions)
         update_form.addRow("审查决策", _wrap_layout(decision_row))
@@ -2671,7 +2672,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def _start_review_regenerate(self) -> None:
         decisions = self.ed_generation_review_decisions.text().strip()
         if not decisions:
-            QtWidgets.QMessageBox.warning(self, "提示", "请选择人工审查页导出的 review_decisions.json。")
+            QtWidgets.QMessageBox.warning(self, "提示", "请选择首次生成审查页导出的 generation_review_decisions.json。")
             return
         if not os.path.isfile(decisions):
             QtWidgets.QMessageBox.warning(self, "提示", "人工审查决策文件不存在。")
