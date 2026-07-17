@@ -170,6 +170,20 @@ def _collect_review_function(cfg, design, task) -> None:
         backend.vlog(cfg, f"Review workspace collection skipped: {exc}")
 
 
+def _review_project_root(project_root: str = "", *, source: str = "") -> str:
+    """Normalize review workspace project_root for stable function keys."""
+    candidate = str(project_root or source or "").strip()
+    if not candidate:
+        return ""
+    try:
+        abs_path = os.path.abspath(os.path.expanduser(candidate))
+    except Exception:
+        return candidate
+    if os.path.isfile(abs_path) or abs_path.lower().endswith((".c", ".h", ".cpp", ".cc", ".cxx")):
+        return os.path.dirname(abs_path) or abs_path
+    return abs_path
+
+
 def _write_review_workspace_if_enabled(cfg, output: str, *, project_root: str = "", merge_existing: bool = False) -> None:
     from . import review_workspace
 
@@ -177,7 +191,7 @@ def _write_review_workspace_if_enabled(cfg, output: str, *, project_root: str = 
         return
     functions = tuple(getattr(cfg, "_review_workspace_functions", []) or ())
     bundle = review_workspace.ReviewBundle(
-        project_root=str(project_root or ""),
+        project_root=_review_project_root(project_root),
         output_docx=str(output or ""),
         functions=functions,
     )
@@ -3342,11 +3356,15 @@ def build_design_io_elements(
         ret_ident = ret_var_name or (ret_expr if _is_simple_return_io_expr(ret_expr) else "") or "return"
         ret_lookup_name = ret_var_name or (return_candidates[0] if len(return_candidates) == 1 else "") or _root_identifier_from_expr(ret_expr) or ret_ident
         ret_display_name = None
+        # Human revision return_desc has highest priority for regenerated docs.
+        revision_return_desc = utils_module._safe_strip((ctx.get("comment_info") or {}).get("return_desc"))
+        if ctx.get("_revision_patch") and revision_return_desc and not backend._is_noop_comment(revision_return_desc):
+            ret_display_name = backend._shorten_element_display_name(revision_return_desc, fallback="返回值")
         # LLM batch variable name takes priority for return variable
         llm_ret_cn = var_cn_map.get(ret_lookup_name, "") or var_cn_map.get(ret_ident, "")
-        if llm_ret_cn:
+        if not ret_display_name and llm_ret_cn:
             ret_display_name = llm_ret_cn
-        elif ret_var:
+        elif not ret_display_name and ret_var:
             ret_display_name = (
                 backend.resolve_canonical_symbol_name(
                     ret_var_name,
@@ -5402,7 +5420,20 @@ def execute_project_module_tasks(
                     (task.get("func_data") or {}).get("body", ""),
                 )
                 _body_start = len(list(doc.element.body))
-                if not render_module.try_replay_rendered(doc, _rkey):
+                # Revision profiles can change rendered text without source-body changes.
+                _has_revision = bool(
+                    getattr(cfg, "extra_params", None)
+                    and (
+                        (cfg.extra_params or {}).get("revision_profile")
+                        or (cfg.extra_params or {}).get("revision_profile_json")
+                    )
+                )
+                if _has_revision or not render_module.try_replay_rendered(doc, _rkey):
+                    if _has_revision:
+                        try:
+                            render_module._RENDER_CACHE.pop(_rkey, None)
+                        except Exception:
+                            pass
                     render_module.render_function_design(doc, design, cfg)
                     render_module.capture_rendered_elements(doc, _body_start, _rkey)
                 _collect_review_function(cfg, design, task)
@@ -5517,7 +5548,20 @@ def execute_single_file_tasks(
                     (task.get("func_data") or {}).get("body", ""),
                 )
                 _body_start = len(list(doc.element.body))
-                if not render_module.try_replay_rendered(doc, _rkey):
+                # Revision profiles can change rendered text without source-body changes.
+                _has_revision = bool(
+                    getattr(cfg, "extra_params", None)
+                    and (
+                        (cfg.extra_params or {}).get("revision_profile")
+                        or (cfg.extra_params or {}).get("revision_profile_json")
+                    )
+                )
+                if _has_revision or not render_module.try_replay_rendered(doc, _rkey):
+                    if _has_revision:
+                        try:
+                            render_module._RENDER_CACHE.pop(_rkey, None)
+                        except Exception:
+                            pass
                     render_module.render_function_design(doc, design, cfg)
                     render_module.capture_rendered_elements(doc, _body_start, _rkey)
                 _collect_review_function(cfg, design, task)
@@ -5606,7 +5650,21 @@ def execute_single_export_task(
                 (task.get("func_data") or {}).get("body", ""),
             )
             _body_start = len(list(doc.element.body))
-            if not render_module.try_replay_rendered(doc, _rkey):
+            # Revision profiles can change rendered text without source-body changes.
+            _has_revision = bool(
+                getattr(cfg, "extra_params", None)
+                and (
+                    (cfg.extra_params or {}).get("revision_profile")
+                    or (cfg.extra_params or {}).get("revision_profile_json")
+                )
+            )
+            if _has_revision or not render_module.try_replay_rendered(doc, _rkey):
+                if _has_revision:
+                    # Drop stale cache entry so later capture stores revised XML.
+                    try:
+                        render_module._RENDER_CACHE.pop(_rkey, None)
+                    except Exception:
+                        pass
                 render_module.render_function_design(doc, design, cfg)
                 render_module.capture_rendered_elements(doc, _body_start, _rkey)
             _collect_review_function(cfg, design, task)
@@ -6595,8 +6653,8 @@ def run_single_file_generation(
         backend.safe_save_docx(doc, output)
     except Exception as exc:
         raise backend.RenderError(f"保存 Word 失败：{exc}") from exc
-    _write_review_workspace_if_enabled(cfg, output, project_root=source, merge_existing=continuing)
-    _write_design_workspace_if_enabled(cfg, output, project_root=source, merge_existing=continuing)
+    _write_review_workspace_if_enabled(cfg, output, project_root=_review_project_root(source=source), merge_existing=continuing)
+    _write_design_workspace_if_enabled(cfg, output, project_root=_review_project_root(source=source), merge_existing=continuing)
 
     finalize_single_file_generation(
         output,
@@ -6767,8 +6825,8 @@ def run_single_export_generation(
         backend.safe_save_docx(doc, output)
     except Exception as exc:
         raise backend.RenderError(f"保存 Word 失败：{exc}") from exc
-    _write_review_workspace_if_enabled(cfg, output, project_root=source)
-    _write_design_workspace_if_enabled(cfg, output, project_root=source)
+    _write_review_workspace_if_enabled(cfg, output, project_root=_review_project_root(source=source))
+    _write_design_workspace_if_enabled(cfg, output, project_root=_review_project_root(source=source))
 
     backend.vlog(cfg, f"单函数导出完成：{output}")
     try:

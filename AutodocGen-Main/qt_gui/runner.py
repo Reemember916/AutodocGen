@@ -30,6 +30,7 @@ class TaskSpec:
     new_code: str = ""
     old_doc: str = ""
     review_decisions: str = ""
+    generation_review_decisions: str = ""
     doc_update_mode: str = "plan-only"
     docdiff_root: str = ""
     renumber_module_csu: bool = False
@@ -112,6 +113,29 @@ class GenerateWorker(TaskWorkerBase):
                 symbol_dict_overrides = self.backend.parse_symbol_dictionary_text(txt)
             except Exception:
                 symbol_dict_overrides = {}
+            extra_params = dict(getattr(self.settings, "extra_params", None) or {})
+            generation_decisions = str(self.task.generation_review_decisions or "").strip()
+            if generation_decisions:
+                if not os.path.isfile(generation_decisions):
+                    raise ValueError("人工审查决策文件不存在")
+                from autodoc.review_decisions import resolve_review_bundle_path, write_revision_profile_from_review
+
+                review_dir = str(extra_params.get("review_dir") or "").strip()
+                bundle_path = resolve_review_bundle_path(
+                    generation_decisions,
+                    explicit_bundle=str(extra_params.get("review_bundle") or "").strip(),
+                    output_docx=output,
+                    review_dir=review_dir,
+                )
+                review_profile = generation_decisions + ".revision_profile.json"
+                profile = write_revision_profile_from_review(
+                    bundle_path=bundle_path,
+                    decisions_path=generation_decisions,
+                    output_path=review_profile,
+                )
+                extra_params["revision_profile"] = review_profile
+                emit_log(f"已应用人工审查决策：{len(profile.get('functions') or {})} 个已通过函数")
+
             cfg = self.backend.GenConfig(
                 section_prefix=getattr(self.settings, "section_prefix", "5.1.1."),
                 req_id_prefix=getattr(self.settings, "req_id_prefix", "D/R_SDD01_"),
@@ -148,7 +172,7 @@ class GenerateWorker(TaskWorkerBase):
                 incremental=bool(getattr(self.settings, "incremental", False)) and self.task.mode == "project",
                 project_file_order=(self.task.project_file_order if self.task.mode == "project" else None),
                 gui_event=(emit_detail if callable(emit_detail) else None),
-                extra_params=getattr(self.settings, "extra_params", None),
+                extra_params=extra_params,
                 symbol_dict_overrides=symbol_dict_overrides,
                 exclude_dirs=tuple([x.strip() for x in (getattr(self.settings, "exclude_dirs", None) or []) if str(x).strip()]),
                 mid_dir_keywords=tuple([x.strip() for x in (getattr(self.settings, "mid_dir_keywords", None) or []) if str(x).strip()]),

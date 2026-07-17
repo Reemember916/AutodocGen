@@ -291,6 +291,7 @@ class SettingsStore:
             "project_dir": str(s.value("recent/project_dir", "") or ""),
             "output": str(s.value("recent/output", "") or ""),
             "template": str(s.value("recent/template", "") or ""),
+            "review_decisions": str(s.value("recent/review_decisions", "") or ""),
         }
 
     def save_recent_inputs(self, data: dict[str, str]) -> None:
@@ -299,4 +300,5 @@ class SettingsStore:
         s.setValue("recent/project_dir", str((data or {}).get("project_dir") or ""))
         s.setValue("recent/output", str((data or {}).get("output") or ""))
         s.setValue("recent/template", str((data or {}).get("template") or ""))
+        s.setValue("recent/review_decisions", str((data or {}).get("review_decisions") or ""))
         s.sync()

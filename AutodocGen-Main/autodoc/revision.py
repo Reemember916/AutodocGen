@@ -147,15 +147,25 @@ def find_function_patch(profile: dict[str, Any], source_file: str, func_name: st
             value = funcs.get(key)
             if isinstance(value, dict):
                 matched = _merge_patch(matched, value)
-        # Also accept non-normalized file keys by comparing their suffix.
+        # Also accept non-normalized file keys by comparing their suffix / payload.
         for key, value in funcs.items():
-            if key in keys or not isinstance(value, dict) or "::" not in str(key):
+            if key in keys or not isinstance(value, dict):
                 continue
-            file_part, func_part = str(key).rsplit("::", 1)
-            if _safe_text(func_part) == _safe_text(func_name) and (
-                _norm_path(file_part) == _norm_path(source_file)
-                or os.path.basename(file_part) == os.path.basename(source_file)
-            ):
+            key_text = str(key)
+            if "::" in key_text:
+                file_part, func_part = key_text.rsplit("::", 1)
+                if _safe_text(func_part) != _safe_text(func_name):
+                    continue
+                if (
+                    not file_part
+                    or file_part in (".", "./")
+                    or _norm_path(file_part) == _norm_path(source_file)
+                    or os.path.basename(file_part) == os.path.basename(source_file)
+                ):
+                    matched = _merge_patch(matched, value)
+                continue
+            # Fallback: match by embedded function/file fields when key is opaque.
+            if _patch_matches_item(value, source_file, func_name):
                 matched = _merge_patch(matched, value)
     elif isinstance(funcs, list):
         for item in funcs:

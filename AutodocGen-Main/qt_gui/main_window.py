@@ -1932,6 +1932,25 @@ class MainWindow(QtWidgets.QMainWindow):
         t_row.addWidget(self.ed_template, 1)
         t_row.addWidget(self.btn_pick_template)
         out_form.addRow("模板 Docx", _wrap_layout(t_row))
+
+        review_row = QtWidgets.QHBoxLayout()
+        self.ed_generation_review_decisions = QtWidgets.QLineEdit()
+        self.ed_generation_review_decisions.setPlaceholderText("可选：人工审查页导出的 review_decisions.json")
+        self.ed_generation_review_decisions.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        self.btn_pick_generation_review = QtWidgets.QPushButton("浏览…")
+        self.btn_pick_generation_review.clicked.connect(
+            lambda: self._pick_file_into(
+                self.ed_generation_review_decisions,
+                "选择人工审查决策",
+                "JSON 文件 (*.json);;所有文件 (*.*)",
+            )
+        )
+        self.btn_apply_generation_review = QtWidgets.QPushButton("应用并生成")
+        self.btn_apply_generation_review.clicked.connect(self._start_review_regenerate)
+        review_row.addWidget(self.ed_generation_review_decisions, 1)
+        review_row.addWidget(self.btn_pick_generation_review)
+        review_row.addWidget(self.btn_apply_generation_review)
+        out_form.addRow("人工审查决策", _wrap_layout(review_row))
         out_outer.addLayout(out_form)
         left_layout.addWidget(card_out)
 
@@ -2586,7 +2605,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _restore_recent_inputs(self) -> None:
         data = self.settings_store.load_recent_inputs()
-        if not any((data.get("c_file"), data.get("project_dir"), data.get("output"), data.get("template"))):
+        if not any((data.get("c_file"), data.get("project_dir"), data.get("output"), data.get("template"), data.get("review_decisions"))):
             QtWidgets.QMessageBox.information(self, "提示", "没有找到上次输入记录。")
             return
         if data.get("c_file"):
@@ -2607,6 +2626,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.ed_output.setText(data["output"])
         if data.get("template"):
             self.ed_template.setText(data["template"])
+        if data.get("review_decisions"):
+            self.ed_generation_review_decisions.setText(data["review_decisions"])
         try:
             self._sync_source_mode()
         except Exception:
@@ -2625,6 +2646,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 "project_dir": self.ed_project.text().strip(),
                 "output": self.ed_output.text().strip(),
                 "template": self.ed_template.text().strip(),
+                "review_decisions": self.ed_generation_review_decisions.text().strip(),
             }
         )
         try:
@@ -2643,7 +2665,18 @@ class MainWindow(QtWidgets.QMainWindow):
             output=self.ed_output.text().strip(),
             template_path=self.ed_template.text().strip(),
             project_file_order=(self._get_project_file_order() if mode == "project" else None),
+            generation_review_decisions=self.ed_generation_review_decisions.text().strip(),
         )
+
+    def _start_review_regenerate(self) -> None:
+        decisions = self.ed_generation_review_decisions.text().strip()
+        if not decisions:
+            QtWidgets.QMessageBox.warning(self, "提示", "请选择人工审查页导出的 review_decisions.json。")
+            return
+        if not os.path.isfile(decisions):
+            QtWidgets.QMessageBox.warning(self, "提示", "人工审查决策文件不存在。")
+            return
+        self._start_generate(is_resume=False)
 
     def _start_doc_update(self) -> None:
         if self._thread is not None:
@@ -3064,6 +3097,9 @@ class MainWindow(QtWidgets.QMainWindow):
             getattr(self, "btn_open_term_table", None),
             getattr(self, "btn_pick_output", None),
             getattr(self, "btn_pick_template", None),
+            getattr(self, "ed_generation_review_decisions", None),
+            getattr(self, "btn_pick_generation_review", None),
+            getattr(self, "btn_apply_generation_review", None),
             getattr(self, "rb_single", None),
             getattr(self, "rb_project", None),
             getattr(self, "ed_doc_old_code", None),

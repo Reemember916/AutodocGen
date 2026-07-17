@@ -45,6 +45,18 @@ def parse_args():
                       help="生成离线人工审查 HTML 包：off=关闭，html=输出 review_bundle.json + index.html")
     docp.add_argument("--review-dir", default="",
                       help="审查 HTML 包输出目录；默认使用 <输出文件名>_review")
+    docp.add_argument("--review-decisions", default="",
+                      help="人工审查页导出的 review_decisions.json；仅应用已通过函数")
+    docp.add_argument("--review-bundle", default="",
+                      help="与审查决策对应的 review_bundle.json；默认自动发现")
+    docp.add_argument("--allow-stale-review", action="store_true",
+                      help="允许应用源码哈希已变化的审查决策（不建议）")
+
+    reviewp = sub.add_parser("review-apply", help="将人工审查决策转换为 revision profile")
+    reviewp.add_argument("--bundle", required=True, help="review_bundle.json 路径")
+    reviewp.add_argument("--decisions", required=True, help="review_decisions.json 路径")
+    reviewp.add_argument("-o", "--output", required=True, help="输出 revision_profile.json 路径")
+    reviewp.add_argument("--allow-stale", action="store_true", help="允许应用过期决策")
     return parser.parse_args()
 
 
@@ -69,6 +81,19 @@ def main():
         _run_default_gui()
         return
 
+    if args.command == "review-apply":
+        from .review_decisions import write_revision_profile_from_review
+
+        profile = write_revision_profile_from_review(
+            bundle_path=args.bundle,
+            decisions_path=args.decisions,
+            output_path=args.output,
+            allow_stale=bool(args.allow_stale),
+        )
+        print(f"审查决策已转换：{args.output}")
+        print(f"已通过函数：{len(profile.get('functions') or {})}")
+        return
+
     if args.command == "doc":
         extra_params = {
             "codegraph_mode": args.codegraph,
@@ -82,6 +107,24 @@ def main():
         }
         if args.revision_profile:
             extra_params["revision_profile"] = args.revision_profile
+        if args.review_decisions:
+            from .review_decisions import resolve_review_bundle_path, write_revision_profile_from_review
+
+            bundle_path = resolve_review_bundle_path(
+                args.review_decisions,
+                explicit_bundle=args.review_bundle,
+                output_docx=args.output,
+                review_dir=args.review_dir,
+            )
+            review_profile = str(args.output) + ".review_profile.json"
+            write_revision_profile_from_review(
+                bundle_path=bundle_path,
+                decisions_path=args.review_decisions,
+                output_path=review_profile,
+                allow_stale=bool(args.allow_stale_review),
+            )
+            extra_params["revision_profile"] = review_profile
+            print(f"已加载人工审查决策：{args.review_decisions}")
         cfg = GenConfig(
             verbose=args.verbose,
             ai_assist=False,
