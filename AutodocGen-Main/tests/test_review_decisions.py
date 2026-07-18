@@ -1,11 +1,18 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import json
+from types import SimpleNamespace
 
 import pytest
+from docx import Document
 
+from autodoc.models import FunctionDesign, IOElement, LocalDataElement
+from autodoc.pipeline import run_single_export_design
+from autodoc.render import add_logic_text
 from autodoc.review_decisions import (
     bundle_fingerprint,
+    load_review_decisions,
     review_decisions_to_revision_profile,
     write_revision_profile_from_review,
 )
@@ -17,7 +24,7 @@ from autodoc.review_workspace import (
     review_bundle_to_dict,
     review_function_key,
 )
-from autodoc.revision import apply_revision_to_context, apply_revision_to_logic_lines
+from autodoc.revision import apply_revision_to_context, apply_revision_to_design, apply_revision_to_logic_lines
 
 
 def _bundle() -> ReviewBundle:
@@ -126,6 +133,100 @@ def test_approved_review_decision_converts_to_revision_profile_and_applies():
     assert ctx["local_vars"][0]["usage"] == "保存计算结果"
     assert apply_revision_to_logic_lines(("旧逻辑",), patch) == ("读取输入值；", "写入处理结果；")
 
+    normalized = FunctionDesign(
+        title="自动归一标题",
+        req_id="D/R_SDD01_001_001",
+        prototype="void DemoFunc(void)",
+        description_lines=("自动说明",),
+        io_elements=(IOElement("自动值", "value", "Uint16", "输入"),),
+        io_none=False,
+        local_elements=(LocalDataElement("自动结果", "result", "Uint16", "自动用途"),),
+        logic_lines=("自动逻辑；",),
+    )
+    locked_design = apply_revision_to_design(normalized, patch)
+    assert locked_design.title == "人工标题"
+    assert locked_design.description_lines == ("人工说明",)
+    assert locked_design.io_elements[0].name == "输入值"
+    assert locked_design.local_elements[0].usage == "保存计算结果"
+    assert locked_design.logic_lines == ("读取输入值；", "写入处理结果；")
+
+
+def test_single_export_reapplies_reviewed_title_after_normalization():
+    source_file = "/project/Src/demo.c"
+    design = FunctionDesign(
+        title="人工标题",
+        req_id="D/R_SDD01_001_001",
+        prototype="void DemoFunc(void)",
+        description_lines=("人工说明",),
+        io_elements=(),
+        io_none=True,
+        local_elements=(),
+        logic_lines=("人工逻辑；",),
+    )
+
+    class BackendStub:
+        @staticmethod
+        def _run_function_design_task(task, cfg):
+            return design
+
+        @staticmethod
+        def _normalize_function_cn_title(title, **kwargs):
+            return "自动规范标题"
+
+        replace = staticmethod(replace)
+
+    cfg = SimpleNamespace(
+        extra_params={
+            "revision_profile": {
+                "functions": {
+                    f"{source_file}::DemoFunc": {
+                        "function_name": "人工标题",
+                    }
+                }
+            }
+        }
+    )
+    task = {
+        "file": source_file,
+        "func_name": "DemoFunc",
+        "func_data": {"comment_info": {"desc": "说明"}},
+    }
+
+    output = run_single_export_design(task, cfg, func_name="DemoFunc", backend_module=BackendStub())
+
+    assert output.title == "人工标题"
+
+
+def test_reviewed_control_logic_rebuilds_structure_and_word_indentation():
+    bundle = _bundle()
+    decisions = _approved_decisions(bundle)
+    decision = next(iter(decisions["functions"].values()))
+    decision["logic_lines"] = [
+        "IF 输入有效时",
+        "执行处理",
+        "ELSE；",
+        "执行降级处理;",
+        "END IF；",
+    ]
+
+    profile = review_decisions_to_revision_profile(bundle, decisions)
+    patch = next(iter(profile["functions"].values()))
+    assert patch["logic_lines"] == decision["logic_lines"]
+
+    lines = apply_revision_to_logic_lines(("旧逻辑",), patch)
+    assert lines == (
+        "IF 输入有效时",
+        "    执行处理；",
+        "ELSE",
+        "    执行降级处理；",
+        "END IF",
+    )
+
+    doc = Document()
+    for line in lines:
+        add_logic_text(doc, line, base_indent_pt=48, level_indent_pt=18)
+    assert [paragraph.paragraph_format.left_indent.pt for paragraph in doc.paragraphs] == [48, 66, 48, 66, 48]
+
 
 def test_non_approved_decisions_are_not_applied():
     bundle = _bundle()
@@ -144,6 +245,32 @@ def test_stale_review_decision_is_rejected():
 
     with pytest.raises(ValueError, match="源码已变化"):
         review_decisions_to_revision_profile(bundle, decisions)
+
+
+def test_mismatched_bundle_fingerprint_is_rejected():
+    bundle = _bundle()
+    decisions = _approved_decisions(bundle)
+    decisions["bundle_fingerprint"] = "another-review-bundle"
+
+    with pytest.raises(ValueError, match="review bundle 不匹配"):
+        review_decisions_to_revision_profile(bundle, decisions)
+
+
+def test_incremental_update_decisions_cannot_be_loaded(tmp_path):
+    decisions_path = tmp_path / "update_review_decisions.json"
+    decisions_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "decision_kind": "update_review",
+                "functions": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="unsupported review decision_kind: update_review"):
+        load_review_decisions(str(decisions_path))
 
 
 def test_review_decision_files_write_revision_profile(tmp_path):

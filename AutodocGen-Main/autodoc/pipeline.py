@@ -4262,7 +4262,7 @@ def build_design_output(
         cached_logic_lines=cached_logic_lines,
         changed_statement_lines=changed_statement_lines,
     )
-    return assemble_function_design(
+    design = assemble_function_design(
         components["text_sections"],
         components["io_elements"],
         components["io_none"],
@@ -4272,6 +4272,7 @@ def build_design_output(
         components["name_map"],
         backend_module=backend,
     )
+    return revision_utils.apply_revision_to_design(design, ctx.get("_revision_patch"))
 
 
 def build_function_design_impl(
@@ -6237,6 +6238,13 @@ def run_single_export_design(task: dict[str, Any], cfg, *, func_name: str, backe
         )
         if forced_title and forced_title != design.title:
             design = backend.replace(design, title=forced_title)
+        revision_patch = revision_utils.find_function_patch(
+            revision_utils.load_revision_profile(cfg),
+            str(task.get("file") or ""),
+            func_name,
+        )
+        if revision_patch:
+            design = revision_utils.apply_revision_to_design(design, revision_patch)
         return design
     finally:
         try:

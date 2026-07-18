@@ -427,7 +427,7 @@ td input { width:100%; min-width:90px; border:1px solid #b9c0c4; border-radius:3
 .toast { position:fixed; right:18px; bottom:18px; max-width:420px; padding:10px 14px; background:#20262c; color:white; border-radius:5px; box-shadow:0 4px 14px #0003; z-index:10; }
 .hidden { display:none !important; }
 @media (max-width: 980px) { .workspace { grid-template-columns:240px minmax(480px,1fr); }.inspector { grid-column:1 / -1; border-left:0; border-top:1px solid var(--line); }.workspace { overflow:auto; }.sidebar,.editor,.inspector { overflow:visible; } }
-@media (max-width: 700px) { .topbar { height:auto; min-height:58px; flex-wrap:wrap; padding:10px; }.topbar .meta { width:100%; order:2; }.workspace { height:auto; display:block; }.sidebar { max-height:360px; }.editor { padding:16px; }.inspector { border-top:1px solid var(--line); }.command { min-height:36px; } }
+@media (max-width: 700px) { .topbar { height:auto; min-height:58px; flex-wrap:wrap; padding:10px; }.topbar .meta { width:100%; order:2; }.workspace { height:auto; display:block; }.sidebar { max-height:360px; overflow:auto; }.editor { padding:16px; }.inspector { border-top:1px solid var(--line); }.command { min-height:36px; } }
 </style>
 </head>
 <body>
@@ -595,7 +595,7 @@ td input { width:100%; min-width:90px; border:1px solid #b9c0c4; border-radius:3
     const content = blocks.map(block => {
       if (block.kind === 'summary') return `<article class="review-block" data-block-id="${esc(block.block_id)}" data-kind="summary"><h3>功能说明</h3><textarea data-field="description">${esc(decision.description)}</textarea></article>`;
       if (block.kind === 'prototype') return `<article class="review-block" data-block-id="${esc(block.block_id)}" data-kind="prototype"><h3>函数原型</h3><pre class="readonly">${esc(block.text || '')}</pre></article>`;
-      if (block.kind === 'return') return `<article class="review-block" data-block-id="${esc(block.block_id)}" data-kind="return"><h3>返回值</h3><textarea data-field="return_desc">${esc(decision.return_desc)}</textarea></article>`;
+      if (block.kind === 'return') return `<article class="review-block" data-block-id="${esc(block.block_id)}" data-kind="return"><h3>返回值</h3><pre class="readonly">${esc(decision.return_desc)}</pre></article>`;
       if (block.kind === 'io_table') return `<article class="review-block" data-block-id="${esc(block.block_id)}" data-kind="io_table"><h3>输入输出参数</h3>${renderTable(decision.io_elements || [], 'io_elements')}</article>`;
       if (block.kind === 'local_table') return `<article class="review-block" data-block-id="${esc(block.block_id)}" data-kind="local_table"><h3>局部变量</h3>${renderTable(decision.local_elements || [], 'local_elements')}</article>`;
       if (block.kind === 'logic_line') {

@@ -46,7 +46,7 @@ def parse_args():
     docp.add_argument("--review-dir", default="",
                       help="审查 HTML 包输出目录；默认使用 <输出文件名>_review")
     docp.add_argument("--review-decisions", default="",
-                      help="人工审查页导出的 review_decisions.json；仅应用已通过函数")
+                      help="人工审查页导出的 generation_review_decisions.json；仅应用已通过函数")
     docp.add_argument("--review-bundle", default="",
                       help="与审查决策对应的 review_bundle.json；默认自动发现")
     docp.add_argument("--allow-stale-review", action="store_true",
@@ -54,7 +54,7 @@ def parse_args():
 
     reviewp = sub.add_parser("review-apply", help="将人工审查决策转换为 revision profile")
     reviewp.add_argument("--bundle", required=True, help="review_bundle.json 路径")
-    reviewp.add_argument("--decisions", required=True, help="review_decisions.json 路径")
+    reviewp.add_argument("--decisions", required=True, help="generation_review_decisions.json 路径")
     reviewp.add_argument("-o", "--output", required=True, help="输出 revision_profile.json 路径")
     reviewp.add_argument("--allow-stale", action="store_true", help="允许应用过期决策")
     return parser.parse_args()

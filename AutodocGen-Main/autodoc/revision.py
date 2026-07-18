@@ -8,6 +8,7 @@ function without teaching one sample's phrasing to every other function.
 from __future__ import annotations
 
 import copy
+from dataclasses import replace
 import json
 import os
 import re
@@ -33,6 +34,14 @@ def _as_list(value: Any) -> list[Any]:
 
 def _as_text_list(value: Any) -> list[str]:
     return [text for text in (_safe_text(item) for item in _as_list(value)) if text]
+
+
+def _as_logic_text_list(value: Any) -> list[str]:
+    lines = [
+        str(item if item is not None else "").expandtabs(4).rstrip()
+        for item in _as_list(value)
+    ]
+    return [line for line in lines if line.strip()]
 
 
 @lru_cache(maxsize=16)
@@ -305,12 +314,34 @@ def apply_revision_to_context(ctx: dict[str, Any], patch: dict[str, Any] | None)
 
 
 def _normalize_logic_line(text: str) -> str:
-    value = _safe_text(text)
-    if not value:
+    raw = str(text or "").expandtabs(4).rstrip()
+    if not raw.strip():
         return ""
+    indent = raw[: len(raw) - len(raw.lstrip(" "))]
+    value = raw.lstrip(" ")
+    control = re.match(
+        r"^(?:IF\b|ELSE(?:\s+IF\b)?|FOR\b|WHILE\b|DO\s+WHILE\b|"
+        r"SWITCH\b|CASE\b|DEFAULT\b|END\s+(?:IF|WHILE|DO\s+WHILE|SWITCH)\b|NEXT\b)",
+        value,
+    )
+    if control:
+        return indent + re.sub(r"[；;。]+$", "", value).rstrip()
     if value.endswith(("；", "。", "：", ":", ";")):
-        return value[:-1].rstrip() + "；" if value.endswith(";") else value
-    return value + "；"
+        value = value[:-1].rstrip() + "；" if value.endswith(";") else value
+        return indent + value
+    return indent + value + "；"
+
+
+def _normalize_logic_structure(lines: Iterable[str]) -> tuple[str, ...]:
+    normalized = tuple(line for line in (_normalize_logic_line(item) for item in lines) if line)
+    if not normalized:
+        return ()
+    try:
+        from .logic import _validate_control_blocks
+
+        return tuple(_validate_control_blocks(normalized))
+    except Exception:
+        return normalized
 
 
 def _replacement_matches(line: str, rule: dict[str, Any], index: int) -> bool:
@@ -355,7 +386,7 @@ def apply_revision_to_logic_lines(logic_lines: Sequence[str] | None, patch: dict
         return tuple(logic_lines or ()) if logic_lines is not None else None
     if "logic_lines" in patch or "logic_override" in patch:
         override = patch.get("logic_lines", patch.get("logic_override"))
-        return tuple(_normalize_logic_line(line) for line in _as_text_list(override))
+        return _normalize_logic_structure(_as_logic_text_list(override))
 
     lines = [_safe_text(line) for line in (logic_lines or ()) if _safe_text(line)]
     for rule in _as_list(patch.get("logic_replacements") or patch.get("logic_line_replacements")):
@@ -380,7 +411,46 @@ def apply_revision_to_logic_lines(logic_lines: Sequence[str] | None, patch: dict
     prepend = [_normalize_logic_line(line) for line in _as_text_list(patch.get("logic_prepend"))]
     append = [_normalize_logic_line(line) for line in _as_text_list(patch.get("logic_append") or patch.get("logic_additions"))]
     lines = prepend + lines + append
-    return tuple(line for line in lines if _safe_text(line))
+    return _normalize_logic_structure(line for line in lines if _safe_text(line))
+
+
+def apply_revision_to_design(design: Any, patch: dict[str, Any] | None) -> Any:
+    """Reapply reviewer-locked values after automatic text normalization."""
+
+    if design is None or not isinstance(patch, dict) or not patch:
+        return design
+    changes: dict[str, Any] = {}
+    title = _safe_text(patch.get("function_name") or patch.get("func_cn_name") or patch.get("title"))
+    if title:
+        changes["title"] = title
+    if any(key in patch for key in ("description", "function_desc", "desc")):
+        description = _safe_text(patch.get("description") or patch.get("function_desc") or patch.get("desc"))
+        changes["description_lines"] = tuple(line.strip() for line in description.splitlines() if line.strip())
+
+    locked = _locked_name_items(patch)
+    if locked:
+        io_items = []
+        for item in tuple(getattr(design, "io_elements", ()) or ()):
+            locked_item = locked.get(_safe_text(getattr(item, "ident", "")))
+            io_items.append(replace(item, name=locked_item["display"]) if locked_item else item)
+        changes["io_elements"] = tuple(io_items)
+
+        local_items = []
+        for item in tuple(getattr(design, "local_elements", ()) or ()):
+            locked_item = locked.get(_safe_text(getattr(item, "ident", "")))
+            if not locked_item:
+                local_items.append(item)
+                continue
+            values = {"name": locked_item["display"]}
+            usage = _safe_text(locked_item.get("usage"))
+            if usage:
+                values["usage"] = usage
+            local_items.append(replace(item, **values))
+        changes["local_elements"] = tuple(local_items) if getattr(design, "local_elements", None) is not None else None
+
+    if "logic_lines" in patch or "logic_override" in patch:
+        changes["logic_lines"] = apply_revision_to_logic_lines(getattr(design, "logic_lines", None), patch)
+    return replace(design, **changes) if changes else design
 
 
 def find_golden_expectations(profile: dict[str, Any], source_file: str, func_name: str) -> tuple[dict[str, Any], ...]:
@@ -423,6 +493,7 @@ def audit_golden_text(text: str, expectations: Iterable[dict[str, Any]]) -> tupl
 
 __all__ = [
     "apply_revision_to_context",
+    "apply_revision_to_design",
     "apply_revision_to_logic_lines",
     "audit_golden_text",
     "find_function_patch",

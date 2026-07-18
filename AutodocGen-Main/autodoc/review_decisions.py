@@ -22,6 +22,10 @@ def _safe_text(value: Any) -> str:
     return str(value if value is not None else "").strip()
 
 
+def _logic_text(value: Any) -> str:
+    return str(value if value is not None else "").expandtabs(4).rstrip()
+
+
 def bundle_fingerprint(bundle: ReviewBundle) -> str:
     return review_bundle_fingerprint(bundle)
 
@@ -39,6 +43,9 @@ def load_review_decisions(path: str) -> dict[str, Any]:
     version = int(data.get("schema_version") or 0)
     if version != SCHEMA_VERSION:
         raise ValueError(f"unsupported review decisions schema_version: {version}")
+    decision_kind = _safe_text(data.get("decision_kind"))
+    if decision_kind and decision_kind != "generation_review":
+        raise ValueError(f"unsupported review decision_kind: {decision_kind}")
     functions = data.get("functions")
     if not isinstance(functions, dict):
         raise ValueError("review decisions must contain a functions object")
@@ -66,7 +73,7 @@ def resolve_review_bundle_path(
         if candidate and os.path.isfile(candidate):
             return os.path.abspath(candidate)
     raise FileNotFoundError(
-        "未找到 review_bundle.json；请将 review_decisions.json 放到审查目录，"
+        "未找到 review_bundle.json；请将 generation_review_decisions.json 放到审查目录，"
         "或显式指定 review bundle 路径"
     )
 
@@ -153,9 +160,9 @@ def review_decisions_to_revision_profile(
 
         if "logic_lines" in decision:
             patch["logic_lines"] = [
-                _safe_text(line)
+                _logic_text(line)
                 for line in (decision.get("logic_lines") or ())
-                if _safe_text(line)
+                if _logic_text(line).strip()
             ]
         patches[key] = patch
 
