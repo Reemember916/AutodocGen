@@ -7,20 +7,133 @@ from model.ast import DocumentAST, Section, Segment, Block
 from extractor.reader import iter_blocks
 from extractor.text_extract import extract_texts_from_p
 
-SUB_RE = re.compile(r'^\s*([a-eａ-ｅ])[)\）\.、\s]')
+# a)~z)、1)~99)、（1）等常见小节编号（全角字母亦可）
+SUB_RE = re.compile(
+    r"^\s*(?:"
+    r"([a-zａ-ｚ])[)\）\.、\s]"
+    r"|"
+    r"([1-9]\d{0,1})[)\）\.、\s]"
+    r"|"
+    r"[（(]([1-9]\d{0,1})[）)]\s*"
+    r")"
+)
+DOC_ID_RE = re.compile(
+    r"(?:[A-Za-z]+/[A-Za-z0-9_./-]+|[A-Za-z]{2,}[-_][A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)+)"
+)
+CN_LEVELS = {
+    "一": 1,
+    "二": 2,
+    "三": 3,
+    "四": 4,
+    "1": 1,
+    "2": 2,
+    "3": 3,
+    "4": 4,
+}
 
-FULL2HALF = {'ａ': 'a', 'ｂ': 'b', 'ｃ': 'c', 'ｄ': 'd', 'ｅ': 'e'}
+FULL2HALF = {
+    "ａ": "a",
+    "ｂ": "b",
+    "ｃ": "c",
+    "ｄ": "d",
+    "ｅ": "e",
+    "ｆ": "f",
+    "ｇ": "g",
+    "ｈ": "h",
+    "ｉ": "i",
+    "ｊ": "j",
+    "ｋ": "k",
+    "ｌ": "l",
+    "ｍ": "m",
+    "ｎ": "n",
+    "ｏ": "o",
+    "ｐ": "p",
+    "ｑ": "q",
+    "ｒ": "r",
+    "ｓ": "s",
+    "ｔ": "t",
+    "ｕ": "u",
+    "ｖ": "v",
+    "ｗ": "w",
+    "ｘ": "x",
+    "ｙ": "y",
+    "ｚ": "z",
+}
+
+
+def _heading_level_from_style_name(style_name: str):
+    raw = (style_name or "").strip()
+    if not raw:
+        return None
+
+    compact = re.sub(r"[\s_\-]+", "", raw).lower()
+
+    for lv in (1, 2, 3, 4):
+        if compact in {
+            f"heading{lv}",
+            f"h{lv}",
+            f"title{lv}",
+            f"标题{lv}",
+            f"{lv}级标题",
+            f"{lv}级",
+        }:
+            return lv
+
+    m = re.search(r"(?:heading|title|标题|h)([1-4])$", compact)
+    if m:
+        return int(m.group(1))
+
+    m = re.search(r"([1-4])(?:级标题|级|标题)$", compact)
+    if m:
+        return int(m.group(1))
+
+    m = re.search(r"(?:第)?([一二三四])(?:级)?标题", raw)
+    if m:
+        return CN_LEVELS.get(m.group(1))
+
+    m = re.search(r"([一二三四])级", raw)
+    if m:
+        return CN_LEVELS.get(m.group(1))
+
+    # Custom templates often use names like SDD_Heading_4, CSCI-title-3, 609_4.
+    m = re.search(r"(?:^|[_\-\s])([1-4])$", raw)
+    if m:
+        return int(m.group(1))
+
+    m = re.match(r"^\d+[_-]([1-4])$", raw)
+    if m:
+        return int(m.group(1))
+
+    return None
+
+
+def _looks_like_stable_h4_title(p: Paragraph) -> bool:
+    text = (p.text or "").strip()
+    if not text or not DOC_ID_RE.search(text):
+        return False
+    if len(text) > 160 or "\n" in text:
+        return False
+
+    style_name = (p.style.name if p.style else "") or ""
+    style_hint = re.search(
+        r"(标题|heading|head|title|csci|sdd|章节|函数|功能|需求)",
+        style_name,
+        flags=re.IGNORECASE,
+    )
+
+    bold_hint = any(bool(run.bold) for run in p.runs)
+    short_heading_shape = len(text.split()) <= 12
+    return bool(style_hint or bold_hint or short_heading_shape)
 
 
 def _is_heading_para(p: Paragraph):
     """返回 (True/False, level or None)"""
     if not p.style:
-        return False, None
-    name = (p.style.name or "").strip().lower()
+        return (True, 4) if _looks_like_stable_h4_title(p) else (False, None)
 
-    for lv in (1, 2, 3, 4):
-        if name in {f"heading {lv}", f"heading{lv}", f"标题{lv}", f"标题 {lv}"}:
-            return True, lv
+    style_level = _heading_level_from_style_name(p.style.name or "")
+    if style_level in (1, 2, 3, 4):
+        return True, style_level
 
     # 自定义样式兼容：如 609_4 / 123_1
     raw_name = (p.style.name or "").strip()
@@ -40,6 +153,9 @@ def _is_heading_para(p: Paragraph):
         except Exception:
             pass
 
+    if _looks_like_stable_h4_title(p):
+        return True, 4
+
     return False, None
 
 
@@ -49,8 +165,14 @@ def _detect_sub_id(text: str):
     m = SUB_RE.match(text.strip())
     if not m:
         return None
-    ch = m.group(1)
-    return FULL2HALF.get(ch, ch)
+    letter, num_plain, num_paren = m.group(1), m.group(2), m.group(3)
+    if letter:
+        ch = FULL2HALF.get(letter, letter)
+        return ch.lower() if isinstance(ch, str) else ch
+    num = num_plain or num_paren
+    if num:
+        return str(int(num))  # "01" -> "1"
+    return None
 
 def _is_para_in_table(p: Paragraph) -> bool:
     try:
@@ -169,7 +291,7 @@ def build_ast(doc_path: str) -> DocumentAST:
 
         # ===================== Table =====================
         elif isinstance(blk, Table):
-            if not cur_section:
+            if not ensure_active_section():
                 continue
             seg_obj = ensure_seg(cur_seg)
             seg_obj.blocks.append(

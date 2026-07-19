@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DocDiff GUI — 当前布局示意</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #e8e4dc;
+    --panel: #f3f1eb;
+    --chrome: #dcd6cb;
+    --ink: #1c1a16;
+    --muted: #5c564c;
+    --line: #c4bdb0;
+    --accent: #2f4a3a;
+    --accent-soft: #dce8e1;
+    --warn: #8a4b1a;
+    --field: #fffefb;
+    --log: #1a1f1c;
+    --log-fg: #c8d5cc;
+    --mono: "IBM Plex Mono", "SF Mono", ui-monospace, monospace;
+    --sans: "Source Han Sans SC", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: var(--sans);
+    color: var(--ink);
+    background:
+      radial-gradient(ellipse 80% 50% at 10% 0%, #efe8d8 0%, transparent 55%),
+      linear-gradient(165deg, #d9d3c6 0%, var(--bg) 40%, #ddd6ca 100%);
+    padding: 28px 20px 48px;
+  }
+  .page {
+    max-width: 920px;
+    margin: 0 auto;
+  }
+  header.intro {
+    margin-bottom: 22px;
+  }
+  header.intro .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  header.intro h1 {
+    font-size: 1.65rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 8px;
+  }
+  header.intro p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.55;
+    max-width: 52em;
+    font-size: 0.95rem;
+  }
+  .window {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.65) inset,
+      0 18px 40px rgba(40, 32, 18, 0.12),
+      0 2px 6px rgba(40, 32, 18, 0.06);
+    overflow: hidden;
+  }
+  .titlebar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: linear-gradient(180deg, #e7e2d7, var(--chrome));
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+  }
+  .dots { display: flex; gap: 6px; }
+  .dots i {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #c9c2b4; display: block;
+  }
+  .dots i:nth-child(1) { background: #c97b6a; }
+  .dots i:nth-child(2) { background: #d4b46a; }
+  .dots i:nth-child(3) { background: #7a9e7e; }
+  .titlebar strong { font-weight: 600; flex: 1; text-align: center; margin-right: 48px; }
+  .body {
+    padding: 14px 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 88px 1fr auto;
+    gap: 8px;
+    align-items: center;
+    min-height: 30px;
+  }
+  .row.tight { grid-template-columns: 88px 1fr; }
+  .row.meta { grid-template-columns: 88px 110px auto 80px auto 80px auto; }
+  .row.fuzzy { grid-template-columns: 88px 72px 1fr; }
+  .row.prefix { grid-template-columns: 88px 150px 1fr; }
+  .row.actions { grid-template-columns: auto auto 1fr; margin-top: 4px; }
+  label.k {
+    font-size: 12.5px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .field {
+    height: 28px;
+    border: 1px solid var(--line);
+    background: var(--field);
+    border-radius: 4px;
+    padding: 0 8px;
+    font-size: 12.5px;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .field.sm { max-width: 110px; }
+  .field.xs { max-width: 72px; justify-content: center; font-family: var(--mono); }
+  .btn {
+    height: 28px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: linear-gradient(180deg, #f8f5ee, #e8e2d6);
+    font-size: 12px;
+    color: var(--ink);
+    cursor: default;
+    white-space: nowrap;
+  }
+  .btn.primary {
+    background: linear-gradient(180deg, #3d6350, var(--accent));
+    border-color: #243d30;
+    color: #f4f7f5;
+    font-weight: 600;
+    min-width: 100px;
+  }
+  .btn:disabled, .btn.dim { opacity: 0.55; }
+  select.field {
+    appearance: none;
+    padding-right: 22px;
+    background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+      linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position: calc(100% - 12px) 11px, calc(100% - 7px) 11px;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    width: 160px;
+  }
+  .check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--ink);
+    grid-column: 1 / -1;
+    padding: 2px 0;
+  }
+  .check i {
+    width: 14px; height: 14px;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    background: var(--field);
+    flex-shrink: 0;
+  }
+  .check.on i {
+    background: var(--accent);
+    box-shadow: inset 0 0 0 2px var(--field);
+  }
+  .hint {
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .hint.warn { color: var(--warn); }
+  .sep {
+    height: 1px;
+    background: var(--line);
+    margin: 4px 0 2px;
+    opacity: 0.7;
+  }
+  .logbox {
+    margin-top: 6px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--log);
+  }
+  .logbox .cap {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    padding: 6px 10px;
+    background: #242b27;
+    color: #8a9a8e;
+    border-bottom: 1px solid #2e3832;
+    font-family: var(--mono);
+  }
+  .logbox pre {
+    margin: 0;
+    padding: 10px 12px;
+    min-height: 160px;
+    max-height: 200px;
+    overflow: auto;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    line-height: 1.55;
+    color: var(--log-fg);
+  }
+  .logbox pre .ok { color: #8fca9a; }
+  .logbox pre .dim { color: #6a7a70; }
+
+  /* annotation strip */
+  .notes {
+    margin-top: 28px;
+    display: grid;
+    gap: 14px;
+  }
+  .note {
+    background: rgba(255,254,251,0.72);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .note h2 {
+    margin: 0 0 8px;
+    font-size: 0.95rem;
+  }
+  .note ol, .note ul {
+    margin: 0;
+    padding-left: 1.2em;
+    color: var(--muted);
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
+  .note code {
+    font-family: var(--mono);
+    font-size: 0.82em;
+    background: var(--accent-soft);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--accent);
+  }
+  .wire {
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.35;
+    white-space: pre;
+    background: #1a1f1c;
+    color: #b8c4bb;
+    padding: 12px 14px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 8px 0 0;
+  }
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin: 18px 0 12px;
+  }
+  .tabs button {
+    border: 1px solid var(--line);
+    background: rgba(255,254,251,0.5);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 12.5px;
+    cursor: pointer;
+    color: var(--muted);
+  }
+  .tabs button.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #f4f7f5;
+    font-weight: 600;
+  }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .future .window { opacity: 0.98; }
+  .badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    vertical-align: middle;
+    margin-left: 8px;
+  }
+  .group {
+    border: 1px dashed #b7cfc0;
+    border-radius: 6px;
+    padding: 8px 10px 6px;
+    margin: 2px 0;
+    background: rgba(220, 232, 225, 0.35);
+  }
+  .group .gtitle {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <header class="intro">
+      <div class="eyebrow">DocDiff · tkinter GUI preview</div>
+      <h1>当前 GUI 布局（与 <code>gui_app.py</code> 一致）</h1>
+      <p>
+        这是桌面 tkinter 窗口的静态示意，不是可运行 EXE。
+        对照下面「当前 / 建议改版」两页，方便讨论后续布局怎么收。
+      </p>
+    </header>
+
+    <div class="tabs">
+      <button type="button" class="active" data-tab="now">当前界面</button>
+      <button type="button" data-tab="next">建议改版（草案）</button>
+    </div>
+
+    <div id="now" class="panel active">
+      <div class="window" style="width:min(820px,100%);margin:0 auto;">
+        <div class="titlebar">
+          <div class="dots"><i></i><i></i><i></i></div>
+          <strong>DocDiff 更改单生成器</strong>
+        </div>
+        <div class="body">
+          <div class="row tight">
+            <label class="k">模式</label>
+            <select class="field"><option>docx</option><option>code</option></select>
+          </div>
+          <div class="row">
+            <label class="k">旧版文档</label>
+            <div class="field">12.docx</div>
+            <button class="btn" type="button">浏览</button>
+          </div>
+          <div class="row">
+            <label class="k">新版文档</label>
+            <div class="field">123.docx</div>
+            <button class="btn" type="button">浏览</button>
+          </div>
+          <div class="row">
+            <label class="k">输出文档</label>
+            <div class="field">更改单_测试版.docx</div>
+            <button class="btn" type="button">浏览</button>
+          </div>
+          <div class="row">
+            <label class="k">问题单台账</label>
+            <div class="field" style="color:#999">（空）</div>
+            <div style="display:flex;gap:6px">
+              <button class="btn" type="button">浏览</button>
+              <button class="btn" type="button">导出模板</button>
+            </div>
+          </div>
+          <div class="row prefix">
+            <label class="k">问题单前缀</label>
+            <div class="field sm">DFKS112-WT</div>
+            <span class="hint">（如 DFKS112-WT → 自动 DFKS112-WT-01、02…）</span>
+          </div>
+          <div class="check on"><i></i> 自动匹配问题单（默认规则；CLI 可用 --match-strategy rules|llm|hybrid）</div>
+          <div class="check dim"><i></i> C函数多段变更显示“省略未改动片段”分隔行 <span class="hint">（docx 模式下禁用）</span></div>
+          <div class="row fuzzy">
+            <label class="k">Fuzzy阈值</label>
+            <div class="field xs">0.72</div>
+            <span class="hint">（docx 章节模糊配对，0~1，默认 0.72；越高越严）</span>
+          </div>
+          <div class="row meta">
+            <label class="k">文号/版本</label>
+            <div class="field sm"></div>
+            <span class="hint">文号</span>
+            <div class="field sm"></div>
+            <span class="hint">版本</span>
+            <div class="field sm"></div>
+            <span class="hint">编制人</span>
+          </div>
+          <div class="check on"><i></i> 表格按主键列对齐（字段名/名称/ID 等）</div>
+          <p class="hint warn" style="margin:2px 0 0">
+            问题单编号格式：项目型号-WT-两位序号（如 DFKS112-WT-01）；台账列：序号|问题|问题单编号
+          </p>
+          <div class="row actions">
+            <button class="btn primary" type="button">开始生成</button>
+            <button class="btn" type="button">清空日志</button>
+          </div>
+          <div class="logbox">
+            <div class="cap">运行日志</div>
+            <pre><span class="dim">已切换到文档更改单模式</span>
+<span class="ok">开始处理（文档更改单）...</span>
+已加载问题单台账：问题单台账.csv（3 条）
+问题单前缀：DFKS112-WT（编号形如 DFKS112-WT-01）
+构建旧版 AST...
+构建新版 AST...
+对比差异（fuzzy阈值=0.72）...
+问题单自动匹配[rules]：2/6 条
+检测到 6 处差异
+生成更改单...
+<span class="ok">完成：更改单_测试版.docx</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="note">
+          <h2>当前结构（自上而下一条竖带）</h2>
+          <ol>
+            <li>模式切换 <code>docx | code</code></li>
+            <li>三条路径：旧 / 新 / 输出</li>
+            <li>问题单：台账路径、导出模板、前缀、自动匹配勾选</li>
+            <li>docx 专用：Fuzzy、文号/版本/编制人、表格主键</li>
+            <li>code 专用：C 省略分隔行（docx 时灰掉）</li>
+            <li>操作：开始生成 / 清空日志</li>
+            <li>底部大块运行日志</li>
+          </ol>
+          <p class="hint" style="margin:10px 0 0">
+            窗口约 <code>820×700</code>，控件全挤在一列，问题单相关能力加多以后已经偏挤；
+            LLM 策略 / API 还没进 GUI（只在 CLI）。
+          </p>
+        </div>
+        <div class="note">
+          <h2>ASCII 线框（当前）</h2>
+          <div class="wire">┌─ DocDiff 更改单生成器 ─────────────────────┐
+│ 模式 [ docx ▼ ]                             │
+│ 旧版 [______________] [浏览]                │
+│ 新版 [______________] [浏览]                │
+│ 输出 [______________] [浏览]                │
+│ 台账 [______________] [浏览][导出模板]      │
+│ 前缀 [DFKS112-WT]  说明…                    │
+│ ☑ 自动匹配问题单 …                          │
+│ ☐ C省略分隔（code）                         │
+│ Fuzzy [0.72] 说明…                          │
+│ 文号 [_] 版本 [_] 编制人 [_]                │
+│ ☑ 表格主键对齐                              │
+│ 提示：编号格式…                             │
+│ [开始生成] [清空日志]                       │
+│ ┌ 运行日志 ─────────────────────────────┐   │
+│ │ …                                     │   │
+│ └───────────────────────────────────────┘   │
+└─────────────────────────────────────────────┘</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="next" class="panel future">
+      <div class="window" style="width:min(860px,100%);margin:0 auto;">
+        <div class="titlebar">
+          <div class="dots"><i></i><i></i><i></i></div>
+          <strong>DocDiff 更改单生成器 <span class="badge">LAYOUT DRAFT</span></strong>
+        </div>
+        <div class="body">
+          <div class="group">
+            <div class="gtitle">1 · 对比对象</div>
+            <div class="row tight">
+              <label class="k">模式</label>
+              <select class="field"><option>文档更改单 (docx)</option><option>代码更改单 (code)</option></select>
+            </div>
+            <div class="row">
+              <label class="k">旧版</label>
+              <div class="field">…/V1.01.docx</div>
+              <button class="btn" type="button">浏览</button>
+            </div>
+            <div class="row">
+              <label class="k">新版</label>
+              <div class="field">…/V1.02.docx</div>
+              <button class="btn" type="button">浏览</button>
+            </div>
+            <div class="row">
+              <label class="k">输出</label>
+              <div class="field">更改单_V1.01_to_V1.02.docx</div>
+              <button class="btn" type="button">浏览</button>
+            </div>
+          </div>
+
+          <div class="group">
+            <div class="gtitle">2 · 问题单（人工台账 + 匹配）</div>
+            <div class="row">
+              <label class="k">台账文件</label>
+              <div class="field">问题单台账.csv</div>
+              <div style="display:flex;gap:6px">
+                <button class="btn" type="button">浏览</button>
+                <button class="btn" type="button">导出模板</button>
+              </div>
+            </div>
+            <div class="row prefix">
+              <label class="k">编号前缀</label>
+              <div class="field sm">DFKS112-WT</div>
+              <span class="hint">→ DFKS112-WT-01 / 02 …（两位起）</span>
+            </div>
+            <div class="row fuzzy">
+              <label class="k">匹配策略</label>
+              <select class="field" style="width:120px"><option>rules</option><option>hybrid</option><option>llm</option></select>
+              <span class="hint">hybrid = 规则优先，未匹配再 LLM</span>
+            </div>
+            <div class="check on"><i></i> 启用自动匹配（按描述 / doc-id / 函数名挂接）</div>
+            <div class="row" style="grid-template-columns:88px 1fr auto;opacity:0.85">
+              <label class="k">API（可选）</label>
+              <div class="field" style="color:#999">Key 从环境变量读取，或点右侧配置…</div>
+              <button class="btn" type="button">LLM 设置</button>
+            </div>
+          </div>
+
+          <div class="group">
+            <div class="gtitle">3 · 文档选项 · 仅 docx</div>
+            <div class="row fuzzy">
+              <label class="k">Fuzzy</label>
+              <div class="field xs">0.72</div>
+              <span class="hint">章节模糊配对阈值</span>
+            </div>
+            <div class="row meta" style="grid-template-columns:88px 1fr 1fr 1fr">
+              <label class="k">归档元数据</label>
+              <div class="field" placeholder="文号">文号</div>
+              <div class="field">版本</div>
+              <div class="field">编制人</div>
+            </div>
+            <div class="check on"><i></i> 表格统一网格样式（不拷贝原表边框）</div>
+            <div class="check on"><i></i> 表格按主键列对齐</div>
+          </div>
+
+          <div class="row actions">
+            <button class="btn primary" type="button">开始生成</button>
+            <button class="btn" type="button">清空日志</button>
+            <span class="hint" style="justify-self:end">生成后可打开匹配诊断 JSON</span>
+          </div>
+          <div class="logbox">
+            <div class="cap">运行日志</div>
+            <pre><span class="dim"># 分组后主操作仍只有「开始生成」
+# 高级项默认折叠时，窗口高度可压到 ~560</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="note">
+          <h2>建议怎么调布局</h2>
+          <ul>
+            <li><strong>按任务分组</strong>：对比对象 / 问题单 / 文档选项，减少「一长串勾选」的压迫感。</li>
+            <li><strong>主路径三行固定</strong>：旧、新、输出永远在最上方，不随模式乱跳位置。</li>
+            <li><strong>问题单独立成块</strong>：台账、前缀、匹配策略、自动匹配放一起；LLM 设置进二级对话框，避免主界面堆 Key。</li>
+            <li><strong>模式切换只显隐整块</strong>：docx 显示 Fuzzy+元数据+表格；code 显示 C 省略行，不要逐个控件 disable 散落。</li>
+            <li><strong>日志占满剩余高度</strong>：上面表单可滚动或折叠，下面日志 <code>expand=True</code> 一直吃空间。</li>
+            <li><strong>可选后续</strong>：生成后弹「匹配结果」小表（序号/问题/单号/挂到章节/分数），确认后再写 Word——准确率与可归档性会好一截。</li>
+          </ul>
+        </div>
+        <div class="note">
+          <h2>实施优先级（若改 GUI）</h2>
+          <ol>
+            <li>P0：分组 LabelFrame + 窗口可拉高日志区（不动业务逻辑）</li>
+            <li>P1：匹配策略下拉（rules/hybrid/llm）+ LLM 设置对话框</li>
+            <li>P2：匹配结果预览表 / 打开 dump JSON</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+<script>
+  document.querySelectorAll('.tabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab).classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

@@ -50,14 +50,17 @@ def _build_change(
     seg: str,
     old_text: str,
     new_text: str,
+    **extra,
 ):
-    return {
+    change = {
         "type": change_type,
         "key": rel_path,
         "seg": seg,
         "old_text": old_text,
         "new_text": new_text,
     }
+    change.update(extra)
+    return change
 
 
 def _mask_c_text(text: str) -> str:
@@ -369,11 +372,37 @@ def _collect_c_changes(rel_path: str, old_text: str, new_text: str, gap_marker: 
         seg = (new_fn or old_fn).get("signature", "未知函数")
 
         if action == "del":
-            changes.append(_build_change("删除", rel_path, seg, old_fn["body"], ""))
+            changes.append(_build_change(
+                "删除",
+                rel_path,
+                seg,
+                old_fn["body"],
+                "",
+                language="c",
+                change_kind="deleted_function",
+                function_name=old_fn.get("name", ""),
+                old_function_name=old_fn.get("name", ""),
+                new_function_name="",
+                old_signature=old_fn.get("signature", ""),
+                new_signature="",
+            ))
             continue
 
         if action == "add":
-            changes.append(_build_change("新增", rel_path, seg, "", ""))
+            changes.append(_build_change(
+                "新增",
+                rel_path,
+                seg,
+                "",
+                new_fn["body"],
+                language="c",
+                change_kind="new_function",
+                function_name=new_fn.get("name", ""),
+                old_function_name="",
+                new_function_name=new_fn.get("name", ""),
+                old_signature="",
+                new_signature=new_fn.get("signature", ""),
+            ))
             continue
 
         if old_fn["body"] != new_fn["body"]:
@@ -382,13 +411,34 @@ def _collect_c_changes(rel_path: str, old_text: str, new_text: str, gap_marker: 
             old_ranges, new_ranges = _extract_changed_ranges(old_lines, new_lines)
             old_snippet = _render_changed_ranges(old_lines, old_ranges, max_contiguous_lines=0, gap_marker=gap_marker)
             new_snippet = _render_changed_ranges(new_lines, new_ranges, max_contiguous_lines=0, gap_marker=gap_marker)
-            changes.append(_build_change("修改", rel_path, seg, old_snippet, new_snippet))
+            changes.append(_build_change(
+                "修改",
+                rel_path,
+                seg,
+                old_snippet,
+                new_snippet,
+                language="c",
+                change_kind="modified_function",
+                function_name=new_fn.get("name", "") or old_fn.get("name", ""),
+                old_function_name=old_fn.get("name", ""),
+                new_function_name=new_fn.get("name", ""),
+                old_signature=old_fn.get("signature", ""),
+                new_signature=new_fn.get("signature", ""),
+            ))
 
     if changes:
         return changes
 
     old_snippet, new_snippet = _snippet_from_diff_with_context(old_text, new_text, 10)
-    return [_build_change("修改", rel_path, "全局区域", old_snippet, new_snippet)]
+    return [_build_change(
+        "修改",
+        rel_path,
+        "全局区域",
+        old_snippet,
+        new_snippet,
+        language="c",
+        change_kind="file_global_changed",
+    )]
 
 
 def _collect_h_changes(rel_path: str, old_text: str, new_text: str) -> List[dict]:
@@ -408,7 +458,15 @@ def _collect_h_changes(rel_path: str, old_text: str, new_text: str) -> List[dict
     elif new_text and not old_text:
         change_type = "新增"
 
-    return [_build_change(change_type, rel_path, "头文件", old_snippet, new_snippet)]
+    return [_build_change(
+        change_type,
+        rel_path,
+        "头文件",
+        old_snippet,
+        new_snippet,
+        language="header",
+        change_kind="header_changed",
+    )]
 
 
 def collect_code_changes(
@@ -440,7 +498,7 @@ def collect_code_changes(
         if ext == ".h":
             return _collect_h_changes(rel, old_text, new_text)
         old_snippet, new_snippet = _snippet_from_diff_with_context(old_text, new_text, max_preview_lines)
-        return [_build_change("修改", rel, "全局区域", old_snippet, new_snippet)]
+        return [_build_change("修改", rel, "全局区域", old_snippet, new_snippet, language="text", change_kind="text_changed")]
 
     if old_base.is_file() != new_base.is_file():
         raise ValueError("旧版本和新版本路径类型不一致，需同时为文件或目录")
@@ -464,7 +522,7 @@ def collect_code_changes(
                 changes.extend(_collect_h_changes(rel, old_text, ""))
             else:
                 old_snippet, _ = _snippet_from_diff_with_context(old_text, "", max_preview_lines)
-                changes.append(_build_change("删除", rel, "全局区域", old_snippet, ""))
+                changes.append(_build_change("删除", rel, "全局区域", old_snippet, "", language="text", change_kind="deleted_file"))
             continue
 
         if new_path and not old_path:
@@ -476,7 +534,7 @@ def collect_code_changes(
                 changes.extend(_collect_h_changes(rel, "", new_text))
             else:
                 _, new_snippet = _snippet_from_diff_with_context("", new_text, max_preview_lines)
-                changes.append(_build_change("新增", rel, "全局区域", "", new_snippet))
+                changes.append(_build_change("新增", rel, "全局区域", "", new_snippet, language="text", change_kind="new_file"))
             continue
 
         old_text = _read_text(old_path)
@@ -489,6 +547,6 @@ def collect_code_changes(
                 changes.extend(_collect_h_changes(rel, old_text, new_text))
             else:
                 old_snippet, new_snippet = _snippet_from_diff_with_context(old_text, new_text, max_preview_lines)
-                changes.append(_build_change("修改", rel, "全局区域", old_snippet, new_snippet))
+                changes.append(_build_change("修改", rel, "全局区域", old_snippet, new_snippet, language="text", change_kind="text_changed"))
 
     return changes

@@ -7,8 +7,19 @@ from model.ast import DocumentAST, Section, Segment, Block
 from extractor.reader import iter_blocks
 from extractor.text_extract import extract_texts_from_p
 
-SUB_RE = re.compile(r'^\s*([a-eａ-ｅ])[)\）\.、\s]')
-DOC_ID_RE = re.compile(r"[A-Za-z]+/[A-Za-z0-9_]+")
+# a)~z)、1)~99)、（1）等常见小节编号（全角字母亦可）
+SUB_RE = re.compile(
+    r"^\s*(?:"
+    r"([a-zａ-ｚ])[)\）\.、\s]"
+    r"|"
+    r"([1-9]\d{0,1})[)\）\.、\s]"
+    r"|"
+    r"[（(]([1-9]\d{0,1})[）)]\s*"
+    r")"
+)
+DOC_ID_RE = re.compile(
+    r"(?:[A-Za-z]+/[A-Za-z0-9_./-]+|[A-Za-z]{2,}[-_][A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)+)"
+)
 CN_LEVELS = {
     "一": 1,
     "二": 2,
@@ -20,7 +31,34 @@ CN_LEVELS = {
     "4": 4,
 }
 
-FULL2HALF = {'ａ': 'a', 'ｂ': 'b', 'ｃ': 'c', 'ｄ': 'd', 'ｅ': 'e'}
+FULL2HALF = {
+    "ａ": "a",
+    "ｂ": "b",
+    "ｃ": "c",
+    "ｄ": "d",
+    "ｅ": "e",
+    "ｆ": "f",
+    "ｇ": "g",
+    "ｈ": "h",
+    "ｉ": "i",
+    "ｊ": "j",
+    "ｋ": "k",
+    "ｌ": "l",
+    "ｍ": "m",
+    "ｎ": "n",
+    "ｏ": "o",
+    "ｐ": "p",
+    "ｑ": "q",
+    "ｒ": "r",
+    "ｓ": "s",
+    "ｔ": "t",
+    "ｕ": "u",
+    "ｖ": "v",
+    "ｗ": "w",
+    "ｘ": "x",
+    "ｙ": "y",
+    "ｚ": "z",
+}
 
 
 def _heading_level_from_style_name(style_name: str):
@@ -127,8 +165,14 @@ def _detect_sub_id(text: str):
     m = SUB_RE.match(text.strip())
     if not m:
         return None
-    ch = m.group(1)
-    return FULL2HALF.get(ch, ch)
+    letter, num_plain, num_paren = m.group(1), m.group(2), m.group(3)
+    if letter:
+        ch = FULL2HALF.get(letter, letter)
+        return ch.lower() if isinstance(ch, str) else ch
+    num = num_plain or num_paren
+    if num:
+        return str(int(num))  # "01" -> "1"
+    return None
 
 def _is_para_in_table(p: Paragraph) -> bool:
     try:

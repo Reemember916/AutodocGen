@@ -32,13 +32,23 @@ def _add_multiline_block(doc: Document, text: str):
         doc.add_paragraph(line)
 
 
-def render_code_change_order(changes, output_path: str):
+def render_code_change_order(
+    changes,
+    output_path: str,
+    problem_start: int = 1,
+    tickets=None,
+):
+    from tickets.tickets import Ticket, format_problem_heading
+
     doc = Document()
     doc.add_heading("软件代码更改说明书", 0)
 
     current_key = None
+    start = max(1, int(problem_start or 1))
+    ticket_map = tickets or {}
 
-    for i, ch in enumerate(changes, 1):
+    for offset, ch in enumerate(changes or [], 0):
+        i = int(ch.get("problem_index") or (start + offset))
         key = ch.get("key", "未命名文件")
         seg = ch.get("seg", "全局区域")
         ctype = ch.get("type", "修改")
@@ -47,12 +57,44 @@ def render_code_change_order(changes, output_path: str):
             doc.add_heading(f"{key} -", level=2)
             current_key = key
 
+        ticket_no = (ch.get("ticket_no") or "").strip()
+        ticket_title = (ch.get("ticket_title") or "").strip()
+        if not ticket_no and not ticket_title:
+            t = ticket_map.get(i)
+            if isinstance(t, Ticket):
+                ticket_no = t.display_no()
+                ticket_title = t.display_title()
+            elif isinstance(t, dict):
+                ticket_no = str(t.get("ticket_no") or t.get("问题单编号") or "").strip()
+                ticket_title = str(t.get("title") or t.get("问题") or "").strip()
+
         if seg == "全局区域":
-            doc.add_heading(f"（问题{i}）全局区域", level=3)
+            seg_display = "全局区域"
+            key_display = ""
         elif seg == "头文件":
-            doc.add_heading(f"（问题{i}）头文件", level=3)
+            seg_display = "头文件"
+            key_display = ""
         else:
-            doc.add_heading(f"（问题{i}）{seg} 函数中", level=3)
+            seg_display = f"{seg} 函数中"
+            key_display = ""
+
+        # 代码单标题习惯：（问题i，类型，单号）seg
+        if ticket_no:
+            head = f"（问题{i}，{ctype}，{ticket_no}）{seg_display}"
+        else:
+            head = f"（问题{i}，{ctype}）{seg_display}"
+        # 兼容无 type 的旧样式时仍带单号
+        if not ctype:
+            head = format_problem_heading(i, "修改", key_display, seg_display, ticket_no=ticket_no)
+
+        doc.add_heading(head, level=3)
+        if ticket_title or ticket_no:
+            parts = []
+            if ticket_no:
+                parts.append(f"问题单编号：{ticket_no}")
+            if ticket_title:
+                parts.append(f"问题：{ticket_title}")
+            doc.add_paragraph("；".join(parts))
 
         doc.add_paragraph("更改前：")
         if ctype == "新增":
