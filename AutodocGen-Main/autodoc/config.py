@@ -134,6 +134,9 @@ class GenConfig:
     ai_regression_rounds: int = 2
     ai_quality_hard_fail_policy: str = "line_deterministic_fallback"
 
+    # 可观测副作用分析：off | direct | one_hop。
+    effect_analysis_mode: str = "one_hop"
+
     # 解析头文件时，是否递归解析其 #include 的头文件（用于 Global.h 这类"汇总头"）。
     # 0 表示不递归；建议 4~10。
     header_transitive_depth: int = 8

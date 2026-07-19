@@ -20,6 +20,7 @@ from . import parse as parse_utils
 from . import naming as naming_utils
 from . import revision as revision_utils
 from . import quality_gate
+from . import effects as effects_utils
 from .models import AIBuildMeta, DesignModel, FunctionBuildResult, FunctionDesign, IOElement, LocalDataElement, ProjectResumeState
 
 # P0#3 Evidence 旁路采集（shadow mode，可选开关：extra_params["evidence_output"]）
@@ -184,6 +185,129 @@ def _review_project_root(project_root: str = "", *, source: str = "") -> str:
     if os.path.isfile(abs_path) or abs_path.lower().endswith((".c", ".h", ".cpp", ".cc", ".cxx")):
         return os.path.dirname(abs_path) or abs_path
     return abs_path
+
+
+def _registered_function_title(func_data: dict[str, Any], *, backend_module=None) -> str:
+    """Return a project-registry title before legacy per-file name maps."""
+    backend = backend_module or legacy_backend()
+    file_context = dict((func_data or {}).get("file_context") or {})
+    registered = utils_module._safe_strip(file_context.get("function_title"))
+    if registered:
+        return registered
+    func_info = dict((func_data or {}).get("func_info") or {})
+    comment_info = dict((func_data or {}).get("comment_info") or {})
+    func_name = utils_module._safe_strip(func_info.get("func_name"))
+    mapped = utils_module._safe_strip(dict(file_context.get("func_cn_map") or {}).get(func_name))
+    return mapped or backend.get_function_chinese_name(comment_info, func_info)
+
+
+def apply_project_function_title_registry(
+    func_entries: Sequence[dict[str, Any]],
+    project_root: str,
+    cfg,
+    *,
+    backend_module=None,
+) -> tuple[dict[str, Any], ...]:
+    """Give colliding Chinese function titles stable, project-wide qualifiers.
+
+    Function identity is always ``relative_source_file::c_function_name``.
+    The first deterministic identity keeps the concise title; later collisions
+    receive a source-stem qualifier, with the C name as a last-resort suffix.
+    """
+    backend = backend_module or legacy_backend()
+    entries = [item for item in (func_entries or ()) if isinstance(item, dict)]
+    candidates: list[tuple[str, str, dict[str, Any], str]] = []
+    for item in entries:
+        func_info = dict(item.get("func_info") or {})
+        comment_info = dict(item.get("comment_info") or {})
+        file_context = dict(item.get("file_context") or {})
+        func_name = utils_module._safe_strip(func_info.get("func_name"))
+        source_file = utils_module._safe_strip(file_context.get("source_file"))
+        if not func_name:
+            continue
+        try:
+            rel_source = os.path.relpath(source_file, project_root).replace(os.sep, "/") if source_file else "unknown"
+        except Exception:
+            rel_source = source_file or "unknown"
+        identity = f"{rel_source}::{func_name}"
+        title = backend.get_function_chinese_name(comment_info, func_info)
+        title = backend._normalize_function_cn_title(
+            title, func_name=func_name, comment_desc=utils_module._safe_strip(comment_info.get("desc")),
+        )
+        candidates.append((utils_module._safe_strip(title) or func_name, identity, item, func_name))
+
+    by_title: dict[str, list[tuple[str, str, dict[str, Any], str]]] = {}
+    for record in candidates:
+        by_title.setdefault(record[0], []).append(record)
+    assigned: dict[str, str] = {}
+    collisions: list[dict[str, Any]] = []
+    used: set[str] = set()
+    for base_title, records in sorted(by_title.items()):
+        for pos, (_title, identity, item, func_name) in enumerate(sorted(records, key=lambda value: value[1])):
+            final = base_title
+            if pos > 0 or final in used:
+                source_file = utils_module._safe_strip((item.get("file_context") or {}).get("source_file"))
+                qualifier = os.path.splitext(os.path.basename(source_file))[0] or "source"
+                final = f"{base_title}（{qualifier}）"
+                if final in used:
+                    final = f"{base_title}（{qualifier}_{func_name}）"
+                suffix = 2
+                while final in used:
+                    final = f"{base_title}（{qualifier}_{suffix}）"
+                    suffix += 1
+                collisions.append({"title": base_title, "identity": identity, "resolved_title": final})
+            used.add(final)
+            assigned[identity] = final
+            # Preserve the original nested objects when possible.  Project
+            # preprocessing later creates shallow copies of function entries,
+            # so replacing these dicts would leave the actual render inputs
+            # without the registered title.
+            comment_info = item.get("comment_info")
+            if not isinstance(comment_info, dict):
+                comment_info = {}
+                item["comment_info"] = comment_info
+            comment_info["func_cn_name"] = final
+            file_context = item.get("file_context")
+            if not isinstance(file_context, dict):
+                file_context = {}
+                item["file_context"] = file_context
+            file_context["function_title"] = final
+            file_context["function_title_key"] = identity
+    try:
+        cfg.function_title_registry = dict(assigned)
+        cfg.function_title_collisions = tuple(collisions)
+    except Exception:
+        pass
+    if collisions:
+        backend.vlog(cfg, f"[title_registry] 已消歧 {len(collisions)} 个函数中文标题冲突")
+    return tuple(collisions)
+
+
+def apply_preprocessed_function_title_registry(
+    preprocessed: dict[str, dict],
+    project_root: str,
+    cfg,
+    *,
+    backend_module=None,
+) -> tuple[dict[str, Any], ...]:
+    """Register titles on the original project entries used for rendering."""
+    entries: list[dict[str, Any]] = []
+    for c_path, pre in (preprocessed or {}).items():
+        for fd in (pre or {}).get("func_list") or ():
+            if not isinstance(fd, dict):
+                continue
+            file_context = fd.get("file_context")
+            if not isinstance(file_context, dict):
+                file_context = {}
+                fd["file_context"] = file_context
+            file_context["source_file"] = c_path
+            entries.append(fd)
+    return apply_project_function_title_registry(
+        entries,
+        project_root,
+        cfg,
+        backend_module=backend_module,
+    )
 
 
 def _write_review_workspace_if_enabled(cfg, output: str, *, project_root: str = "", merge_existing: bool = False) -> None:
@@ -2135,9 +2259,13 @@ def _is_pointer_or_array_param(param_info: dict[str, Any]) -> bool:
     return bool("*" in ptype or "[" in ptype or name.startswith(("p_", "pp_", "vp_", "v_p_", "gp_", "lp_", "sp_", "cp_", "tp_")))
 
 
+def _is_const_pointer_param(param_info: dict[str, Any]) -> bool:
+    return bool("*" in utils_module._safe_strip((param_info or {}).get("type")) and re.search(r"\bconst\b", utils_module._safe_strip((param_info or {}).get("type")), re.I))
+
+
 def _param_has_external_write(ctx: dict[str, Any], param_info: dict[str, Any]) -> bool:
     name = utils_module._safe_strip((param_info or {}).get("name"))
-    if not name or not _is_pointer_or_array_param(param_info):
+    if not name or not _is_pointer_or_array_param(param_info) or _is_const_pointer_param(param_info):
         return False
     fact_pack = dict(ctx.get("lsp_fact_pack") or {})
     writes = [dict(item) for item in (fact_pack.get("writes") or []) if isinstance(item, dict)]
@@ -2168,6 +2296,66 @@ def _function_param_direction(ctx: dict[str, Any], param_info: dict[str, Any]) -
     if is_output:
         return "输出"
     return "输入"
+
+
+def _effect_analysis_mode(cfg) -> str:
+    value = utils_module.cfg_get_str(cfg, "effect_analysis_mode", str(getattr(cfg, "effect_analysis_mode", "one_hop") or "one_hop"))
+    return value if value in {"off", "direct", "one_hop"} else "one_hop"
+
+
+def _effect_index_for_context(ctx: dict[str, Any], cfg):
+    source_file = utils_module._safe_strip(ctx.get("source_file") or (ctx.get("file_context") or {}).get("source_file"))
+    project_root = utils_module._safe_strip(getattr(cfg, "project_root", ""))
+    if not project_root:
+        project_root = os.path.dirname(source_file) if source_file else ""
+    if not project_root:
+        return effects_utils.EffectIndex()
+    try:
+        project_root = os.path.abspath(project_root)
+    except Exception:
+        pass
+    cached_root = utils_module._safe_strip(getattr(cfg, "_effect_index_root", ""))
+    cached = getattr(cfg, "_effect_index", None)
+    if cached is not None and cached_root == project_root:
+        return cached
+    index = effects_utils.build_effect_index(project_root, cfg)
+    try:
+        cfg._effect_index = index
+        cfg._effect_index_root = project_root
+    except Exception:
+        pass
+    return index
+
+
+def build_function_effect_facts(ctx: dict[str, Any], func_data: dict[str, Any], cfg, name_map: dict[str, str]):
+    """Build direct and one-hop effects without allowing AI to invent facts."""
+    if _effect_analysis_mode(cfg) == "off":
+        return (), (), ()
+    direct, returns = effects_utils.extract_direct_effects(
+        func_data,
+        params=ctx.get("params") or (),
+        local_vars=ctx.get("local_vars") or (),
+        fact_pack=dict(ctx.get("lsp_fact_pack") or {}),
+        name_map=name_map,
+    )
+    normalized_returns = []
+    for item in returns:
+        condition = utils_module._safe_strip(item.condition)
+        if condition:
+            rendered = logic_utils._render_supported_c_expr_cn(condition, name_map)
+            condition = rendered or "条件分支"
+        normalized_returns.append(replace(item, condition=condition))
+    inherited: tuple = ()
+    issues: tuple[dict[str, Any], ...] = ()
+    if _effect_analysis_mode(cfg) == "one_hop":
+        inherited, issues = effects_utils.resolve_one_hop_effects(
+            dict(ctx.get("lsp_fact_pack") or {}),
+            index=_effect_index_for_context(ctx, cfg),
+            source_file=utils_module._safe_strip(ctx.get("source_file")),
+            source_function=utils_module._safe_strip(ctx.get("owner_func")),
+            name_map=name_map,
+        )
+    return tuple(direct) + tuple(inherited), tuple(normalized_returns), tuple(issues)
 
 
 def _classify_state_update(lhs: str, rhs: str) -> str:
@@ -3824,7 +4012,8 @@ def build_design_text_sections(
     func_info = ctx["func_info"]
     body = ctx["body"]
 
-    title_cn = backend._normalize_function_cn_title(
+    registered_title = utils_module._safe_strip((ctx.get("file_context") or {}).get("function_title"))
+    title_cn = registered_title or backend._normalize_function_cn_title(
         backend.get_function_chinese_name_rich(
             ctx,
             cfg=cfg,
@@ -3836,7 +4025,8 @@ def build_design_text_sections(
     # (token dictionary) produced nothing useful — empty or still has English
     # beyond known domain acronyms. Avoids re-decomposing cases where the C
     # comment already gave a clean Chinese title.
-    if (bool(getattr(cfg, "ai_assist", False))
+    if (not registered_title
+            and bool(getattr(cfg, "ai_assist", False))
             and func_info.get("func_name")
             and title_cn != func_info.get("func_name")):
         _ident_guessed = naming_utils.guess_cn_from_ident(func_info.get("func_name", ""))
@@ -4073,6 +4263,12 @@ def _quality_issues_from_context(
 ) -> tuple[dict[str, Any], ...]:
     _ = backend_module or legacy_backend()
     issues: list[dict[str, Any]] = []
+    # One-hop resolution failures are deliberately warnings: they are visible
+    # to review but must not make the generator fabricate external effects.
+    issues.extend(
+        dict(item) for item in (ctx.get("effect_quality_issues") or ())
+        if isinstance(item, dict)
+    )
     pack = dict(ctx.get("logic_semantic_pack") or {})
     summary = dict(pack.get("quality_summary") or {})
     if int(summary.get("missing_source_anchor_count") or 0) > 0:
@@ -4338,6 +4534,8 @@ def assemble_function_design(
     logic_lines,
     ai_meta,
     name_map: dict[str, str],
+    effects=(),
+    return_effects=(),
     *,
     backend_module=None,
 ):
@@ -4353,6 +4551,8 @@ def assemble_function_design(
         local_elements=local_elements,
         logic_lines=logic_lines,
         ai_meta=ai_meta,
+        effects=tuple(effects or ()),
+        return_effects=tuple(return_effects or ()),
     )
     design = backend._normalize_function_design_texts(design, name_map=name_map)
     # Text normalization may consult persisted symbol memory.  Never allow a
@@ -4527,6 +4727,8 @@ def collect_design_components(
             vname = item.get("name", "")
             if vname in var_cn_map and not item.get("cn_name"):
                 item["cn_name"] = var_cn_map[vname]
+    effect_facts, return_effects, effect_issues = build_function_effect_facts(ctx, func_data, cfg, name_map)
+    ctx["effect_quality_issues"] = tuple(effect_issues)
     logic_lines = build_design_logic_lines(
         ctx,
         func_data,
@@ -4565,6 +4767,8 @@ def collect_design_components(
         "logic_lines": logic_lines,
         "ai_meta": ai_meta,
         "name_map": name_map,
+        "effects": effect_facts,
+        "return_effects": return_effects,
     }
 
 
@@ -4616,6 +4820,8 @@ def build_design_output(
         components["logic_lines"],
         components["ai_meta"],
         components["name_map"],
+        components["effects"],
+        components["return_effects"],
         backend_module=backend,
     )
     return revision_utils.apply_revision_to_design(design, ctx.get("_revision_patch"))
@@ -5044,10 +5250,7 @@ def build_single_file_table_payload(
             continue
         if not should_include_function(func_data, only_with_comment=only_with_comment):
             continue
-        comment_info = func_data.get("comment_info") or {}
-        func_info = func_data.get("func_info") or {}
-        func_cn_map = (func_data.get("file_context") or {}).get("func_cn_map") or {}
-        csu_name = func_cn_map.get(func_info.get("func_name", "")) or backend.get_function_chinese_name(comment_info, func_info)
+        csu_name = _registered_function_title(func_data, backend_module=backend)
         entries.append(
             {
                 "csu_name": csu_name,
@@ -6130,10 +6333,8 @@ def _extend_project_unit_rows(
     backend = backend_module or legacy_backend()
     next_unit_index = int(unit_index)
     for fd in func_list or ():
-        comment_info = fd.get("comment_info") or {}
         func_info = fd.get("func_info") or {}
-        func_cn_map = (fd.get("file_context") or {}).get("func_cn_map") or {}
-        csu_name = func_cn_map.get(func_info.get("func_name", "")) or backend.get_function_chinese_name(comment_info, func_info)
+        csu_name = _registered_function_title(fd, backend_module=backend)
         prototype = backend._format_func_prototype(func_info or fd)
         req_id = f"{module_id}_{next_unit_index:03d}"
         unit_rows.append(
@@ -6221,10 +6422,7 @@ def collect_project_module_tables_data(
 
         csu_entries: list[dict] = []
         for fd in func_list or ():
-            comment_info = fd.get("comment_info") or {}
-            func_info = fd.get("func_info") or {}
-            func_cn_map = (fd.get("file_context") or {}).get("func_cn_map") or {}
-            csu_name = func_cn_map.get(func_info.get("func_name", "")) or backend.get_function_chinese_name(comment_info, func_info)
+            csu_name = _registered_function_title(fd, backend_module=backend)
             csu_entries.append({"csu_name": csu_name})
 
         modules.append(
@@ -6894,6 +7092,19 @@ def run_single_file_generation(
         prefilter=False,
         backend_module=backend,
     )
+    for fd in func_list or ():
+        file_context = fd.get("file_context") if isinstance(fd, dict) else None
+        if not isinstance(file_context, dict):
+            file_context = {}
+            if isinstance(fd, dict):
+                fd["file_context"] = file_context
+        file_context["source_file"] = source
+    apply_project_function_title_registry(
+        func_list,
+        project_root or os.path.dirname(os.path.abspath(source)),
+        cfg,
+        backend_module=backend,
+    )
     if len(func_list or []) > 1:
         backend._warmup_symbol_memory_once(func_list, cfg, scope_label=f"single_file:{os.path.basename(source)}")
     backend.vlog(cfg, f"扫描到 {len(func_list)} 个函数（含注释）。")
@@ -7331,16 +7542,24 @@ def run_project_generation(
     prefilter = generation.prefilter_project_files
     preprocessed: dict[str, dict] = {}
     func_entries_for_graph: list[dict] = []
+    ordered_files = app_files + mid_files + drv_files
+    # A resumed project must use the same project-wide title choices as a new
+    # run; otherwise a later colliding title can silently change in the DOCX.
+    preprocessed = preprocess_project_files(
+        ordered_files,
+        project_root=root_dir,
+        cfg=cfg,
+        prefilter=prefilter,
+        backend_module=backend,
+    )
+    apply_preprocessed_function_title_registry(
+        preprocessed,
+        root_dir,
+        cfg,
+        backend_module=backend,
+    )
+    func_entries = backend._flatten_preprocessed_func_entries(preprocessed)
     if not continuing:
-        ordered_files = app_files + mid_files + drv_files
-        preprocessed = preprocess_project_files(
-            ordered_files,
-            project_root=root_dir,
-            cfg=cfg,
-            prefilter=prefilter,
-            backend_module=backend,
-        )
-        func_entries = backend._flatten_preprocessed_func_entries(preprocessed)
         func_entries_for_graph = list(func_entries or [])
         try:
             term_table = backend.build_project_term_table(
@@ -7899,10 +8118,8 @@ def build_project_module_table_payload(
     entries: list[dict] = []
     func_rows: list[dict] = []
     for index, fd in enumerate(func_list_all, start=1):
-        comment_info = fd.get("comment_info") or {}
         func_info = fd.get("func_info") or {}
-        func_cn_map = (fd.get("file_context") or {}).get("func_cn_map") or {}
-        csu_name = func_cn_map.get(func_info.get("func_name", "")) or backend.get_function_chinese_name(comment_info, func_info)
+        csu_name = _registered_function_title(fd, backend_module=backend)
         csu_id = f"{backend.normalize_req_prefix(module_id)}_{index:03d}"
         entries.append({"csu_name": csu_name, "csu_id": csu_id})
         if include_unit_func_table:

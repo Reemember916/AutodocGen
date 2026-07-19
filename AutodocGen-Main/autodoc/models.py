@@ -309,6 +309,25 @@ class LocalDataElement:
 
 
 @dataclass(frozen=True)
+class EffectFact:
+    """A source-backed externally observable function effect."""
+
+    kind: str = ""
+    target_ident: str = ""
+    target_name: str = ""
+    c_type: str = ""
+    operation: str = ""
+    source_function: str = ""
+    caller_source_file: str = ""
+    caller_range: SourceRange = field(default_factory=SourceRange)
+    definition_source_file: str = ""
+    definition_range: SourceRange = field(default_factory=SourceRange)
+    confidence: float = 0.0
+    verified: bool = False
+    condition: str = ""
+
+
+@dataclass(frozen=True)
 class FunctionDesign:
     title: str
     req_id: str
@@ -319,6 +338,8 @@ class FunctionDesign:
     local_elements: Optional[tuple[LocalDataElement, ...]]
     logic_lines: Optional[tuple[str, ...]]
     ai_meta: Any = None
+    effects: tuple[EffectFact, ...] = ()
+    return_effects: tuple[EffectFact, ...] = ()
 
 
 @dataclass
@@ -428,6 +449,7 @@ __all__ = [
     "AppConfig",
     "CommentHint",
     "DesignModel",
+    "EffectFact",
     "FileContext",
     "FunctionBuildResult",
     "FunctionDesign",

@@ -10,6 +10,7 @@ __all__ = [
     "codegraph_adapter",
     "compile_db",
     "context_pack",
+    "effects",
     "graph_visuals",
     "logic",
     "lsp_adapter",

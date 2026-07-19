@@ -22,6 +22,7 @@ from autodoc import backend
 from autodoc import lsp_facts
 from autodoc import revision as revision_utils
 from autodoc import quality_gate
+from autodoc import effects as effects_utils
 from autodoc.utils import resolve_api_key
 
 
@@ -32,6 +33,10 @@ class Sample:
     line_start: int
     ret_type: str = ""
     expected_outputs: tuple[str, ...] = ()
+    expected_external_effects: tuple[str, ...] = ()
+    expected_return_effects: tuple[str, ...] = ()
+    expected_callee_effects: tuple[str, ...] = ()
+    expected_unresolved_callee_effects: int = 0
 
 
 @dataclass
@@ -58,6 +63,7 @@ class CheckResult:
     judge_elapsed_sec: float = 0.0
     judge_skipped: str = ""
     ai_quality_events: list[dict[str, Any]] = field(default_factory=list)
+    effect_stats: dict[str, int] = field(default_factory=dict)
 
 
 DOCX_LEAK_TERMS = (
@@ -100,7 +106,7 @@ def _logic_quality_issues_from_text(text: str) -> list[dict[str, Any]]:
     lines = all_lines[logic_start:] if logic_start is not None else all_lines
     logic_lines: list[str] = []
     for raw_line in lines:
-        if re.match(r"^[a-d]\)\s*", raw_line.strip()):
+        if re.match(r"^[a-z]\)\s*", raw_line.strip()):
             break
         logic_lines.append(raw_line)
     return [dict(item) for item in quality_gate.inspect_logic_lines(logic_lines, source="docx_logic")]
@@ -312,6 +318,41 @@ def expected_output_idents(fd: dict[str, Any], cfg: backend.GenConfig) -> tuple[
     return tuple(dict.fromkeys(x for x in outputs if x))
 
 
+def expected_effect_idents(
+    fd: dict[str, Any], cfg: backend.GenConfig | None = None, index: effects_utils.EffectIndex | None = None,
+) -> tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...], int]:
+    """Use the pipeline's deterministic effect rules as DOCX coverage oracle."""
+    try:
+        func_info = dict(fd.get("func_info") or {})
+        params = backend.parse_params_from_prototype(func_info)
+        locals_ = backend.parse_local_variables_from_body(str(fd.get("body") or ""))
+        effects, returns = effects_utils.extract_direct_effects(fd, params=params, local_vars=locals_)
+        external = tuple(item.target_ident for item in effects if item.kind == "global_write" and item.verified)
+        result_values = tuple(item.target_ident for item in returns if item.verified)
+        unresolved = 0
+        callee_effects: tuple[str, ...] = ()
+        if cfg is not None and index is not None:
+            # Sample collection must remain fast and offline.  Reuse the
+            # fallback call scanner instead of starting a per-function LSP
+            # query merely to count unresolved one-hop callees.
+            source_file = str((fd.get("file_context") or {}).get("source_file") or "")
+            calls = lsp_facts._collect_calls(str(fd.get("body") or ""), {}, source_file)
+            facts = {"calls": [
+                {"callee": call.callee, "call_text": call.call_text, "range": vars(call.range)}
+                for call in calls
+            ]}
+            mapped, issues = effects_utils.resolve_one_hop_effects(
+                facts, index=index,
+                source_file=source_file,
+                source_function=str(func_info.get("func_name") or ""),
+            )
+            callee_effects = tuple(dict.fromkeys(item.target_ident for item in mapped if item.verified))
+            unresolved = sum(1 for item in issues if item.get("code") == "callee_effect_unresolved")
+        return tuple(dict.fromkeys(external)), tuple(dict.fromkeys(result_values)), callee_effects, unresolved
+    except Exception:
+        return (), (), (), 0
+
+
 def iter_c_files(project_dir: Path, exclude_dirs: tuple[str, ...]) -> list[Path]:
     excluded = {x.lower() for x in exclude_dirs}
     files: list[Path] = []
@@ -329,6 +370,7 @@ def collect_samples(project_dir: Path, cfg: backend.GenConfig, *, count: int, se
     rng.shuffle(c_files)
     if max_files > 0:
         c_files = c_files[:max_files]
+    effect_index = effects_utils.build_effect_index(str(project_dir), cfg)
     pool: list[Sample] = []
     for c_file in c_files:
         try:
@@ -341,6 +383,7 @@ def collect_samples(project_dir: Path, cfg: backend.GenConfig, *, count: int, se
             fi = fd.get("func_info") or {}
             name = str(fi.get("func_name") or "").strip()
             if name:
+                expected_effects, expected_returns, expected_callees, unresolved_callees = expected_effect_idents(fd, cfg, effect_index)
                 pool.append(
                     Sample(
                         str(c_file),
@@ -348,6 +391,10 @@ def collect_samples(project_dir: Path, cfg: backend.GenConfig, *, count: int, se
                         code.count("\n", 0, max(0, int(fi.get("start", 0) or 0))) + 1,
                         str(fi.get("ret_type") or "").strip(),
                         expected_output_idents(fd, cfg),
+                        expected_effects,
+                        expected_returns,
+                        expected_callees,
+                        unresolved_callees,
                     )
                 )
     if not pool:
@@ -372,6 +419,16 @@ def _doc_table_rows(doc: Document) -> list[list[str]]:
         for row in table.rows:
             rows.append([cell.text.strip() for cell in row.cells])
     return rows
+
+
+def _table_data_rows(doc: Document, headers: tuple[str, ...]) -> list[list[str]]:
+    for table in doc.tables:
+        if not table.rows:
+            continue
+        head = tuple(cell.text.strip() for cell in table.rows[0].cells)
+        if head == headers:
+            return [[cell.text.strip() for cell in row.cells] for row in table.rows[1:]]
+    return []
 
 
 def _excerpt(text: str, warnings: list[str], *, max_chars: int = 700) -> str:
@@ -471,6 +528,7 @@ def check_docx(path: Path, sample: Sample) -> tuple[int, list[str], int, int, in
         "empty_type_count": 0,
         "quality_issues": [],
         "docx_leak_hits": [],
+        "effect_stats": {},
     }
     if not path.exists():
         details["quality_issues"].append({"code": "docx_missing", "severity": "error", "message": "docx 不存在"})
@@ -481,6 +539,19 @@ def check_docx(path: Path, sample: Sample) -> tuple[int, list[str], int, int, in
     paragraph_text = "\n".join(p.text for p in doc.paragraphs if p.text)
     rows = _doc_table_rows(doc)
     row_text = "\n".join("\t".join(row) for row in rows)
+    external_rows = _table_data_rows(doc, ("名称", "标识", "操作", "来源"))
+    return_rows = _table_data_rows(doc, ("返回表达式", "含义", "成立条件"))
+    direct_rows = [row for row in external_rows if len(row) > 3 and row[3] == sample.func_name]
+    callee_rows = [row for row in external_rows if row not in direct_rows]
+    details["effect_stats"] = {
+        "document_direct_effects": len(direct_rows),
+        "document_callee_effects": len(callee_rows),
+        "document_return_semantics": len(return_rows),
+        "expected_direct_effects": len(sample.expected_external_effects or ()),
+        "expected_callee_effects": len(sample.expected_callee_effects or ()),
+        "expected_return_effects": len(sample.expected_return_effects or ()),
+        "unresolved_callee_effects": int(sample.expected_unresolved_callee_effects or 0),
+    }
     score = 100
     paragraphs = len(doc.paragraphs)
     tables = len(doc.tables)
@@ -671,6 +742,23 @@ def check_docx(path: Path, sample: Sample) -> tuple[int, list[str], int, int, in
                 warnings.append(f"源码输出未进入输入/输出表：{ident}")
                 details["quality_issues"].append({"code": "missing_expected_output", "severity": "error", "message": ident})
                 score -= 14
+    external_idents = {row[1] for row in external_rows if len(row) > 1}
+    for ident in sample.expected_external_effects or ():
+        if ident not in external_idents:
+            warnings.append(f"源码外部副作用未进入副作用表：{ident}")
+            details["quality_issues"].append({"code": "direct_effect_missing", "severity": "error", "message": ident})
+            score -= 14
+    for ident in sample.expected_callee_effects or ():
+        if ident not in external_idents:
+            warnings.append(f"已解析被调副作用未进入副作用表：{ident}")
+            details["quality_issues"].append({"code": "callee_effect_missing", "severity": "error", "message": ident})
+            score -= 14
+    return_exprs = {row[0] for row in return_rows if row}
+    for expr in sample.expected_return_effects or ():
+        if expr not in return_exprs:
+            warnings.append(f"源码返回分支未进入返回值语义表：{expr}")
+            details["quality_issues"].append({"code": "return_semantic_missing", "severity": "error", "message": expr})
+            score -= 14
     details["empty_type_count"] = _count_empty_type_rows(rows)
     if details["empty_type_count"] > 0:
         warnings.append(f"输入/输出或局部数据表存在空类型：{details['empty_type_count']}")
@@ -711,6 +799,10 @@ def write_reports(results: list[CheckResult], output_dir: Path) -> None:
         code: sum(1 for r in results for item in r.quality_issues if item.get("code") == code)
         for code in ("logic_placeholder", "logic_truncated", "bad_term")
     }
+    effect_totals = {
+        key: sum(int((r.effect_stats or {}).get(key) or 0) for r in results)
+        for key in ("document_direct_effects", "document_callee_effects", "document_return_semantics", "expected_direct_effects", "expected_callee_effects", "expected_return_effects", "unresolved_callee_effects")
+    }
     ai_event_counts = {
         action: sum(1 for r in results for item in r.ai_quality_events if item.get("action") == action)
         for action in ("ai_timeout", "targeted_ai_repaired", "line_deterministic_fallback")
@@ -725,6 +817,10 @@ def write_reports(results: list[CheckResult], output_dir: Path) -> None:
         f"- AI 超时：{ai_event_counts['ai_timeout']}",
         f"- AI 定向修复：{ai_event_counts['targeted_ai_repaired']}",
         f"- 确定性逐行回退：{ai_event_counts['line_deterministic_fallback']}",
+        f"- 直接副作用覆盖：{effect_totals['document_direct_effects']}/{effect_totals['expected_direct_effects']}",
+        f"- 被调副作用覆盖：{effect_totals['document_callee_effects']}/{effect_totals['expected_callee_effects']}",
+        f"- 返回语义覆盖：{effect_totals['document_return_semantics']}/{effect_totals['expected_return_effects']}",
+        f"- 未确认被调副作用：{effect_totals['unresolved_callee_effects']}",
         "",
     ])
     for i, r in enumerate(results, 1):
@@ -750,6 +846,8 @@ def write_reports(results: list[CheckResult], output_dir: Path) -> None:
         if r.missing_expected_outputs:
             lines.append("- 缺失源码输出：")
             lines.extend(f"  - `{x}`" for x in r.missing_expected_outputs)
+        if r.effect_stats:
+            lines.append(f"- 效果覆盖：直接 {r.effect_stats.get('document_direct_effects', 0)}/{r.effect_stats.get('expected_direct_effects', 0)}，被调 {r.effect_stats.get('document_callee_effects', 0)}/{r.effect_stats.get('expected_callee_effects', 0)}，返回 {r.effect_stats.get('document_return_semantics', 0)}/{r.effect_stats.get('expected_return_effects', 0)}")
         lines.append(f"- 空类型计数：{r.empty_type_count}")
         if r.quality_issues:
             lines.append("- 质量问题：")
@@ -909,6 +1007,7 @@ def main() -> int:
                 float(judge_elapsed) if "judge_elapsed" in dir() else 0.0,
                 judge_skip if "judge_skip" in dir() else "",
                 ai_quality_events=list(active_ai_events),
+                effect_stats=dict(details.get("effect_stats") or {}),
             )
         )
     write_reports(results, output_dir)

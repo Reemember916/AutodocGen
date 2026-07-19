@@ -5201,6 +5201,8 @@ def _normalize_function_design_texts(design: Any, name_map: Optional[dict[str, s
         local_elements=local_elements,
         logic_lines=logic_lines,
         ai_meta=design.ai_meta,
+        effects=tuple(getattr(design, "effects", ()) or ()),
+        return_effects=tuple(getattr(design, "return_effects", ()) or ()),
     )
 
 

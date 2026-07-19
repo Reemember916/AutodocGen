@@ -793,6 +793,56 @@ def build_review_function(design: Any, func_data: dict[str, Any] | None = None, 
     if local_rows:
         blocks.append(ReviewBlock(review_block_id(name, "locals", 1), name, "local_table", title="局部变量", rows=local_rows))
 
+    effects = [
+        item for item in (_safe_get(design, "effects", ()) or ())
+        if bool(_safe_get(item, "verified", False)) and _safe_get(item, "kind", "") in {"global_write", "callee_effect"}
+    ]
+    if effects:
+        effect_rows = tuple({
+            "name": str(_safe_get(item, "target_name", "") or _safe_get(item, "target_ident", "")),
+            "ident": str(_safe_get(item, "target_ident", "")),
+            "operation": str(_safe_get(item, "operation", "")),
+            "source": str(_safe_get(item, "source_function", "") or "当前函数"),
+            "source_file": str(_safe_get(item, "caller_source_file", "") or source_file),
+            "source_line": str(_safe_get(_safe_get(item, "caller_range", None), "start_line", 0)),
+        } for item in effects)
+        effect_flags = tuple(
+            ReviewQualityFlag(code=str(issue.get("code") or ""), severity=str(issue.get("severity") or "warning"), message=str(issue.get("message") or ""))
+            for issue in quality_issues if isinstance(issue, dict) and str(issue.get("code") or "") == "callee_effect_unresolved"
+        )
+        blocks.append(ReviewBlock(
+            review_block_id(name, "effects", 1), name, "effects_table", title="外部状态副作用",
+            rows=effect_rows, quality_flags=effect_flags, editable=False,
+        ))
+
+    return_effects = [item for item in (_safe_get(design, "return_effects", ()) or ()) if bool(_safe_get(item, "verified", False))]
+    if return_effects:
+        return_rows = tuple({
+            "expr": str(_safe_get(item, "target_ident", "")),
+            "meaning": str(_safe_get(item, "target_name", "") or _safe_get(item, "target_ident", "")),
+            "condition": str(_safe_get(item, "condition", "") or "无条件"),
+            "source_file": str(_safe_get(item, "caller_source_file", "") or source_file),
+            "source_line": str(_safe_get(_safe_get(item, "caller_range", None), "start_line", 0)),
+        } for item in return_effects)
+        blocks.append(ReviewBlock(
+            review_block_id(name, "return_semantics", 1), name, "return_semantics", title="返回值语义",
+            rows=return_rows, editable=False,
+        ))
+
+    unresolved_effect_issues = [
+        issue for issue in quality_issues
+        if isinstance(issue, dict) and str(issue.get("code") or "") == "callee_effect_unresolved"
+    ]
+    if unresolved_effect_issues and not effects:
+        flags = tuple(
+            ReviewQualityFlag(code="callee_effect_unresolved", severity=str(issue.get("severity") or "warning"), message=str(issue.get("message") or ""))
+            for issue in unresolved_effect_issues
+        )
+        blocks.append(ReviewBlock(
+            review_block_id(name, "effect_audit", 1), name, "effect_audit", title="未确认被调副作用",
+            quality_flags=flags, editable=False,
+        ))
+
     return_desc_lines = _safe_get(design, "return_desc_lines", ()) or ()
     return_desc = "\n".join(str(x) for x in return_desc_lines if str(x).strip())
     if not return_desc:

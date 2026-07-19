@@ -211,9 +211,20 @@ def merge_term_record(
     value = utils_module._safe_strip(cn)
     if not key or not value:
         return False
-    if backend._looks_like_bad_canonical_name(value, raw_ident=key) or backend._looks_like_low_quality_symbol_cn(value, raw_ident=key):
-        return False
     section = _SECTION_BY_KIND.get(utils_module._safe_strip(kind).lower(), "symbols")
+    # Project title registration adds a source/C-name suffix in full-width
+    # brackets.  It is presentation metadata, not an untranslated symbol.
+    # Keep this narrow exception so the normal symbol-quality filter remains
+    # strict for every other terminology record.
+    registered_function_title = bool(
+        section == "functions"
+        and re.fullmatch(r".+（[A-Za-z_][A-Za-z0-9_]*(?:_\d+)?）", value)
+    )
+    if (
+        (not registered_function_title and backend._looks_like_bad_canonical_name(value, raw_ident=key))
+        or backend._looks_like_low_quality_symbol_cn(value, raw_ident=key)
+    ):
+        return False
     part = payload.setdefault(section, {})
     old = normalize_term_record(part.get(key) or {}, backend_module=backend)
     old_cn = utils_module._safe_strip(old.get("cn"))
@@ -316,8 +327,9 @@ def _record_function_terms(payload: dict[str, Any], func_entries: Sequence[dict]
         func_name = utils_module._safe_strip(func_info.get("func_name"))
         if not func_name:
             continue
+        file_context = (fd or {}).get("file_context") or {}
         raw_desc = utils_module._safe_strip(comment_info.get("desc"))
-        title = backend.get_function_chinese_name(comment_info, func_info)
+        title = utils_module._safe_strip(file_context.get("function_title")) or backend.get_function_chinese_name(comment_info, func_info)
         title = backend._normalize_function_cn_title(title, func_name=func_name, comment_desc=raw_desc)
         if merge_term_record(
             payload,
@@ -327,6 +339,27 @@ def _record_function_terms(payload: dict[str, Any], func_entries: Sequence[dict]
             source="comment_rule",
             confidence=0.84 if raw_desc else 0.72,
             usage=raw_desc,
+            evidence=[raw_desc] if raw_desc else [],
+            backend_module=backend,
+        ):
+            count += 1
+        # Bare function names remain for existing canonical-name callers.  A
+        # file-scoped key prevents same-named static functions from different
+        # source files overwriting each other's auditable title record.
+        scoped_key = utils_module._safe_strip(file_context.get("function_title_key"))
+        if not scoped_key:
+            source_file = utils_module._safe_strip(file_context.get("source_file"))
+            if source_file:
+                scoped_key = f"{os.path.normpath(source_file).replace(os.sep, '/')}::{func_name}"
+        if scoped_key and scoped_key != func_name and merge_term_record(
+            payload,
+            scoped_key,
+            title,
+            kind="functions",
+            source="comment_rule",
+            confidence=0.84 if raw_desc else 0.72,
+            usage=raw_desc,
+            scope="file",
             evidence=[raw_desc] if raw_desc else [],
             backend_module=backend,
         ):
