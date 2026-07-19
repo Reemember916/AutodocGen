@@ -18,7 +18,12 @@ from autodoc.logic import _logic_cn_expr, _polish_logic_lines, _refresh_control_
 from autodoc.models import AIBuildMeta, FunctionDesign, SourceRange
 from autodoc.parse import associate_comments_and_functions, extract_effective_comment_desc, parse_params_from_prototype, parse_single_comment_block
 from autodoc.pipeline import (
+    _fallback_structural_logic_lines,
+    _logic_rendering_quality_issues,
+    _meta_with_structural_quality,
     _lookup_io_display_name,
+    compose_quality_feedback_text,
+    prefer_regression_design,
     _repair_function_desc_by_domain,
     build_design_ai_meta,
     build_design_io_elements,
@@ -31,7 +36,7 @@ from autodoc.semantic_registry import classify_call_role, infer_local_semantic_l
 from autodoc.render import add_module_function_table, render_function_design, render_table_or_none
 from docx import Document
 from docx.oxml.ns import qn
-from tools.random_function_doccheck import Sample, check_docx
+from tools.random_function_doccheck import Sample, check_docx, collect_samples
 
 
 def _write_revision_profile(tmp_path, data):
@@ -2927,30 +2932,40 @@ def test_c_expr_renders_twos_complement_checksum():
     assert "&" not in rendered.text
 
 
-def test_logic_c_expr_helper_rejects_mixed_fallback_bitwise_rendering():
+def test_logic_c_expr_helper_renders_nested_bitwise_expression():
     rendered = logic_utils._render_supported_c_expr_cn(
         "flags & (value & 0xFFU)",
         {"flags": "标志", "value": "数据"},
     )
 
-    assert rendered == ""
+    assert rendered
+    assert "按位与" in rendered
+    assert "&" not in rendered
 
 
-def test_logic_c_expr_helper_rejects_mixed_caret_bitwise_rendering():
+def test_logic_c_expr_helper_renders_mixed_bitwise_expression():
     rendered = logic_utils._render_supported_c_expr_cn(
         "flags ^ value & 0xFFU",
         {"flags": "标志", "value": "数据"},
     )
 
-    assert rendered == ""
+    assert rendered
+    assert "^" not in rendered
+    assert "&" not in rendered
 
 
-def test_supported_c_expr_rejects_raw_shift_under_byte_mask():
-    assert logic_utils._render_supported_c_expr_cn("(value >> 8) & 0xFFU", {"value": "数据"}) == ""
+def test_supported_c_expr_renders_shift_under_byte_mask():
+    rendered = logic_utils._render_supported_c_expr_cn("(value >> 8) & 0xFFU", {"value": "数据"})
+    assert rendered
+    assert "右移" in rendered
+    assert "&" not in rendered
 
 
-def test_supported_c_expr_rejects_raw_multiply_inside_masked_sum():
-    assert logic_utils._render_supported_c_expr_cn("(value * scale + 1U) & 0xFFU", {"value": "数据", "scale": "系数"}) == ""
+def test_supported_c_expr_renders_multiply_inside_masked_sum():
+    rendered = logic_utils._render_supported_c_expr_cn("(value * scale + 1U) & 0xFFU", {"value": "数据", "scale": "系数"})
+    assert rendered
+    assert "低8位" in rendered
+    assert "*" not in rendered
 
 
 def test_condition_semantic_infers_and_renders_byte_mask_frame_header():
@@ -3996,6 +4011,143 @@ def test_random_doccheck_flags_embedded_bit_alias_pollution(tmp_path):
     assert any("位号别名污染" in warning for warning in warnings)
 
 
+def test_logic_quality_gate_distinguishes_placeholder_and_truncation():
+    issues = _logic_rendering_quality_issues(
+        ("待人工修改", "IF 值 &&", "将结果写入状态")
+    )
+    assert {item["code"] for item in issues} == {"logic_placeholder", "logic_truncated"}
+    assert all(item["severity"] == "error" for item in issues)
+    assert not _logic_rendering_quality_issues(("IF 状态等于有效时", "将结果写入状态"))
+
+
+def test_structural_quality_feedback_is_line_addressable_and_blocks_regression_candidate():
+    from autodoc.quality_gate import inspect_logic_lines
+
+    bad_lines = ("将关闭标志(写入状态；",)
+    issues = inspect_logic_lines(bad_lines, source_anchors=({"idx": 1, "source": "valve_flags"},))
+    bad_meta = AIBuildMeta(
+        regression_needed=True,
+        regression_reasons=("logic_truncated",),
+        logic_source_audit=({"idx": 1, "source": "valve_flags"},),
+        quality_issues=issues,
+    )
+    feedback = compose_quality_feedback_text(bad_meta)
+    assert "logic_truncated" in feedback
+    assert "逻辑第 1 行" in feedback
+    assert "valve_flags" in feedback
+
+    good = FunctionDesign("好", "D/R_001", "void Demo(void)", (), (), True, (), ("将关闭标志写入状态；",), AIBuildMeta())
+    bad = FunctionDesign("坏", "D/R_001", "void Demo(void)", (), (), True, (), bad_lines, bad_meta)
+    assert not prefer_regression_design(good, bad)
+    assert prefer_regression_design(bad, good)
+
+
+def test_build_meta_promotes_structural_logic_error_to_regression_reason():
+    ctx = _base_ctx()
+    ctx.update({
+        "initial_gaps": {},
+        "logic_semantic_pack": {},
+        "scope_inference_log": {},
+        "file_symbol_inference_log": {},
+    })
+    quality_inputs = {
+        "logic_lines": ("将关闭标志(写入状态；",),
+        "logic_placeholders": 0,
+        "post_missing_params": (),
+        "post_missing_locals": (),
+        "quality_report": {
+            "unresolved_locals": (), "unresolved_params": (), "unresolved_logic_symbols": (),
+            "generic_logic_count": 0, "comment_leak_count": 0, "term_drift_count": 0,
+            "over_translation_count": 0, "bad_symbol_guess_count": 0,
+        },
+    }
+    meta = build_design_ai_meta(ctx, GenConfig(ai_assist=True), quality_inputs)
+    assert "logic_truncated" in meta.regression_reasons
+    assert any(item["code"] == "logic_truncated" for item in meta.quality_issues)
+
+
+def test_structural_line_fallback_preserves_other_ai_lines():
+    from autodoc.quality_gate import inspect_logic_lines
+
+    bad_lines = ("AI 改进的说明；", "将关闭标志(写入状态；")
+    anchors = ({"idx": 1, "source": "first"}, {"idx": 2, "source": "valve_flags"})
+    meta = AIBuildMeta(logic_source_audit=anchors, quality_issues=inspect_logic_lines(bad_lines, source_anchors=anchors))
+    design = FunctionDesign("测试", "D/R_001", "void Demo(void)", (), (), True, (), bad_lines, meta)
+    baseline = FunctionDesign("测试", "D/R_001", "void Demo(void)", (), (), True, (), ("确定性说明；", "将关闭标志写入状态；"), AIBuildMeta())
+
+    recovered = _fallback_structural_logic_lines(design, baseline)
+    assert recovered.logic_lines == ("AI 改进的说明；", "将关闭标志写入状态；")
+    assert not _logic_rendering_quality_issues(recovered.logic_lines)
+    assert recovered.ai_meta.quality_recovery[-1]["action"] == "line_deterministic_fallback"
+
+
+def test_ai_name_and_usage_reject_structural_pollution():
+    from autodoc.naming import is_strict_symbol_candidate_rejected, sanitize_ai_usage_text
+
+    assert is_strict_symbol_candidate_rejected("关闭标志(", raw_ident="RCV1_Close_u16")
+    assert sanitize_ai_usage_text("执行操作（if(value &&") == ""
+    assert not is_strict_symbol_candidate_rejected("阀门关闭标志", raw_ident="RCV1_Close_u16")
+
+
+def test_random_doccheck_makes_logic_placeholder_and_truncation_hard_failures(tmp_path):
+    doc_path = tmp_path / "logic_defect.docx"
+    doc = Document()
+    doc.add_paragraph("void DemoFunc(void)")
+    doc.add_paragraph("逻辑/流程图")
+    doc.add_paragraph("待人工修改")
+    doc.add_paragraph("IF 值 &&")
+    table = doc.add_table(rows=2, cols=4)
+    table.rows[0].cells[0].text = "名称"
+    table.rows[0].cells[1].text = "标识"
+    table.rows[0].cells[2].text = "类型"
+    table.rows[0].cells[3].text = "输入/输出"
+    table.rows[1].cells[0].text = "状态"
+    table.rows[1].cells[1].text = "state"
+    table.rows[1].cells[2].text = "Uint16"
+    table.rows[1].cells[3].text = "输入"
+    doc.save(doc_path)
+
+    _score, _warnings, _size, _paragraphs, _tables, _excerpt, details = check_docx(
+        doc_path, Sample(c_file="/tmp/demo.c", func_name="DemoFunc", line_start=1)
+    )
+    codes = {item["code"] for item in details["quality_issues"]}
+    assert "logic_placeholder" in codes
+    assert "logic_truncated" in codes
+    assert any(item["severity"] == "error" for item in details["quality_issues"])
+
+
+def test_random_doccheck_accepts_chinese_loop_index_label(tmp_path):
+    source = tmp_path / "demo.c"
+    source.write_text("void DemoFunc(void) { int l_ii_u16 = 0; }\n", encoding="utf-8")
+    doc_path = tmp_path / "loop.docx"
+    doc = Document()
+    doc.add_paragraph("void DemoFunc(void)")
+    doc.add_paragraph("油箱索引 l_ii_u16")
+    table = doc.add_table(rows=2, cols=4)
+    table.rows[0].cells[0].text = "名称"
+    table.rows[0].cells[1].text = "标识"
+    table.rows[0].cells[2].text = "类型"
+    table.rows[0].cells[3].text = "输入/输出"
+    table.rows[1].cells[0].text = "油箱索引"
+    table.rows[1].cells[1].text = "l_ii_u16"
+    table.rows[1].cells[2].text = "Uint16"
+    table.rows[1].cells[3].text = "局部"
+    doc.save(doc_path)
+
+    _score, _warnings, _size, _paragraphs, _tables, _excerpt, details = check_docx(
+        doc_path, Sample(c_file=str(source), func_name="DemoFunc", line_start=1)
+    )
+    assert not any(item["code"] == "loop_index_translation_drift" for item in details["quality_issues"])
+
+
+def test_random_doccheck_converts_function_offset_to_source_line(tmp_path):
+    source = tmp_path / "sample.c"
+    source.write_text("\n\nvoid DemoFunc(void)\n{\n}\n", encoding="utf-8")
+    samples = collect_samples(tmp_path, GenConfig(ai_assist=False), count=1, seed=1, max_files=0)
+    assert samples[0].func_name == "DemoFunc"
+    assert samples[0].line_start == 3
+
+
 def test_short_loop_index_token_recognizes_real_indices():
     """`ii`/`jj`/`kk` should match only as standalone tokens, not as
     substrings of unrelated names like `sciinfo`.
@@ -4099,6 +4251,59 @@ def test_merge_multiline_does_not_swallow_return_value():
     assert "return foo(" in codes
     # Continuation line keeps its raw spacing; only the merge step would strip it.
     assert any(c.strip() == "bar);" for c in codes)
+
+
+def test_multiline_application_expressions_render_without_placeholders_or_raw_ops():
+    """Regression fixtures for WorkModeDataObtain, CommCCDL and Refuel paths."""
+    body = """
+    l_newMode_RIU_u16 = WorkModeRIUDataCheck(
+        l_oilCMD_RIU_un32.bit.fuelObject_u8,
+        l_oilCMD_RIU_un32.bit.fuelMode_u8);
+    if((s_info[l_id_u16].checkTime_u32 -
+        s_info[l_id_u16].rxBytesTime_u32) >= TIMEOUT_MS)
+    {
+        l_ok_u16 = 1U;
+    }
+    l_valveClosed_u16 = (l_cmd_un.bit.valveA_u8 & l_state_un.bit.valveA_u8 & l_enable_un.bit.valveA_u8) &&
+        (l_cmd_un.bit.valveB_u8 == l_state_un.bit.valveB_u8);
+    """
+    logic_text, unknowns = logic_utils.generate_logic_from_body(
+        body,
+        [],
+        GenConfig(ai_assist=False),
+        name_map={
+            "l_newMode_RIU_u16": "新模式RIU",
+            "WorkModeRIUDataCheck": "工作模式RIU数据检查",
+            "l_oilCMD_RIU_un32": "燃油命令RIU",
+            "fuelObject_u8": "燃油对象",
+            "fuelMode_u8": "燃油模式",
+            "s_info": "通信信息",
+            "l_id_u16": "通道索引",
+            "checkTime_u32": "检查时间",
+            "rxBytesTime_u32": "接收时间",
+            "TIMEOUT_MS": "超时阈值",
+            "l_ok_u16": "检查结果",
+            "l_valveClosed_u16": "阀门关闭状态",
+            "l_cmd_un": "阀门命令",
+            "l_state_un": "阀门状态",
+            "l_enable_un": "阀门使能",
+            "valveA_u8": "阀门A",
+            "valveB_u8": "阀门B",
+        },
+    )
+
+    assert not unknowns
+    assert "结果写入 新模式RIU" in logic_text
+    assert "大于等于 超时阈值" in logic_text
+    assert "按位与结果且" in logic_text
+    assert not any(token in logic_text for token in ("待人工修改", "if(", "&&", "执行操作（"))
+    assert not _logic_rendering_quality_issues(logic_text.splitlines())
+
+
+def test_bitwise_operand_keeps_disambiguation_parentheses_balanced():
+    rendered = logic_utils._simplify_bitwise_operand_text("关闭标志(RCV1_Close)")
+    assert rendered == "关闭标志(RCV1_Close)"
+    assert not _logic_rendering_quality_issues((f"将{rendered}写入状态；",))
 
 
 def test_raw_macro_hits_allow_interrupt_function_names():

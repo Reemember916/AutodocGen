@@ -95,15 +95,15 @@ def test_raw_ref():
 
 
 def test_shift_expression():
-    """tree-sitter 覆盖移位表达式，渲染降级但不混入半成品中文。"""
+    """tree-sitter 覆盖移位表达式并使用确定性中文。"""
     ir = parse_c_expression("x << 2")
     assert ir is not None
     assert ir.kind == "binary"
     assert ir.op == "<<"
     r = render_expr_cn(ir, {})
-    # 渲染应为 fallback（不混入半成品中文）
-    assert r.source in ("fallback", "raw")
-    assert "<<" in r.text or r.text == ""
+    assert r.source == "rule"
+    assert "左移" in r.text
+    assert "<<" not in r.text
 
 
 def test_comparison_expression():
@@ -113,7 +113,8 @@ def test_comparison_expression():
     assert ir.kind == "binary"
     assert ir.op == "=="
     r = render_expr_cn(ir, {})
-    assert r.source in ("fallback", "raw")
+    assert r.source == "rule"
+    assert r.text == "a等于b"
 
 
 def test_logical_expression():
@@ -121,38 +122,31 @@ def test_logical_expression():
     ir = parse_c_expression("a && b")
     assert ir is not None
     r = render_expr_cn(ir, {})
-    assert r.source in ("fallback", "raw")
+    assert r.source == "rule"
+    assert r.text == "a且b"
 
 
 def test_complex_expression():
-    """复合表达式：内部低8位正确渲染，外部比较降级。"""
+    """复合表达式：内部低8位与外层比较均可确定性渲染。"""
     ir = parse_c_expression("(buf[i] & 0xFFU) == HEAD")
     assert ir is not None
     assert ir.kind == "binary"
     assert ir.op == "=="
     r = render_expr_cn(ir, {"buf": "缓冲区"})
-    # 外层是 fallback，但内层低8位应该被渲染
-    assert r.source in ("fallback", "raw")
-    assert "低8位" in r.text or "缓冲区" in r.text
+    assert r.source == "rule"
+    assert "低8位" in r.text
+    assert "==" not in r.text
 
 
-def test_no_half_baked_chinese():
-    """fallback 表达式不混入半成品中文（只有 rule 才有中文模板）。"""
-    cases = [
-        ("x << 2", "<<"),
-        ("a == b", "=="),
-        ("a != b", "!=" ),
-        ("a < b", "<"),
-        ("x | y", "|"),
-        ("x ^ y", "^"),
-    ]
-    for expr_text, op in cases:
+def test_common_binary_expressions_do_not_leak_c_operators():
+    """已覆盖的二元表达式不应在中文逻辑中泄露 C 操作符。"""
+    cases = ("x << 2", "a == b", "a != b", "a < b", "x | y", "x ^ y", "a & b & c")
+    for expr_text in cases:
         ir = parse_c_expression(expr_text)
         assert ir is not None, f"parse failed: {expr_text}"
         r = render_expr_cn(ir, {})
-        # fallback 的文本应包含原始运算符，不含发明的中文
-        if r.source == "fallback":
-            assert op in r.text, f"fallback 表达式 {expr_text} 应包含运算符 {op}, 实际: {r.text!r}"
+        assert r.source == "rule"
+        assert not any(op in r.text for op in ("&&", "||", "==", "!=", "<<", ">>", "&", "|", "^"))
 
 
 def test_ts_unavailable_fallback():

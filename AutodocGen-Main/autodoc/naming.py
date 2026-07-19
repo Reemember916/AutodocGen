@@ -365,6 +365,10 @@ def is_strict_symbol_candidate_rejected(text: str, *, raw_ident: str = "") -> bo
     value = safe_strip(text)
     if not value:
         return False
+    from .quality_gate import is_safe_ai_text
+
+    if not is_safe_ai_text(value):
+        return True
     if raw_ident and safe_strip(raw_ident) == value:
         return True
     if value in {"返回结果", "返回值"}:
@@ -385,6 +389,10 @@ def is_strict_symbol_candidate_rejected(text: str, *, raw_ident: str = "") -> bo
 def sanitize_ai_usage_text(text: str) -> str:
     value = safe_strip(text)
     if not value:
+        return ""
+    from .quality_gate import is_safe_ai_text
+
+    if not is_safe_ai_text(value):
         return ""
     for prefix in ("用于", "以便"):
         if value.startswith(prefix):

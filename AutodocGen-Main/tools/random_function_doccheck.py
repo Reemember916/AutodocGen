@@ -21,6 +21,7 @@ from docx import Document
 from autodoc import backend
 from autodoc import lsp_facts
 from autodoc import revision as revision_utils
+from autodoc import quality_gate
 from autodoc.utils import resolve_api_key
 
 
@@ -56,6 +57,7 @@ class CheckResult:
     judge_red_flags: list[str] = field(default_factory=list)
     judge_elapsed_sec: float = 0.0
     judge_skipped: str = ""
+    ai_quality_events: list[dict[str, Any]] = field(default_factory=list)
 
 
 DOCX_LEAK_TERMS = (
@@ -84,6 +86,24 @@ BAD_DOC_TERMS = (
     "完成相关处理",
     "科学中断",
 )
+
+
+def _logic_quality_issues_from_text(text: str) -> list[dict[str, Any]]:
+    """Find only hard rendering defects, separate from general bad terms."""
+    all_lines = str(text or "").splitlines()
+    logic_start = next(
+        (idx + 1 for idx, line in enumerate(all_lines) if re.search(r"(?:^|\s)(?:e\)\s*)?逻辑/流程图\s*$", line)),
+        None,
+    )
+    # DOCX contains prototypes and table content with legitimate parentheses.
+    # Audit only the rendered logic section when its heading is available.
+    lines = all_lines[logic_start:] if logic_start is not None else all_lines
+    logic_lines: list[str] = []
+    for raw_line in lines:
+        if re.match(r"^[a-d]\)\s*", raw_line.strip()):
+            break
+        logic_lines.append(raw_line)
+    return [dict(item) for item in quality_gate.inspect_logic_lines(logic_lines, source="docx_logic")]
 
 
 def _bool(value: Any, default: bool = False) -> bool:
@@ -325,7 +345,7 @@ def collect_samples(project_dir: Path, cfg: backend.GenConfig, *, count: int, se
                     Sample(
                         str(c_file),
                         name,
-                        int(fi.get("start", 0) or 0),
+                        code.count("\n", 0, max(0, int(fi.get("start", 0) or 0))) + 1,
                         str(fi.get("ret_type") or "").strip(),
                         expected_output_idents(fd, cfg),
                     )
@@ -492,6 +512,10 @@ def check_docx(path: Path, sample: Sample) -> tuple[int, list[str], int, int, in
         warnings.append(f"包含质量风险文本：{bad}")
         details["quality_issues"].append({"code": "bad_term", "severity": "warning", "message": bad})
         score -= 4 if bad.startswith("raw_macro:") else 18
+    for issue in _logic_quality_issues_from_text(text):
+        details["quality_issues"].append(issue)
+        warnings.append(str(issue["message"]))
+        score -= 25
     # === 新增: 语义盲点检测 (L1: 描述/代码 token 脱钩) ===
     try:
         from autodoc import backend as _backend
@@ -547,7 +571,7 @@ def check_docx(path: Path, sample: Sample) -> tuple[int, list[str], int, int, in
                 end = min(len(text), m.end() + 30)
                 window = text[start:end]
                 if re.search(r"[\u4e00-\u9fff]{2,}", window) and not re.search(
-                    r"(循环索引|循环计数|循环变量|遍历索引|遍历计数|索引变量|下标变量|循环遍历)", window
+                    r"(索引|下标|计数|循环|遍历)", window
                 ):
                     bad_windows.append(window)
             if bad_windows and var not in seen_drift:
@@ -683,7 +707,26 @@ def write_reports(results: list[CheckResult], output_dir: Path) -> None:
     lines = ["# 随机函数文档生成检查报告", ""]
     ok_count = sum(1 for r in results if r.ok)
     avg_score = round(sum(r.score for r in results) / max(1, len(results)), 1)
-    lines.extend([f"- 样本数：{len(results)}", f"- 成功数：{ok_count}", f"- 平均评分：{avg_score}", ""])
+    issue_counts = {
+        code: sum(1 for r in results for item in r.quality_issues if item.get("code") == code)
+        for code in ("logic_placeholder", "logic_truncated", "bad_term")
+    }
+    ai_event_counts = {
+        action: sum(1 for r in results for item in r.ai_quality_events if item.get("action") == action)
+        for action in ("ai_timeout", "targeted_ai_repaired", "line_deterministic_fallback")
+    }
+    lines.extend([
+        f"- 样本数：{len(results)}",
+        f"- 成功数：{ok_count}",
+        f"- 平均评分：{avg_score}",
+        f"- 逻辑占位：{issue_counts['logic_placeholder']}",
+        f"- 逻辑截断：{issue_counts['logic_truncated']}",
+        f"- 一般风险词：{issue_counts['bad_term']}",
+        f"- AI 超时：{ai_event_counts['ai_timeout']}",
+        f"- AI 定向修复：{ai_event_counts['targeted_ai_repaired']}",
+        f"- 确定性逐行回退：{ai_event_counts['line_deterministic_fallback']}",
+        "",
+    ])
     for i, r in enumerate(results, 1):
         s = r.sample
         lines.extend([
@@ -715,6 +758,9 @@ def write_reports(results: list[CheckResult], output_dir: Path) -> None:
                 severity = str(item.get("severity") or "")
                 message = str(item.get("message") or "")
                 lines.append(f"  - `{severity}` `{code}` {message}")
+        if r.ai_quality_events:
+            lines.append("- AI 质量恢复：")
+            lines.extend(f"  - `{item.get('action', '')}` 行 {item.get('lines', ())}" for item in r.ai_quality_events)
         if r.judge_total_25 or r.judge_grade or r.judge_skipped:
             if r.judge_skipped:
                 lines.append(f"- LLM-judge: 跳过 ({r.judge_skipped})")
@@ -785,11 +831,24 @@ def main() -> int:
     cfg.project_root = str(project_dir)
     cfg.open_after_done = False
     cfg.verbose = True
-    cfg.gui_log = lambda msg: print(f"[LOG] {msg}")
+    active_ai_events: list[dict[str, Any]] = []
+
+    def _gui_log(msg: str) -> None:
+        print(f"[LOG] {msg}")
+        if "timed out" in str(msg).lower() or "超时" in str(msg):
+            active_ai_events.append({"action": "ai_timeout"})
+
+    def _gui_event(event: dict[str, Any]) -> None:
+        if isinstance(event, dict) and event.get("type") == "ai_quality_recovery":
+            active_ai_events.append(dict(event))
+
+    cfg.gui_log = _gui_log
+    cfg.gui_event = _gui_event
     samples = collect_samples(project_dir, cfg, count=args.samples, seed=args.seed, max_files=args.max_files)
     output_dir.mkdir(parents=True, exist_ok=True)
     results: list[CheckResult] = []
     for idx, sample in enumerate(samples, 1):
+        active_ai_events.clear()
         safe_func = re.sub(r"[^A-Za-z0-9_]+", "_", sample.func_name)[:80]
         out = output_dir / f"{idx:02d}_{Path(sample.c_file).stem}_{safe_func}.docx"
         print(f"[{idx}/{len(samples)}] 生成 {sample.func_name} <- {sample.c_file}")
@@ -849,6 +908,7 @@ def main() -> int:
                 list(judge_flags) if "judge_flags" in dir() else [],
                 float(judge_elapsed) if "judge_elapsed" in dir() else 0.0,
                 judge_skip if "judge_skip" in dir() else "",
+                ai_quality_events=list(active_ai_events),
             )
         )
     write_reports(results, output_dir)

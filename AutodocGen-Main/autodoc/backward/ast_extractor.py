@@ -248,10 +248,9 @@ class CAsTExtractor:
         """Lazy-init the tree-sitter C parser; returns ``None`` on failure
         so that every public method can degrade gracefully."""
         try:
-            import tree_sitter_c as tsc
-            from tree_sitter import Language, Parser
+            from ..tree_sitter_compat import create_c_parser
 
-            return Parser(Language(tsc.language()))
+            return create_c_parser()
         except Exception:
             return None
 

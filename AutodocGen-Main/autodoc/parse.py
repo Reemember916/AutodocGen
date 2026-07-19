@@ -514,10 +514,9 @@ def _get_tree_sitter_c_parser():
         return _TS_C_PARSER
     _TS_C_PARSER_READY = True
     try:
-        import tree_sitter_c as tsc
-        from tree_sitter import Language, Parser
+        from .tree_sitter_compat import create_c_parser
 
-        _TS_C_PARSER = Parser(Language(tsc.language()))
+        _TS_C_PARSER = create_c_parser()
     except Exception:
         _TS_C_PARSER = None
     return _TS_C_PARSER

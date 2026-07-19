@@ -2366,6 +2366,7 @@ else:
         title_stage_debug: tuple[dict[str, Any], ...] = ()
         logic_source_audit: tuple[dict[str, Any], ...] = ()
         quality_issues: tuple[dict[str, Any], ...] = ()
+        quality_recovery: tuple[dict[str, Any], ...] = ()
 
 
 if StableCommentHint is None:

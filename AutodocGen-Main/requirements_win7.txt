@@ -6,9 +6,9 @@
 python-docx==1.1.2          # 高于 1.1.x 在 Py3.8 兼容性更好，1.2.x 也可
 requests==2.32.3            # AI API 调用（Anthropic/OpenAI 兼容）
 
-# 可选：tree-sitter 备用解析（如果想完全脱离 clangd）
-# tree-sitter==0.21.3
-# tree-sitter-c==0.21.3
+# Tree-sitter C AST / ExprIR：必须成对固定，避免 0.22+ binding 与 grammar wheel API 不兼容
+tree-sitter==0.21.3
+tree-sitter-c==0.21.3
 
 # Qt GUI（PyQt5 5.15 是最后支持 Win7 的版本）
 PyQt5==5.15.11

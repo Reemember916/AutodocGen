@@ -2292,7 +2292,24 @@ def _merge_multiline_expression_line_infos(line_infos: Sequence[dict[str, Any]])
             # was being split into two ``raw`` IR nodes, which the
             # downstream simple-action renderer can't translate, so the
             # whole statement fell back to the ``待人工修改`` placeholder.
-            if re.match(r"^(?:[&|^]|&&|\|\|)\s*\S+", code):
+            prev_open_group = (
+                prev_code.count("(") > prev_code.count(")")
+                or prev_code.count("[") > prev_code.count("]")
+            )
+            # Function-call assignments and control conditions are commonly
+            # wrapped at an argument or comparison boundary.  Keep them as a
+            # logical statement before constructing LogicIR.  `return` is
+            # intentionally excluded: it is a complete statement header in
+            # this line-oriented pass and has a dedicated regression test.
+            if (
+                prev_open_group
+                and not re.match(r"^return\b", prev_code)
+                and not prev_code.rstrip().endswith((";", "{"))
+            ):
+                pass
+            elif prev_code.rstrip().endswith(("&&", "||", "&", "|", "^")):
+                pass
+            elif re.match(r"^(?:[&|^]|&&|\|\|)\s*\S+", code):
                 pass
             elif (not prev_is_control) and prev_code.endswith("=") and not prev_code.endswith("==") and not prev_code.endswith("!=") and not prev_code.endswith("<=") and not prev_code.endswith(">="):
                 pass
@@ -5572,20 +5589,32 @@ def _render_supported_c_expr_cn(expr: str, name_map: Optional[dict[str, str]] = 
     try:
         from . import c_expr as c_expr_utils
 
+        # Keep project-specific request-side macros on the established
+        # semantic path; their labels encode side information that a generic
+        # bitwise renderer cannot infer.
+        if re.search(r"\bKZZZ_[A-Za-z0-9_]*REQUEST", expr or "", flags=re.I):
+            return ""
         parsed = c_expr_utils.parse_c_expression(expr)
+        # Conditions and calls have domain-specific renderers below.  Use
+        # ExprIR here only for a pure computation subexpression (for example
+        # a bit-field mask on the left side of an already structured
+        # comparison), otherwise this shortcut would discard richer semantic
+        # labels supplied by the condition renderer.
+        if getattr(parsed, "kind", "") != "binary" or getattr(parsed, "op", "") not in {
+            "&", "|", "^", "<<", ">>", "+", "-", "*", "/", "%",
+        }:
+            return ""
         rendered = c_expr_utils.render_expr_cn(parsed, name_map or {})
         text = utils._safe_strip(rendered.text)
         if not text:
             return ""
         if text == utils._safe_strip(expr):
             return ""
-        if getattr(rendered, "source", "") == "fallback":
+        if getattr(rendered, "source", "") != "rule":
             return ""
-        if "&" in text or "|" in text or "^" in text or "<<" in text or ">>" in text:
+        if re.search(r"(?:&&|\|\||==|!=|<=|>=|<<|>>|[&|^]|\bif\s*\()", text, flags=re.I):
             return ""
-        if "低8位" in text or "低 8 位" in text or "补码校验和" in text:
-            return text
-        return ""
+        return text
     except Exception:
         return ""
 
@@ -5840,7 +5869,9 @@ def _build_logic_ir_node(
     backend_module=None,
 ) -> Optional[dict[str, Any]]:
     backend = backend_module or legacy_backend()
-    line = utils._safe_strip(code_line)
+    # Statement grouping should already merge physical lines.  Normalize once
+    # more for callers that build LogicIR directly (tests, integrations).
+    line = re.sub(r"\s+", " ", utils._safe_strip(code_line)).strip()
     if not line:
         return None
 
@@ -6148,6 +6179,22 @@ def _render_logic_ir_node(
         bit_chain = _render_bitwise_chain_assignment(lhs, rhs_clean, effective_map, backend_module=backend)
         if bit_chain:
             return bit_chain
+        # A complete ExprIR is safer than passing a mixed boolean/bitwise
+        # assignment through the legacy string substitutions.  Only consume
+        # rule-rendered text: unsupported syntax keeps the existing fallback
+        # behaviour and is surfaced by the final quality gate if necessary.
+        try:
+            from . import c_expr as c_expr_utils
+
+            rendered_rhs = c_expr_utils.render_expr_cn(
+                c_expr_utils.parse_c_expression(rhs_clean), effective_map,
+            )
+            if rendered_rhs.source == "rule" and rendered_rhs.text and not re.search(
+                r"(?:&&|\|\||==|!=|<=|>=|<<|>>|[&|^])", rendered_rhs.text
+            ):
+                return f"将 {rendered_rhs.text} 写入 {lhs_cn}"
+        except Exception:
+            pass
         if re.search(r"(?:\.|->)\s*(?:bit|all|mem|word\d+)_u\d+\s*(?:\.|->)", lhs):
             return f"更新{lhs_cn}"
         if _is_zero_literal(rhs_clean):
@@ -6214,8 +6261,10 @@ def _simplify_bitwise_operand_text(text: str, *, backend_module=None) -> str:
     value = utils._safe_strip(text)
     if not value:
         return ""
-    value = re.sub(r"^\s*\(\s*", "", value)
-    value = re.sub(r"\s*\)\s*$", "", value)
+    # Only remove a true outer pair.  A disambiguated display name such as
+    # ``关闭标志(RCV1_Close)`` must retain its closing parenthesis; stripping
+    # it independently creates a structural logic defect downstream.
+    value = _strip_balanced_outer_parens(value)
     value = re.sub(r"^\s*(?:无符号|有符号)?\s*(?:8|16|32|64)位整型\s*", "", value)
     value = re.sub(r"^\s*(?:Uint(?:8|16|32|64)|Int(?:8|16|32|64)|uint(?:8|16|32|64)_t|int(?:8|16|32|64)_t)\s*", "", value, flags=re.IGNORECASE)
     value = re.sub(r"^const\s+", "", value, flags=re.IGNORECASE)

@@ -4863,6 +4863,8 @@ def ai_refine_logic_unknowns(unknown_list, code_context: str, cfg):
     对赋值语句避免机械重复"设置/更新变量"，优先用：写入/赋给/清零/置位/累加/清除位/拷贝/计算/获取。
     comment_hints 仅作为理解提示，history/debug/purpose 类提示不允许直接写入最终动作说明。
     polish_only=true 表示只能在 code_cn 的事实范围内改善措辞，不得改变控制结构、不得新增业务含义。
+    结构安全规则：不得输出 if(、&&、||、裸 & 或 |；不得输出未闭合括号；不得输出“待人工修改”或“执行操作”。
+    仅修改给定 index 的动作，不得新增、删除或重排其他流程行。
 
     只返回 JSON，不要解释。
 

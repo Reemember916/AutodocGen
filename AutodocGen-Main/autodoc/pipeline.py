@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import concurrent.futures
+import copy
 import os
 import re
 from dataclasses import fields, replace
@@ -18,6 +19,7 @@ from . import lsp_facts as lsp_fact_utils
 from . import parse as parse_utils
 from . import naming as naming_utils
 from . import revision as revision_utils
+from . import quality_gate
 from .models import AIBuildMeta, DesignModel, FunctionBuildResult, FunctionDesign, IOElement, LocalDataElement, ProjectResumeState
 
 # P0#3 Evidence 旁路采集（shadow mode，可选开关：extra_params["evidence_output"]）
@@ -292,6 +294,9 @@ def build_function_design_task(
         for attr in (
             "_ai_cache_salt",
             "_ai_regression_round",
+            "_ai_quality_feedback",
+            "_ai_quality_focus_symbols",
+            "_ai_regression_allow_rename",
             "_current_file",
             "_current_func_index",
             "_current_func_pos",
@@ -319,7 +324,10 @@ def build_function_design_task(
 def cfg_with_function_task_context(cfg, task: Optional[dict]):
     task_cfg = clone_cfg(cfg)
     try:
-        for attr in ("_ai_cache_salt", "_ai_regression_round", "_ai_quality_feedback", "_ai_quality_focus_symbols"):
+        for attr in (
+            "_ai_cache_salt", "_ai_regression_round", "_ai_quality_feedback",
+            "_ai_quality_focus_symbols", "_ai_regression_allow_rename",
+        ):
             if hasattr(cfg, attr):
                 setattr(task_cfg, attr, getattr(cfg, attr))
         if isinstance(task, dict):
@@ -335,7 +343,8 @@ def design_regression_rounds(cfg, *, backend_module=None) -> int:
     backend = backend_module or legacy_backend()
     if not cfg or (not getattr(cfg, "ai_assist", False)):
         return 0
-    return max(0, int(utils_module.cfg_get_int(cfg, "ai_regression_rounds", 1)))
+    default_rounds = int(getattr(cfg, "ai_regression_rounds", 2) or 2)
+    return max(0, int(utils_module.cfg_get_int(cfg, "ai_regression_rounds", default_rounds)))
 
 
 def design_regression_force_one_call(cfg, *, backend_module=None) -> bool:
@@ -355,6 +364,14 @@ def score_ai_meta(meta: Optional[Any], *, backend_module=None) -> int:
     score += len(meta.unresolved_param_symbols or ())
     score += len(meta.unresolved_logic_symbols or ())
     score += max(0, int(meta.generic_logic_count or 0))
+    # Structural defects dominate every soft naming/wording score.  A retry
+    # that introduces one must never be selected merely because it reduces
+    # over-translation or unresolved-symbol counts.
+    score += 1000 * sum(
+        1 for item in (meta.quality_issues or ())
+        if str((item or {}).get("code") or "") in quality_gate.STRUCTURAL_LOGIC_CODES
+        and str((item or {}).get("severity") or "").lower() == "error"
+    )
     return score
 
 
@@ -366,6 +383,12 @@ def prefer_regression_design(current: Any, retry: Any, *, backend_module=None) -
         return False
     cur_meta = current.ai_meta if isinstance(current.ai_meta, AIBuildMeta) else AIBuildMeta()
     new_meta = retry.ai_meta if isinstance(retry.ai_meta, AIBuildMeta) else AIBuildMeta()
+    cur_hard = quality_gate.has_structural_logic_error(cur_meta.quality_issues)
+    new_hard = quality_gate.has_structural_logic_error(new_meta.quality_issues)
+    if cur_hard != new_hard:
+        return not new_hard
+    if new_hard:
+        return False
     cur_score = score_ai_meta(cur_meta, backend_module=backend)
     new_score = score_ai_meta(new_meta, backend_module=backend)
     if (not new_meta.regression_needed) and cur_meta.regression_needed:
@@ -401,6 +424,23 @@ def compose_quality_feedback_text(meta: Optional[Any], *, backend_module=None) -
         parts.append(f"仍有 {int(meta.bad_symbol_guess_count or 0)} 处高置信命名冲突")
     if int(meta.logic_placeholders or 0) > 2:
         parts.append("逻辑步骤过度压缩，请保留关键中间计算步骤，不要省略数据转换/同步等中间动作")
+    hard_issues = [
+        item for item in (meta.quality_issues or ())
+        if str((item or {}).get("code") or "") in quality_gate.STRUCTURAL_LOGIC_CODES
+        and str((item or {}).get("severity") or "").lower() == "error"
+    ]
+    for item in hard_issues[:6]:
+        line_no = item.get("logic_line") or "?"
+        text = utils_module._safe_strip(item.get("logic_text") or item.get("message"))
+        anchor = dict(item.get("source_anchor") or {})
+        anchor_text = utils_module._safe_strip(
+            anchor.get("raw_code") or anchor.get("source") or anchor.get("text") or ""
+        )
+        detail = f"结构硬错误 {item.get('code')}：逻辑第 {line_no} 行“{text[:80]}”"
+        if anchor_text:
+            detail += f"；源码锚点“{anchor_text[:80]}”"
+        detail += "。仅修复该行，禁止输出 C 运算符、if(、&&、|| 或未闭合括号"
+        parts.append(detail)
 
     # LSP 精确事实注入：为未收口符号补充类型/成员/调用上下文
     lsp_snap = dict(getattr(meta, "lsp_fact_snapshot", {}) or {})
@@ -475,6 +515,172 @@ def make_regression_cfg(cfg, *, round_idx: int, meta: Optional[Any] = None, back
     return retry_cfg
 
 
+def _meta_with_structural_quality(
+    meta: AIBuildMeta,
+    logic_lines: Sequence[str] | None,
+    recovery: Sequence[dict[str, Any]] = (),
+) -> AIBuildMeta:
+    """Refresh only structural metadata after a targeted line repair."""
+    anchors = tuple(meta.logic_source_audit or ())
+    structural = quality_gate.inspect_logic_lines(logic_lines, source_anchors=anchors)
+    retained = tuple(
+        item for item in (meta.quality_issues or ())
+        if str((item or {}).get("code") or "") not in quality_gate.STRUCTURAL_LOGIC_CODES
+    )
+    reasons = [
+        reason for reason in (meta.regression_reasons or ())
+        if reason not in quality_gate.STRUCTURAL_LOGIC_CODES
+    ]
+    reasons.extend(str(item.get("code") or "") for item in structural)
+    merged_recovery = tuple(meta.quality_recovery or ()) + tuple(recovery or ())
+    return replace(
+        meta,
+        logic_placeholders=sum("待人工修改" in str(line or "") for line in (logic_lines or ())),
+        quality_issues=retained + structural,
+        regression_reasons=tuple(dict.fromkeys(reason for reason in reasons if reason)),
+        regression_needed=bool(reasons),
+        quality_recovery=merged_recovery,
+    )
+
+
+def _emit_quality_recovery_event(cfg, task: dict, records: Sequence[dict[str, Any]]) -> None:
+    for record in records or ():
+        try:
+            payload = {
+                "type": "ai_quality_recovery",
+                "file": str(task.get("file") or ""),
+                "func_name": str(task.get("func_name") or ""),
+                "func_index": int(task.get("index") or 0),
+                "func_pos": int(task.get("func_pos") or 0),
+            }
+            payload.update(dict(record or {}))
+            legacy_backend().gui_event(cfg, payload)
+        except Exception:
+            pass
+
+
+def _try_targeted_structural_repair(task: dict, design: FunctionDesign, cfg, *, backend_module=None):
+    """Ask AI only for the structurally broken rendered lines.
+
+    The suggestion is accepted solely after the shared gate passes; it can
+    never replace a valid control-flow line or alter unrelated logic steps.
+    """
+    backend = backend_module or legacy_backend()
+    meta = design.ai_meta if isinstance(design.ai_meta, AIBuildMeta) else AIBuildMeta()
+    issues = tuple(
+        item for item in (meta.quality_issues or ())
+        if str((item or {}).get("code") or "") in quality_gate.STRUCTURAL_LOGIC_CODES
+    )
+    if not issues or not design.logic_lines:
+        return design, False
+    body = str((task.get("func_data") or {}).get("body") or "")
+    items: list[dict[str, Any]] = []
+    for issue in issues:
+        try:
+            idx = int(issue.get("logic_line")) - 1
+        except (TypeError, ValueError):
+            continue
+        if idx < 0 or idx >= len(design.logic_lines):
+            continue
+        current = str(design.logic_lines[idx] or "")
+        if logic_utils._is_control_logic_line(current, backend_module=backend):
+            continue
+        items.append({
+            "idx": idx,
+            "code": str((issue.get("source_anchor") or {}).get("raw_code") or current),
+            "code_cn": current,
+            "indent": current[: len(current) - len(current.lstrip())],
+            "polish_only": True,
+        })
+    if not items:
+        return design, False
+    try:
+        suggestions = backend.ai_refine_logic_unknowns(items, body, cfg)
+    except Exception as exc:
+        recovery = ({"action": "targeted_ai_failed", "error": str(exc)[:160]},)
+        return replace(design, ai_meta=_meta_with_structural_quality(meta, design.logic_lines, recovery)), False
+    candidate = list(design.logic_lines)
+    repaired_lines: list[int] = []
+    for item in items:
+        idx = int(item["idx"])
+        text = utils_module._safe_strip((suggestions or {}).get(str(idx)))
+        if not text or not quality_gate.is_safe_ai_text(text):
+            continue
+        if logic_utils._is_control_logic_line(text, backend_module=backend):
+            continue
+        if not text.endswith("；"):
+            text += "；"
+        candidate[idx] = item["indent"] + text
+        repaired_lines.append(idx + 1)
+    candidate_issues = quality_gate.inspect_logic_lines(candidate, source_anchors=meta.logic_source_audit)
+    if candidate_issues or not repaired_lines:
+        recovery = ({
+            "action": "targeted_ai_rejected",
+            "lines": tuple(repaired_lines),
+            "remaining_codes": tuple(dict.fromkeys(item.get("code") for item in candidate_issues)),
+        },)
+        return replace(design, ai_meta=_meta_with_structural_quality(meta, design.logic_lines, recovery)), False
+    recovery = ({"action": "targeted_ai_repaired", "lines": tuple(repaired_lines)},)
+    repaired_meta = _meta_with_structural_quality(meta, tuple(candidate), recovery)
+    return replace(design, logic_lines=tuple(candidate), ai_meta=repaired_meta), True
+
+
+def _build_deterministic_baseline(task: dict, cfg, build_task_fn, task_cfg_fn, *, backend_module=None):
+    """Build an isolated no-AI design used only for line-level recovery."""
+    backend = backend_module or legacy_backend()
+    baseline_cfg = clone_cfg(cfg, ai_assist=False, ai_mode=0, ai_workers=1)
+    baseline_cfg._in_func_context = True
+    baseline_task = dict(task)
+    baseline_task["func_data"] = copy.deepcopy(task.get("func_data") or {})
+    baseline_task_cfg = task_cfg_fn(baseline_cfg, baseline_task)
+    if build_task_fn is build_function_design_task:
+        return build_task_fn(
+            baseline_task["func_data"], baseline_task["module_req_prefix"],
+            int(baseline_task["index"]), baseline_task_cfg, backend_module=backend,
+        )
+    return build_task_fn(
+        baseline_task["func_data"], baseline_task["module_req_prefix"],
+        int(baseline_task["index"]), baseline_task_cfg,
+    )
+
+
+def _fallback_structural_logic_lines(design: FunctionDesign, baseline: Optional[FunctionDesign]):
+    meta = design.ai_meta if isinstance(design.ai_meta, AIBuildMeta) else AIBuildMeta()
+    issues = quality_gate.inspect_logic_lines(design.logic_lines, source_anchors=meta.logic_source_audit)
+    if not issues:
+        return design
+    result = list(design.logic_lines or ())
+    restored: list[int] = []
+    omitted: list[int] = []
+    for issue in issues:
+        try:
+            idx = int(issue.get("logic_line")) - 1
+        except (TypeError, ValueError):
+            continue
+        if idx < 0 or idx >= len(result):
+            continue
+        fallback = ""
+        if baseline is not None and idx < len(baseline.logic_lines or ()):
+            fallback = str(baseline.logic_lines[idx] or "")
+        if fallback and not quality_gate.inspect_logic_lines((fallback,)):
+            result[idx] = fallback
+            restored.append(idx + 1)
+        else:
+            # The deterministic renderer can itself be unable to describe a
+            # statement.  The contract is still stronger than completeness:
+            # never send the corrupt AI line to DOCX.  Other accepted AI lines
+            # remain intact and the omission is auditable in review metadata.
+            result[idx] = ""
+            omitted.append(idx + 1)
+    recovery = ({
+        "action": "line_deterministic_fallback",
+        "lines": tuple(restored),
+        "omitted_lines": tuple(omitted),
+        "baseline_available": baseline is not None,
+    },)
+    return replace(design, logic_lines=tuple(result), ai_meta=_meta_with_structural_quality(meta, tuple(result), recovery))
+
+
 def maybe_regress_function_design(task: dict, design: Any, cfg, *, backend_module=None):
     backend = backend_module or legacy_backend()
     if (not isinstance(design, FunctionDesign)) or (not getattr(cfg, "ai_assist", False)):
@@ -488,6 +694,7 @@ def maybe_regress_function_design(task: dict, design: Any, cfg, *, backend_modul
     build_task_fn = getattr(backend, "_build_function_design_task", None) or build_function_design_task
     task_cfg_fn = getattr(backend, "_cfg_with_function_task_context", None) or cfg_with_function_task_context
     prefer_fn = getattr(backend, "_prefer_regression_design", None) or prefer_regression_design
+    deterministic_baseline = None
 
     for round_idx in range(1, rounds + 1):
         # 检查停止信号，避免停止后继续触发新的 AI 回归调用
@@ -513,6 +720,32 @@ def maybe_regress_function_design(task: dict, design: Any, cfg, *, backend_modul
         backend.vlog(cfg, f"函数 {func_name or task.get('index')} 触发 AI 回归补跑，第 {round_idx} 轮：{reasons}")
 
         retry_cfg = make_regression_cfg(cfg, round_idx=round_idx, meta=meta, backend_module=backend)
+        has_hard_error = quality_gate.has_structural_logic_error(meta.quality_issues)
+        if has_hard_error:
+            if deterministic_baseline is None:
+                try:
+                    deterministic_baseline = _build_deterministic_baseline(
+                        task, cfg, build_task_fn, task_cfg_fn, backend_module=backend,
+                    )
+                except Exception as exc:
+                    backend.vlog(cfg, f"确定性逻辑基线构建失败：{exc}")
+            retry, improved = _try_targeted_structural_repair(
+                task, current, retry_cfg, backend_module=backend,
+            )
+            if improved:
+                current = retry
+            new_meta = current.ai_meta if isinstance(current.ai_meta, AIBuildMeta) else AIBuildMeta()
+            _emit_quality_recovery_event(cfg, task, new_meta.quality_recovery[-1:])
+            backend.gui_event(cfg, {
+                "type": "ai_regression_end", "file": str(task.get("file") or ""),
+                "func_name": func_name, "func_index": int(task.get("index") or 0),
+                "func_pos": int(task.get("func_pos") or 0), "round": round_idx,
+                "ok": bool(improved), "improved": bool(improved),
+                "reasons": list(new_meta.regression_reasons),
+            })
+            # Structural repair gets the entire configured budget even when a
+            # model response was rejected; the final fallback is deterministic.
+            continue
         try:
             task_cfg = task_cfg_fn(retry_cfg, task)
             if build_task_fn is build_function_design_task:
@@ -564,6 +797,23 @@ def maybe_regress_function_design(task: dict, design: Any, cfg, *, backend_modul
         if (not improved) or (not new_meta.regression_needed):
             break
 
+    final_meta = current.ai_meta if isinstance(current.ai_meta, AIBuildMeta) else AIBuildMeta()
+    policy = utils_module.cfg_get_str(
+        cfg,
+        "ai_quality_hard_fail_policy",
+        str(getattr(cfg, "ai_quality_hard_fail_policy", "line_deterministic_fallback") or "line_deterministic_fallback"),
+    )
+    if quality_gate.has_structural_logic_error(final_meta.quality_issues) and policy == "line_deterministic_fallback":
+        if deterministic_baseline is None:
+            try:
+                deterministic_baseline = _build_deterministic_baseline(
+                    task, cfg, build_task_fn, task_cfg_fn, backend_module=backend,
+                )
+            except Exception as exc:
+                backend.vlog(cfg, f"确定性逻辑基线构建失败：{exc}")
+        current = _fallback_structural_logic_lines(current, deterministic_baseline)
+        final_meta = current.ai_meta if isinstance(current.ai_meta, AIBuildMeta) else AIBuildMeta()
+        _emit_quality_recovery_event(cfg, task, final_meta.quality_recovery[-1:])
     return current
 
 
@@ -753,6 +1003,13 @@ def _build_base_name_map(ctx: dict[str, Any], *, backend_module=None) -> dict[st
         if ident_s and cn_s and not backend._is_missing_gap_text(cn_s):
             name_map[ident_s] = cn_s
     name_map.update(_build_control_expression_aliases(ctx, backend_module=backend))
+    # AI-supplied field text participates in every later logic rendering step.
+    # Drop structurally unsafe values before they can contaminate a bitwise
+    # chain or a control condition; deterministic maps remain available.
+    name_map = {
+        key: value for key, value in name_map.items()
+        if quality_gate.is_safe_ai_text(value)
+    }
     # Disambiguate: 合并后的 name_map 中若有不同 key 映射到同一中文名，
     # 追加原始名末段以避免逻辑文本中出现重复/混淆。
     def _eligible_disambiguation_key(c_name: str) -> bool:
@@ -797,6 +1054,8 @@ def build_design_name_map(ctx: dict[str, Any], *, backend_module=None) -> dict[s
             continue
         existing = utils_module._safe_strip(name_map.get(key_s))
         if existing and (not _is_low_specificity_design_label(existing)) and _is_low_specificity_design_label(value_s):
+            continue
+        if not quality_gate.is_safe_ai_text(value_s):
             continue
         name_map[key_s] = value_s
     return name_map
@@ -3714,6 +3973,31 @@ def _logic_source_audit_from_context(ctx: dict[str, Any], logic_lines: Optional[
     has_state = bool(pack.get("state_updates"))
     has_returns = bool(pack.get("return_actions"))
     has_patterns = bool(pack.get("pattern_hits"))
+    # The rendered lines do not retain the parser node directly.  Keep a
+    # monotonic, kind-aware association to the enriched semantic facts so a
+    # quality issue can tell the repair prompt which C statement it represents.
+    anchor_items = {
+        "control_block": list(pack.get("control_blocks") or ()),
+        "return_action": list(pack.get("return_actions") or ()),
+        "statement_comment": list(pack.get("call_roles") or ()),
+        "callee_comment": list(pack.get("call_roles") or ()),
+        "call_role": list(pack.get("call_roles") or ()),
+        "state_update": list(pack.get("state_updates") or ()),
+        "semantic_pattern": list(pack.get("pattern_hits") or ()),
+    }
+    anchor_cursors = {key: 0 for key in anchor_items}
+
+    def _take_source_anchor(kind: str) -> dict[str, Any]:
+        items = anchor_items.get(kind) or ()
+        pos = anchor_cursors.get(kind, 0)
+        if pos >= len(items):
+            return {}
+        anchor_cursors[kind] = pos + 1
+        item = items[pos] if isinstance(items[pos], dict) else {}
+        anchor = dict(item.get("source_anchor") or {})
+        if anchor:
+            anchor.setdefault("statement_kind", kind)
+        return anchor
     out: list[dict[str, Any]] = []
 
     for idx, raw_line in enumerate(logic_lines or (), start=1):
@@ -3747,14 +4031,16 @@ def _logic_source_audit_from_context(ctx: dict[str, Any], logic_lines: Optional[
         if "当前系统时间" in text:
             refinements.append("call_result_polish")
 
-        out.append(
-            {
-                "idx": idx,
-                "text": text,
-                "source": source,
-                "refinements": tuple(dict.fromkeys(refinements)),
-            }
-        )
+        item = {
+            "idx": idx,
+            "text": text,
+            "source": source,
+            "refinements": tuple(dict.fromkeys(refinements)),
+        }
+        source_anchor = _take_source_anchor(source)
+        if source_anchor:
+            item["source_anchor"] = source_anchor
+        out.append(item)
     return tuple(out)
 
 
@@ -3768,6 +4054,13 @@ def _quality_issue(code: str, message: str, *, severity: str = "warning", source
     if anchor:
         item["source_anchor"] = dict(anchor)
     return item
+
+
+def _logic_rendering_quality_issues(
+    logic_lines: Optional[Sequence[str]],
+    source_anchors: Optional[Sequence[dict[str, Any]]] = None,
+) -> tuple[dict[str, Any], ...]:
+    return quality_gate.inspect_logic_lines(logic_lines, source_anchors=source_anchors)
 
 
 def _quality_issues_from_context(
@@ -3826,6 +4119,7 @@ def _quality_issues_from_context(
         count = int(quality_report.get(key) or 0)
         if count > 0:
             issues.append(_quality_issue(code, f"{label}：{count}", source="quality_report"))
+    issues.extend(_logic_rendering_quality_issues(logic_lines, logic_source_audit))
     internal_terms = ("logic_source_audit", "callee_comment", "state_update")
     for idx, line in enumerate(logic_lines or (), start=1):
         text = utils_module._safe_text(line)
@@ -3973,6 +4267,10 @@ def build_design_ai_meta(
             ai_regression_reasons.append("locals_unfilled")
         if logic_placeholders > 0:
             ai_regression_reasons.append("logic_placeholder")
+        for issue in quality_issues:
+            code = utils_module._safe_strip(issue.get("code"))
+            if code in quality_gate.STRUCTURAL_LOGIC_CODES:
+                ai_regression_reasons.append(code)
         if quality_report["unresolved_locals"]:
             ai_regression_reasons.append("locals_residual_symbols")
         if quality_report["unresolved_params"]:
@@ -4044,6 +4342,7 @@ def assemble_function_design(
     backend_module=None,
 ):
     backend = backend_module or legacy_backend()
+    deterministic_logic = tuple(logic_lines or ())
     design = FunctionDesign(
         title=text_sections["title_cn"],
         req_id=text_sections["req_id"],
@@ -4056,6 +4355,42 @@ def assemble_function_design(
         ai_meta=ai_meta,
     )
     design = backend._normalize_function_design_texts(design, name_map=name_map)
+    # Text normalization may consult persisted symbol memory.  Never allow a
+    # stale AI name from that layer to turn an otherwise valid deterministic
+    # logic sentence into malformed text.
+    meta = design.ai_meta if isinstance(design.ai_meta, AIBuildMeta) else AIBuildMeta()
+    post_normalize_issues = quality_gate.inspect_logic_lines(
+        design.logic_lines, source_anchors=meta.logic_source_audit,
+    )
+    if post_normalize_issues and deterministic_logic:
+        repaired_lines = list(design.logic_lines or ())
+        restored: list[int] = []
+        omitted: list[int] = []
+        for issue in post_normalize_issues:
+            try:
+                idx = int(issue.get("logic_line")) - 1
+            except (TypeError, ValueError):
+                continue
+            if idx < 0 or idx >= len(repaired_lines):
+                continue
+            fallback = deterministic_logic[idx] if idx < len(deterministic_logic) else ""
+            if fallback and not quality_gate.inspect_logic_lines((fallback,)):
+                repaired_lines[idx] = fallback
+                restored.append(idx + 1)
+            else:
+                repaired_lines[idx] = ""
+                omitted.append(idx + 1)
+        if restored or omitted:
+            recovery = ({
+                "action": "post_normalize_deterministic_fallback",
+                "lines": tuple(restored),
+                "omitted_lines": tuple(omitted),
+            },)
+            design = replace(
+                design,
+                logic_lines=tuple(repaired_lines),
+                ai_meta=_meta_with_structural_quality(meta, tuple(repaired_lines), recovery),
+            )
     # Symbol coverage check: scan for identifiers missing from name_map
     unresolved = logic_utils._collect_unresolved_logic_symbols(
         design.logic_lines, name_map=name_map, backend_module=backend
@@ -4129,15 +4464,26 @@ def collect_design_components(
                 backend_module=backend,
             )
             if var_cn_map:
-                ctx["var_cn_map"] = {
-                    k: (v.get("cn_name") if isinstance(v, dict) else v)
-                    for k, v in var_cn_map.items()
-                    if k and (utils_module._safe_strip(v.get("cn_name")) if isinstance(v, dict) else utils_module._safe_strip(v))
-                }
+                # Batch naming is an AI ingress point.  Validate each field
+                # before it reaches local metadata or the shared name map;
+                # one malformed candidate must not contaminate many logic
+                # lines during later symbol replacement.
+                safe_var_cn_map: dict[str, str] = {}
+                for raw_name, payload in var_cn_map.items():
+                    ident = utils_module._safe_strip(raw_name)
+                    candidate = utils_module._safe_strip(
+                        payload.get("cn_name") if isinstance(payload, dict) else payload
+                    )
+                    if not ident or not candidate:
+                        continue
+                    if not quality_gate.is_safe_ai_text(candidate):
+                        continue
+                    safe_var_cn_map[ident] = candidate
+                ctx["var_cn_map"] = safe_var_cn_map
                 ctx["var_usage_map"] = {
-                    k: utils_module._safe_strip(v.get("usage"))
+                    k: naming_utils.sanitize_ai_usage_text(v.get("usage"))
                     for k, v in var_cn_map.items()
-                    if isinstance(v, dict) and k and utils_module._safe_strip(v.get("usage"))
+                    if isinstance(v, dict) and k and naming_utils.sanitize_ai_usage_text(v.get("usage"))
                 }
         except Exception:
             pass

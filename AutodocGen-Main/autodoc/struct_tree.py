@@ -6,14 +6,11 @@ import re
 from dataclasses import dataclass, field
 from typing import Optional
 
-import tree_sitter_c as tsc
-from tree_sitter import Language, Parser
+from .tree_sitter_compat import create_c_parser
 
 try:
-    _LANG = Language(tsc.language())
-    _PARSER = Parser(_LANG)
+    _PARSER = create_c_parser()
 except Exception:
-    _LANG = None
     _PARSER = None
 
 

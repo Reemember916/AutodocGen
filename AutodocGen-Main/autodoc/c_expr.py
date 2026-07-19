@@ -24,10 +24,9 @@ def _get_ts_parser():
         return _TS_PARSER
     _TS_READY = True
     try:
-        import tree_sitter_c as tsc
-        from tree_sitter import Language, Parser
+        from .tree_sitter_compat import create_c_parser
 
-        _TS_PARSER = Parser(Language(tsc.language()))
+        _TS_PARSER = create_c_parser()
     except Exception:
         _TS_PARSER = None
     return _TS_PARSER
@@ -126,11 +125,12 @@ def _build_exprir_from_ts(node: Any, source_bytes: bytes) -> Optional[ExprIR]:
         op_node = _ts_child(node, "operator")
         arg_node = _ts_child(node, "argument")
         op = _ts_text(source_bytes, op_node) if op_node else ""
-        # ~ → unary；其他一元运算符 (!, -, +, &, *) → raw
-        if op == "~" and arg_node is not None:
+        # The renderer has deterministic wording for bitwise/logical negation.
+        # Address/dereference and signed arithmetic remain deliberately raw.
+        if op in {"~", "!"} and arg_node is not None:
             child = _build_exprir_from_ts(arg_node, source_bytes)
             if child:
-                return ExprIR(kind="unary", text=text, op="~", children=(child,))
+                return ExprIR(kind="unary", text=text, op=op, children=(child,))
         return ExprIR(kind="raw", text=text)
 
     # binary_expression: left + operator + right
@@ -317,6 +317,8 @@ def _is_standalone_binary_op(value: str, idx: int, op: str) -> bool:
     next_ch = value[next_idx] if next_idx < len(value) else ""
     if op == "&" and (prev_ch == "&" or next_ch == "&"):
         return False
+    if op == "|" and (prev_ch == "|" or next_ch == "|"):
+        return False
     if op == "+" and (prev_ch == "+" or next_ch == "+"):
         return False
     return True
@@ -458,26 +460,27 @@ def parse_c_expression(expr_text: str) -> ExprIR | None:
     if not value or not _balanced(value):
         return None
 
-    split = _split_top_level_binary(value, ("&",))
-    if split:
-        lhs, op, rhs = split
-        left = parse_c_expression(lhs)
-        right = parse_c_expression(rhs)
-        if left and right:
-            return ExprIR(kind="binary", text=value, op=op, children=(left, right))
+    # Match from low to high precedence so the string fallback preserves the
+    # same broad structure as the tree-sitter path.  It is intentionally
+    # conservative: a malformed expression falls through as raw rather than
+    # emitting half-translated C syntax.
+    for ops in (
+        ("||",), ("&&",), ("==", "!=", "<=", ">=", "<", ">"),
+        ("|",), ("^",), ("&",), ("<<", ">>"), ("+", "-"),
+        ("*", "/", "%"),
+    ):
+        split = _split_top_level_binary(value, ops)
+        if split:
+            lhs, op, rhs = split
+            left = parse_c_expression(lhs)
+            right = parse_c_expression(rhs)
+            if left and right:
+                return ExprIR(kind="binary", text=value, op=op, children=(left, right))
 
-    split = _split_top_level_binary(value, ("+",))
-    if split:
-        lhs, op, rhs = split
-        left = parse_c_expression(lhs)
-        right = parse_c_expression(rhs)
-        if left and right:
-            return ExprIR(kind="binary", text=value, op=op, children=(left, right))
-
-    if value.startswith("~"):
+    if value.startswith(("~", "!")):
         child = parse_c_expression(value[1:])
         if child:
-            return ExprIR(kind="unary", text=value, op="~", children=(child,))
+            return ExprIR(kind="unary", text=value, op=value[0], children=(child,))
 
     call = _parse_call(value)
     if call:
@@ -612,13 +615,44 @@ def render_expr_cn(
             ):
                 return RenderedExpr(text, confidence=0.5, source="fallback")
             return RenderedExpr(text)
-        left_text = render_expr_cn(left, names).text
-        right_text = render_expr_cn(right, names).text
-        return RenderedExpr(f"{left_text} {expr.op} {right_text}", confidence=0.6, source="fallback")
+        left_rendered = render_expr_cn(left, names)
+        right_rendered = render_expr_cn(right, names)
+        if (
+            not left_rendered.text
+            or not right_rendered.text
+            or left_rendered.source in {"raw", "fallback"}
+            or right_rendered.source in {"raw", "fallback"}
+        ):
+            return RenderedExpr("", confidence=0.0, source="fallback")
+        templates = {
+            "&": "{left}与{right}按位与结果",
+            "|": "{left}与{right}按位或结果",
+            "^": "{left}与{right}按位异或结果",
+            "<<": "{left}左移{right}位结果",
+            ">>": "{left}右移{right}位结果",
+            "-": "{left}与{right}之差",
+            "*": "{left}与{right}之积",
+            "/": "{left}除以{right}的结果",
+            "%": "{left}除以{right}的余数",
+            "==": "{left}等于{right}",
+            "!=": "{left}不等于{right}",
+            "<": "{left}小于{right}",
+            "<=": "{left}小于等于{right}",
+            ">": "{left}大于{right}",
+            ">=": "{left}大于等于{right}",
+            "&&": "{left}且{right}",
+            "||": "{left}或{right}",
+        }
+        template = templates.get(expr.op)
+        if template:
+            return RenderedExpr(template.format(left=left_rendered.text, right=right_rendered.text))
+        return RenderedExpr("", confidence=0.0, source="fallback")
 
-    if expr.kind == "unary" and expr.op == "~" and expr.children:
+    if expr.kind == "unary" and expr.op in {"~", "!"} and expr.children:
         child_text = render_expr_cn(expr.children[0], names).text
-        return RenderedExpr(f"{child_text}取反")
+        if not child_text:
+            return RenderedExpr("", confidence=0.0, source="fallback")
+        return RenderedExpr(f"{child_text}{'取反' if expr.op == '~' else '不成立'}")
     if expr.kind == "call":
         return RenderedExpr(f"{_mapped(expr.name, names)}结果")
     if expr.kind == "raw_ref":

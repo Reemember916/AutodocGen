@@ -763,6 +763,19 @@ def build_review_function(design: Any, func_data: dict[str, Any] | None = None, 
     source_file = str(data.get("source_file") or (data.get("file_context") or {}).get("source_file") or "")
     body = str(data.get("body") or "")
     blocks: list[ReviewBlock] = []
+    ai_meta = _safe_get(design, "ai_meta", None)
+    quality_issues = tuple(_safe_get(ai_meta, "quality_issues", ()) or ())
+    quality_recovery = tuple(_safe_get(ai_meta, "quality_recovery", ()) or ())
+    issues_by_line: dict[int, list[dict[str, Any]]] = {}
+    for issue in quality_issues:
+        if not isinstance(issue, dict):
+            continue
+        try:
+            line_no = int(issue.get("logic_line") or 0)
+        except (TypeError, ValueError):
+            line_no = 0
+        if line_no > 0:
+            issues_by_line.setdefault(line_no, []).append(issue)
 
     desc = "\n".join(str(x) for x in (_safe_get(design, "description_lines", ()) or ()) if str(x).strip())
     if desc or title:
@@ -795,7 +808,55 @@ def build_review_function(design: Any, func_data: dict[str, Any] | None = None, 
     for idx, line in enumerate((_safe_get(design, "logic_lines", ()) or ()), start=1):
         text = str(line or "")
         if text.strip():
-            blocks.append(ReviewBlock(review_block_id(name, "logic", idx), name, "logic_line", title=f"逻辑 {idx}", text=text))
+            issues = issues_by_line.get(idx, [])
+            flags = tuple(
+                ReviewQualityFlag(
+                    code=str(issue.get("code") or ""),
+                    severity=str(issue.get("severity") or "warning"),
+                    message=str(issue.get("message") or ""),
+                    block_id=review_block_id(name, "logic", idx),
+                )
+                for issue in issues
+            )
+            anchor = dict((issues[0] if issues else {}).get("source_anchor") or {})
+            try:
+                start_line = int(anchor.get("start_line") or 0)
+            except (TypeError, ValueError):
+                start_line = 0
+            try:
+                end_line = int(anchor.get("end_line") or start_line)
+            except (TypeError, ValueError):
+                end_line = start_line
+            blocks.append(
+                ReviewBlock(
+                    review_block_id(name, "logic", idx), name, "logic_line", title=f"逻辑 {idx}", text=text,
+                    source_range=ReviewSourceRange(
+                        file=str(anchor.get("file") or source_file),
+                        start_line=start_line,
+                        end_line=end_line,
+                    ),
+                    quality_flags=flags,
+                )
+            )
+
+    if quality_recovery:
+        audit_rows = []
+        for record in quality_recovery:
+            if not isinstance(record, dict):
+                continue
+            audit_rows.append({
+                "action": str(record.get("action") or ""),
+                "lines": ", ".join(str(x) for x in (record.get("lines") or ())),
+                "omitted_lines": ", ".join(str(x) for x in (record.get("omitted_lines") or ())),
+                "remaining_codes": ", ".join(str(x) for x in (record.get("remaining_codes") or ())),
+            })
+        if audit_rows:
+            blocks.append(
+                ReviewBlock(
+                    review_block_id(name, "quality_audit", 1), name, "quality_audit",
+                    title="AI 质量回归审计", rows=tuple(audit_rows), editable=False,
+                )
+            )
 
     return ReviewFunction(
         function_id=review_slug(name),
