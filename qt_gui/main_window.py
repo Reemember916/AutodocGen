@@ -15,6 +15,7 @@ import glob
 import shutil
 import queue
 import re
+import threading
 import time
 import sys
 from urllib.parse import urlsplit, urlunsplit
@@ -22,6 +23,22 @@ import requests
 from typing import Optional
 
 from PyQt5 import QtCore, QtGui, QtWidgets  # type: ignore
+
+
+def _global_excepthook(exc_type, exc_value, exc_tb):
+    """Log unhandled exceptions to /tmp/autodocgen_crash.log."""
+    import traceback as _tb
+    with open("/tmp/autodocgen_crash.log", "a", encoding="utf-8") as _f:
+        _f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] UNHANDLED EXCEPTION\n")
+        _f.write(f"Type: {exc_type.__name__}\n")
+        _f.write(f"Value: {exc_value}\n")
+        _f.write("Traceback:\n")
+        _tb.print_tb(exc_tb, file=_f)
+        _f.write("\n")
+    sys.__excepthook__(exc_type, exc_value, exc_tb)
+
+
+sys.excepthook = _global_excepthook
 
 try:
     from .runner import (
@@ -117,6 +134,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__()
         self.backend = backend
         self.settings_store = settings_store
+        threading.excepthook = self._thread_excepthook
         self.settings = settings_store.load()
         self._app_version = str(getattr(backend, "APP_VERSION", "") or "").strip()
         self._title_suffix = f" {self._app_version}" if self._app_version else ""
@@ -135,6 +153,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self._progress_state = {"total": None, "done": 0, "start_ts": None}
         self._failed_functions: list[dict] = []  # 函数失败记录
         self._closing = False
+        self._thread_done_emitted: bool = False
+        self._thread_kind: str = ""
         self._gui_event_queue: "queue.Queue[dict]" = queue.Queue()
         self._gui_log_queue: "queue.Queue[str]" = queue.Queue()
 
@@ -146,6 +166,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self._build_ui()
         # Settings 页较重，按需加载；这里不强制构建/应用
         self._set_running(False, note="就绪")
+
+    def _thread_excepthook(self, args: threading.ExceptHookArgs) -> None:
+        """Log thread exceptions to /tmp/autodocgen_crash.log."""
+        with open("/tmp/autodocgen_crash.log", "a", encoding="utf-8") as _f:
+            _f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] THREAD EXCEPTION\n")
+            _f.write(f"Thread: {args.thread}\n")
+            _f.write(f"Type: {args.exc_type.__name__}\n")
+            _f.write(f"Value: {args.exc_value}\n")
+            _f.write("Traceback:\n")
+            _traceback.print_tb(args.exc_traceback, file=_f)
+            _f.write("\n")
 
     def _set_store_unlocked(self, unlocked: bool) -> None:
         self._store_unlocked = bool(unlocked)
@@ -377,6 +408,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot(str, object, object)
     def _on_done_event(self, note: str, resume_state: Optional[dict], output_path: Optional[str]) -> None:
+        self._thread_done_emitted = True
         self._resume_state = resume_state
         self._request_thread_finish()
         self._set_running(False, note=note or "就绪")
@@ -3430,6 +3462,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self._start_generate(is_resume=False)
 
     def _start_doc_update(self) -> None:
+        try:
+            self._start_doc_update_impl()
+        except Exception as e:
+            import traceback
+            tb = traceback.format_exc()
+            self._append_log(f"启动增量更新失败：{e}\n{tb}")
+            QtWidgets.QMessageBox.critical(self, "错误", f"启动增量更新失败：{e}")
+            self._set_running(False, note="就绪")
+
+    def _start_doc_update_impl(self) -> None:
         if self._thread is not None:
             QtWidgets.QMessageBox.information(self, "提示", "任务运行中。")
             return
@@ -4296,6 +4338,20 @@ class MainWindow(QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.critical(self, "失败", f"导出失败：{e}")
 
     def _run_in_thread(self, *, impl, kind: str) -> None:
+        try:
+            self._run_in_thread_impl(impl=impl, kind=kind)
+        except Exception as e:
+            import traceback
+            tb = traceback.format_exc()
+            self._append_log(f"启动线程失败：{e}\n{tb}")
+            self._thread = None
+            self._worker = None
+            self._set_running(False, note="就绪")
+            QtWidgets.QMessageBox.critical(self, "错误", f"启动线程失败：{e}")
+
+    def _run_in_thread_impl(self, *, impl, kind: str) -> None:
+        self._thread_done_emitted = False
+        self._thread_kind = kind
         self._thread = QtCore.QThread(self)
         self._worker = _QtWorker(kind=kind, impl=impl)
         try:
@@ -4340,12 +4396,27 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             pass
         self._flush_detail_events()
+        crashed = False
+        if not self._thread_done_emitted and self._thread_kind == "doc_update":
+            self._set_running(False, note="文档增量更新异常")
+            self._append_log("错误：工作线程异常终止，可能因 docx 文件损坏导致程序崩溃")
+            crashed = True
         self._thread = None
         self._worker = None
         if self._pending_continue is not None:
             is_resume = self._pending_continue
             self._pending_continue = None
             self._start_generate(is_resume=is_resume)
+        if crashed:
+            QtCore.QTimer.singleShot(0, lambda: QtWidgets.QMessageBox.critical(
+                self, "异常终止",
+                "文档增量更新线程异常终止。\n\n"
+                "可能原因：\n"
+                "1. Word 文档 (.docx) 文件损坏——请检查文件是否可正常打开\n"
+                "2. DocDiff 子进程崩溃——请检查新旧代码目录是否存在\n"
+                "3. 内存不足\n\n"
+                "请查看日志窗口获取更多信息。"
+            ))
 
     def _cleanup_thread(self, wait_ms: int = 3000) -> bool:
         thread = self._thread

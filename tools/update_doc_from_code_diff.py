@@ -35,6 +35,42 @@ C_FUNC_DEF_RE = re.compile(
 DOC_CODE_ALIGNMENT_SCHEMA = 1
 
 
+def _open_docx_safe(path: str):
+    """Open a docx file with validation and wrapped Document() call.
+
+    Returns the Document instance on success.
+    Raises ValueError if the file is corrupted or unreadable.
+    """
+    _validate_docx(path)
+    from docx import Document
+    try:
+        return Document(path)
+    except Exception as e:
+        raise ValueError(f"无法打开 docx 文件（可能已损坏）：{path}\n  错误：{e}")
+
+
+def _validate_docx(path: str) -> None:
+    """Check that *path* is a valid ZIP archive before opening it with python-docx.
+
+    python-docx wraps lxml which is a C extension — a corrupted .docx can
+    trigger a segfault inside lxml that kills the entire process immediately.
+    This early check catches the most common corruption so the caller can
+    fail gracefully instead of crashing.
+    """
+    import zipfile
+    if not os.path.isfile(path):
+        raise FileNotFoundError(f"docx 文件不存在：{path}")
+    if not path.lower().endswith(".docx"):
+        raise ValueError(f"文件不是 .docx 格式：{path}")
+    try:
+        with zipfile.ZipFile(path) as zf:
+            bad = zf.testzip()
+            if bad is not None:
+                raise ValueError(f"docx 文件已损坏（ZIP 校验失败）：{bad}")
+    except zipfile.BadZipFile:
+        raise ValueError(f"docx 文件不是有效的 ZIP 格式（可能已损坏）：{path}")
+
+
 @dataclass
 class PlannedItem:
     action: str
@@ -247,9 +283,7 @@ def _extract_function_after_heading(paragraphs: list[Any], index: int) -> tuple[
 
 
 def _doc_csu_entries(doc_path: str) -> list[dict[str, str]]:
-    from docx import Document
-
-    doc = Document(doc_path)
+    doc = _open_docx_safe(doc_path)
     paragraphs = list(doc.paragraphs)
     entries: list[dict[str, str]] = []
     for pos, paragraph in enumerate(paragraphs):
@@ -488,9 +522,7 @@ def attach_alignment_to_items(items: list[PlannedItem], alignment_index: dict[st
 
 
 def collect_csu_ids(doc_path: str) -> list[str]:
-    from docx import Document
-
-    doc = Document(doc_path)
+    doc = _open_docx_safe(doc_path)
     ids: list[str] = []
     for paragraph in doc.paragraphs:
         text = (paragraph.text or "").strip()
@@ -1070,11 +1102,10 @@ def apply_safe_items(
         sys.path.insert(0, str(root))
     from autodoc.pipeline import regenerate_csu_in_doc
     from autodoc._legacy_support import legacy_backend
-    from docx import Document
 
     cfg = _make_cfg(ai_assist=ai_assist, template_path=template_path, verbose=verbose)
     backend = legacy_backend()
-    doc = Document(out_abs)
+    doc = _open_docx_safe(out_abs)
     prepared_func_cache: dict[tuple[str, str], tuple[list[dict[str, Any]], Any]] = {}
     changed = False
     for item in items:
@@ -1159,7 +1190,6 @@ def apply_review_decisions(
     from autodoc.pipeline import insert_csu_after_in_doc, regenerate_csu_in_doc
     from autodoc import render as render_module
     from autodoc._legacy_support import legacy_backend
-    from docx import Document
 
     cfg = _make_cfg(ai_assist=ai_assist, template_path=template_path, verbose=verbose)
     backend = legacy_backend()
@@ -1200,7 +1230,7 @@ def apply_review_decisions(
                 item.reason = "delete_csu requires target_csu_id"
                 continue
             try:
-                doc = Document(out_doc)
+                doc = _open_docx_safe(out_doc)
                 module_match = re.match(r"^(.+?)_\d+$", target_csu_id)
                 module_id = module_match.group(1) if module_match else ""
                 result = render_module.delete_csu_in_doc(
@@ -1288,7 +1318,7 @@ def apply_review_decisions(
                     module_match = re.match(r"^(.+?)_\d+$", target_csu_id)
                     module_id = module_match.group(1) if module_match else ""
                     if module_id:
-                        doc = Document(out_doc)
+                        doc = _open_docx_safe(out_doc)
                         renumber_result = render_module.renumber_module_csu_ids(
                             doc,
                             module_id,

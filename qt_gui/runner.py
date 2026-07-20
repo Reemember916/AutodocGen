@@ -327,7 +327,7 @@ class UpdateCsuWorker(TaskWorkerBase):
         self.task = task
         self.settings = settings
 
-    def run(self, *, emit_step, emit_log, emit_done):
+    def run(self, *, emit_step, emit_log, emit_done, emit_detail=None):
         try:
             emit_step("load_doc", "running")
             # 应用 GUI 术语表覆盖（CSU 更新也会用到中文名推断）
@@ -420,7 +420,7 @@ class TermTableWorker(TaskWorkerBase):
         self.task = task
         self.settings = settings
 
-    def run(self, *, emit_step, emit_log, emit_done):
+    def run(self, *, emit_step, emit_log, emit_done, emit_detail=None):
         try:
             project_dir = (self.task.project_dir or "").strip()
             if not project_dir:
@@ -883,7 +883,7 @@ class DocUpdateWorker(TaskWorkerBase):
         self.settings = settings
 
     def run(self, *, emit_step, emit_log, emit_done, emit_output=None, emit_detail=None):
-        # emit_detail kept for _QtWorker signature compatibility (unused here).
+# emit_detail kept for _QtWorker signature compatibility (unused here).
         _ = emit_detail
         try:
             emit_step("validate", "running")
@@ -926,6 +926,8 @@ class DocUpdateWorker(TaskWorkerBase):
             old_doc = updater._abs(old_doc)
             out_doc = updater._abs(out_doc)
             docdiff_root = updater._abs(docdiff_root or updater._default_docdiff_root())
+            if not docdiff_root or not os.path.isdir(docdiff_root):
+                raise ValueError(f"DocDiff 目录不存在：{docdiff_root}")
             change_docx = updater._default_sidecar(out_doc, ".code_change.docx")
             change_json = updater._default_sidecar(out_doc, ".code_changes.json")
             plan_out = updater._default_sidecar(out_doc, ".update_plan.json")
