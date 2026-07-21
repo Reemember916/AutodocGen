@@ -1,0 +1,8 @@
+{
+  "说明": "序号与更改单「问题N」对齐；问题=描述；问题单编号在一次版本变更内唯一，格式为 项目型号-WT-两位序号，例如 DFKS112-WT-01、DFKS112-WT-02",
+  "ticket_prefix": "DFKS112-WT",
+  "tickets": [
+    {"seq": 1, "title": "xxx需求变更", "ticket_no": "DFKS112-WT-01"},
+    {"seq": 2, "title": "xxx函数冗余", "ticket_no": "DFKS112-WT-02"}
+  ]
+}

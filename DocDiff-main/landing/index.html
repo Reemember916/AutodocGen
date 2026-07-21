@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocDiff | Intelligent Word Document Comparison</title>
+    <meta name="description"
+        content="Professional AST-based Word document comparison tool for technical specifications.">
+    <!-- Google Fonts: Poppins (Heading) & Open Sans (Body) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        heading: ['Poppins', 'sans-serif'],
+                        body: ['Open Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#2563EB',
+                        secondary: '#818cf8',
+                        accent: '#F97316',
+                        slate: {
+                            950: '#030712',
+                        }
+                    },
+                    animation: {
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                    },
+                    keyframes: {
+                        glow: {
+                            'from': { 'text-shadow': '0 0 10px #2563EB, 0 0 20px #2563EB' },
+                            'to': { 'text-shadow': '0 0 20px #818cf8, 0 0 30px #818cf8' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950 text-slate-100 font-body selection:bg-primary selection:text-white">
+    <!-- Floating Navbar -->
+    <nav class="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-7xl">
+        <div class="glass rounded-2xl px-6 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2">
+                    <div
+                        class="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
+                        <i data-lucide="file-diff" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <span class="font-heading font-bold text-xl tracking-tight text-white">DocDiff</span>
+                </div>
+                <!-- Language Switcher -->
+                <button id="lang-toggle"
+                    class="glass px-3 py-1 rounded-full text-[10px] font-bold text-slate-400 hover:text-white transition-all uppercase tracking-tighter">
+                    EN / 中文
+                </button>
+            </div>
+
+            <div class="hidden md:flex items-center gap-8">
+                <a href="#features" data-i18n="nav-features"
+                    class="text-sm font-medium text-slate-400 hover:text-white transition-colors">Features</a>
+                <a href="#how-it-works" data-i18n="nav-workflow"
+                    class="text-sm font-medium text-slate-400 hover:text-white transition-colors">Workflow</a>
+                <a href="https://github.com/ree/DocDiff"
+                    class="text-sm font-medium text-slate-400 hover:text-white transition-colors">GitHub</a>
+            </div>
+
+            <div>
+                <a href="https://github.com/ree/DocDiff"
+                    class="bg-primary hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-all hover:shadow-[0_0_20px_rgba(37,99,235,0.4)] flex items-center gap-2">
+                    <span data-i18n="nav-star">Star Project</span>
+                    <i data-lucide="github" class="w-4 h-4"></i>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-40 overflow-hidden">
+        <div class="container mx-auto px-6 relative z-10">
+            <div class="flex flex-col lg:flex-row items-center gap-16">
+                <div class="w-full lg:w-1/2 text-center lg:text-left">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full glass mb-6 reveal">
+                        <span class="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
+                        <span class="text-xs font-semibold text-accent uppercase tracking-wider"
+                            data-i18n="hero-tag">v1.2.0 is out
+                            now</span>
+                    </div>
+                    <h1 class="font-heading text-5xl lg:text-7xl font-bold leading-[1.1] mb-6 reveal text-white"
+                        data-i18n="hero-title">
+                        Structural <span
+                            class="bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">Word
+                            Diff</span> for High-Stakes Docs
+                    </h1>
+                    <p class="text-lg text-slate-400 mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed reveal"
+                        data-i18n="hero-desc">
+                        Stop missing critical changes in massive technical specifications. DocDiff uses AST parsing to
+                        understand hierarchy, ensuring 100% accurate "Change Order" generation.
+                    </p>
+                    <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 reveal">
+                        <a href="#how-it-works"
+                            class="w-full sm:w-auto px-8 py-4 bg-white text-slate-950 rounded-xl font-bold hover:bg-slate-200 transition-all flex items-center justify-center gap-2">
+                            <span data-i18n="btn-start">Get Started</span>
+                            <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                        </a>
+                        <a href="https://github.com/ree/DocDiff"
+                            class="w-full sm:w-auto px-8 py-4 glass text-white rounded-xl font-bold hover:bg-white/10 transition-all flex items-center justify-center gap-2">
+                            <i data-lucide="github" class="w-5 h-5"></i>
+                            <span data-i18n="btn-source">View Source</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="w-full lg:w-1/2 reveal">
+                    <div class="relative group">
+                        <div
+                            class="absolute -inset-1 bg-gradient-to-r from-primary to-secondary rounded-3xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200">
+                        </div>
+                        <div class="relative glass rounded-3xl overflow-hidden shadow-2xl">
+                            <img src="assets/hero.png" alt="DocDiff Dashboard UI"
+                                class="w-full opacity-90 group-hover:scale-[1.02] transition-transform duration-700">
+                            <div
+                                class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Background Orbs -->
+        <div
+            class="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-96 h-96 bg-primary/20 rounded-full blur-[100px]">
+        </div>
+        <div
+            class="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-96 h-96 bg-secondary/10 rounded-full blur-[100px]">
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-24 bg-slate-900/50">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-20 max-w-3xl mx-auto">
+                <h2 class="font-heading text-4xl font-bold mb-4 text-white reveal" data-i18n="features-title">The New
+                    Standard for Document Review
+                </h2>
+                <p class="text-slate-400 reveal" data-i18n="features-desc">DocDiff replaces manual eyes and basic line
+                    diffs with a sophisticated
+                    structural analysis engine.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="glass p-8 rounded-3xl hover:border-primary/50 transition-colors group reveal">
+                    <div
+                        class="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-6 border border-primary/20 group-hover:scale-110 transition-transform">
+                        <i data-lucide="layers" class="w-6 h-6 text-primary"></i>
+                    </div>
+                    <h3 class="font-heading text-xl font-bold mb-3 text-white" data-i18n="f1-title">AST-Based Parsing
+                    </h3>
+                    <p class="text-slate-400 text-sm leading-relaxed" data-i18n="f1-desc">
+                        We don't just compare text. We build an Abstract Syntax Tree of your .docx, preserving the
+                        relationship between headings (H1-H4) and content.
+                    </p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="glass p-8 rounded-3xl hover:border-secondary/50 transition-colors group reveal">
+                    <div
+                        class="w-12 h-12 bg-secondary/10 rounded-2xl flex items-center justify-center mb-6 border border-secondary/20 group-hover:scale-110 transition-transform">
+                        <i data-lucide="target" class="w-6 h-6 text-secondary"></i>
+                    </div>
+                    <h3 class="font-heading text-xl font-bold mb-3 text-white" data-i18n="f2-title">Stable Section ID's
+                    </h3>
+                    <p class="text-slate-400 text-sm leading-relaxed" data-i18n="f2-desc">
+                        Detects stable ID's in headings (like D/R_SDD01_...) to match sections even if titles are
+                        renamed or moved.
+                    </p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="glass p-8 rounded-3xl hover:border-accent/50 transition-colors group reveal">
+                    <div
+                        class="w-12 h-12 bg-accent/10 rounded-2xl flex items-center justify-center mb-6 border border-accent/20 group-hover:scale-110 transition-transform">
+                        <i data-lucide="table" class="w-6 h-6 text-accent"></i>
+                    </div>
+                    <h3 class="font-heading text-xl font-bold mb-3 text-white" data-i18n="f3-title">Deep Table Diffing
+                    </h3>
+                    <p class="text-slate-400 text-sm leading-relaxed" data-i18n="f3-desc">
+                        Drills into table rows to identify exact changes, additions, or deletions while maintaining
+                        table header context.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section id="how-it-works" class="py-24">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col lg:flex-row items-center gap-16">
+                <div class="w-full lg:w-1/2 reveal">
+                    <h2 class="font-heading text-4xl font-bold mb-8 text-white" data-i18n="how-title">From Raw Documents
+                        to <span class="text-primary italic" data-i18n="how-title-accent">Professional</span> Results
+                    </h2>
+                    <ul class="space-y-8">
+                        <li class="flex gap-6 items-start">
+                            <div
+                                class="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-sm font-bold text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]">
+                                1</div>
+                            <div>
+                                <h4 class="font-heading font-bold text-lg mb-2 text-white" data-i18n="step1-title">
+                                    Ingest DOCX</h4>
+                                <p class="text-slate-400 text-sm leading-relaxed" data-i18n="step1-desc">Upload or point
+                                    the CLI to your
+                                    original and revised Word documents.</p>
+                            </div>
+                        </li>
+                        <li class="flex gap-6 items-start">
+                            <div
+                                class="flex-shrink-0 w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm font-bold text-white shadow-[0_0_15px_rgba(129,140,248,0.4)]">
+                                2</div>
+                            <div>
+                                <h4 class="font-heading font-bold text-lg mb-2 text-white" data-i18n="step2-title">
+                                    Normalize & Match</h4>
+                                <p class="text-slate-400 text-sm leading-relaxed" data-i18n="step2-desc">DocDiff uses
+                                    smart heuristics to align
+                                    chapters, sections, and paragraphs.</p>
+                            </div>
+                        </li>
+                        <li class="flex gap-6 items-start">
+                            <div
+                                class="flex-shrink-0 w-8 h-8 rounded-full bg-accent flex items-center justify-center text-sm font-bold text-white shadow-[0_0_15px_rgba(249,115,22,0.4)]">
+                                3</div>
+                            <div>
+                                <h4 class="font-heading font-bold text-lg mb-2 text-white" data-i18n="step3-title">
+                                    Generate Change Order</h4>
+                                <p class="text-slate-400 text-sm leading-relaxed" data-i18n="step3-desc">A perfectly
+                                    formatted .docx is
+                                    generated, ready for formal submission or internal review.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div class="w-full lg:w-1/2">
+                    <div class="glass p-2 rounded-2xl reveal">
+                        <pre
+                            class="bg-black/40 rounded-xl p-6 overflow-x-auto text-xs font-mono text-slate-300 leading-normal">
+<span class="text-primary"># Installation</span>
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+<span class="text-primary"># Quick Start</span>
+<span class="text-secondary"># Edit cli.py with your paths</span>
+python3 cli.py
+
+<span class="text-accent"># Success! Change Order generated.</span>
+                        </pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-24 container mx-auto px-6">
+        <div
+            class="relative rounded-[3rem] overflow-hidden bg-gradient-to-br from-primary via-blue-900 to-slate-950 p-12 text-center reveal">
+            <div class="relative z-10 flex flex-col items-center max-w-2xl mx-auto">
+                <i data-lucide="zap" class="w-12 h-12 text-accent mb-6 animate-pulse"></i>
+                <h2 class="font-heading text-4xl lg:text-5xl font-bold mb-6 text-white leading-tight"
+                    data-i18n="cta-title">Secure your
+                    technical workflow today.</h2>
+                <p class="text-blue-100/70 mb-10 text-lg" data-i18n="cta-desc">Open source, Python-powered, and built
+                    for structural
+                    precision.</p>
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <a href="https://github.com/ree/DocDiff"
+                        class="px-8 py-4 bg-accent hover:bg-orange-600 text-white rounded-xl font-bold transition-all shadow-[0_0_30px_rgba(249,115,22,0.3)] flex items-center justify-center gap-2">
+                        <span data-i18n="cta-btn">Get Started Free</span>
+                        <i data-lucide="external-link" class="w-5 h-5"></i>
+                    </a>
+                </div>
+            </div>
+            <!-- Decorative circle -->
+            <div class="absolute top-0 left-0 w-64 h-64 bg-white/5 rounded-full -translate-x-1/2 -translate-y-1/2">
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 border-t border-slate-900">
+        <div class="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
+            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 bg-primary/20 rounded-md flex items-center justify-center">
+                    <i data-lucide="file-diff" class="w-3.5 h-3.5 text-primary"></i>
+                </div>
+                <span class="font-heading font-bold text-lg text-white">DocDiff</span>
+            </div>
+            <p class="text-slate-500 text-sm">© 2026 DocDiff Open Source Project. All rights reserved.</p>
+            <div class="flex items-center gap-6 text-slate-400">
+                <a href="https://github.com/ree/DocDiff" class="hover:text-white transition-colors"><i
+                        data-lucide="github" class="w-5 h-5"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

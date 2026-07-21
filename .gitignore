@@ -1,0 +1,70 @@
+# Packaging / runtime (Windows frozen app)
+*.exe
+*.dll
+*.pyd
+*.zip
+python*.dll
+VCRUNTIME*
+libcrypto*
+libssl*
+libffi*
+libopenblas*
+tcl86t.dll
+tk86t.dll
+sqlite3.dll
+
+# Bundled third-party runtime trees
+PIL/
+PyQt5/
+numpy/
+lxml/
+docx/
+certifi/
+charset_normalizer/
+jaraco/
+tcl/
+tcl8/
+tk/
+win32/
+pywin32_system32/
+tree_sitter/
+tree_sitter_c/
+importlib_metadata-*.dist-info/
+typeguard-*.dist-info/
+wheel-*.dist-info/
+base_library.zip
+
+# Local / tool caches
+.claude/
+.codex/
+.codebase-memory/
+.superpowers/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.DS_Store
+
+# DocDiff build artifacts
+DocDiff-main/build/
+DocDiff-main/**/__pycache__/
+
+# Generated / local state
+.autodoc/
+*_review/
+autodoc_symbol_memory.json
+render_cache.json
+
+# Secrets (never commit keys)
+autodocgen.ini
+
+# Agent scratch / brainstorm state
+.superpowers/
+
+# DocDiff build artifacts and release tarballs
+DocDiff-main/build/
+DocDiff-main/dist/
+DocDiff-main/*.tar.gz
+*.tar.gz

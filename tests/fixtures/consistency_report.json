@@ -1,0 +1,52 @@
+{
+  "total_symbols": 3,
+  "consistent_symbols": 1,
+  "score": 33.3,
+  "inconsistencies": [
+    {
+      "symbol": "pBuf",
+      "variants": ["缓冲区指针", "缓存指针"],
+      "locations": [{"file": "demo.c", "func": "Demo_ClearBuffer", "context": "参数"}],
+      "severity": "high",
+      "suggestion": "缓冲区指针"
+    },
+    {
+      "symbol": "status",
+      "variants": ["状态", "状态值"],
+      "locations": [{"file": "demo.c", "func": "Demo_Init", "context": "局部变量"}],
+      "severity": "medium",
+      "suggestion": "状态"
+    },
+    {
+      "symbol": "tmp_u8",
+      "variants": ["临时量", "临时值"],
+      "locations": [{"file": "demo.c", "func": "Demo_Init", "context": "局部变量"}],
+      "severity": "low",
+      "suggestion": "临时值"
+    }
+  ],
+  "symbol_dict_conflicts": [],
+  "hints": [
+    {
+      "symbol": "pBuf",
+      "current": "缓存指针",
+      "suggested": "缓冲区指针",
+      "action": "rename",
+      "severity": "high"
+    },
+    {
+      "symbol": "status",
+      "current": "状态值",
+      "suggested": "状态",
+      "action": "rename",
+      "severity": "medium"
+    },
+    {
+      "symbol": "tmp_u8",
+      "current": "临时量",
+      "suggested": "临时值",
+      "action": "rename",
+      "severity": "low"
+    }
+  ]
+}

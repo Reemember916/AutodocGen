@@ -1,0 +1,73 @@
+{
+  "metadata": {
+    "doc_no": "实测-作动器",
+    "version": "V1.01→V1.02",
+    "author": "DocDiff实测",
+    "date": "2026-07-19",
+    "old_path": "作动器...V1.01.docx",
+    "new_path": "作动器...V1.02.docx"
+  },
+  "change_count": 6,
+  "type_counts": {
+    "修改": 6
+  },
+  "match_method_counts": {
+    "uid": 6
+  },
+  "changes": [
+    {
+      "type": "修改",
+      "key": "CSCI详细设计 > 应用层 > 主函数（D/R_SDD01_001） > 5.1.1.3 IFBITStateUpdate（D/R_SDD01_001_003）",
+      "seg": "a",
+      "match_method": "uid",
+      "match_score": 1.0,
+      "old_preview": "a) 函数原型\nvoid IFBITStateUpdate(Uint16 v_index_u16, Uint16 v_newState_u16, Uint32 v_info_u32)",
+      "new_preview": "a) 函数原型\nvoid IFBITStateUpdate1(Uint16 v_index_u16, Uint16 v_newState_u16, Uint32 v_info_u32)"
+    },
+    {
+      "type": "修改",
+      "key": "CSCI详细设计 > 应用层 > 主函数（D/R_SDD01_001） > 5.1.1.3 IFBITStateUpdate（D/R_SDD01_001_003）",
+      "seg": "e",
+      "match_method": "uid",
+      "match_score": 1.0,
+      "old_preview": "e) 逻辑/流程图\nIF 输入索引合法性检测\nIF 当前状态为IFBIT报故\nIF 判断该检测项配置是否允许故障恢复\nIF 本次检测结果为正常\n故障恢复计数累加；\nIF 当故障恢复计数达到配置的阈值时\n更新状态为正常，并清零相关计数器；\nIF 更新周期BIT全局结果位图\n清除对应的故障位 (置0)；\nEND IF\nEND IF\nEND IF\n本次检测仍为异常：故障恢复计数必须连续，中断则清零；\n…",
+      "new_preview": "e) 逻辑/流程图\nIF 输入索引合法性检测\nIF 当前状态为IFBIT报故\nIF 判断该检测项配置是否允许故障恢复\nIF 本次检测结果为正常\n故障恢复计数累加；\nIF 当故障恢复计数达到配置的阈值时\n更新状态为正常，并清零相关计数器；\nIF 更新周期BIT全局结果位图\n清除对应的故障位 (置11)；\nEND IF\nEND IF\nEND IF\n本次检测仍为异常：故障恢复计数必须连续，中断则清零；…"
+    },
+    {
+      "type": "修改",
+      "key": "CSCI详细设计 > 应用层 > 主函数（D/R_SDD01_001） > 5.1.1.3 IFBITStateUpdate（D/R_SDD01_001_003）",
+      "seg": "c",
+      "match_method": "uid",
+      "match_score": 1.0,
+      "old_preview": "c) 输入/输出元素\n表 5 输入/输出元素\n名称\t标识\t类型\t输入/输出\n周期自检项索引\tv_index_u16\tUint16\t输入\n该检测项本次的检测结果：\tv_newState_u16\tUint16\t输入\n故障相关辅助信息\tv_info_u32\tUint32\t输入",
+      "new_preview": "c) 输入/输出元素\n表 5 输入/输出元素\n名称\t标识\t类型\t输入/输出\n周期自检项索引\tv_index_u16\tUint16\t输入\n该检测项本次的检测结果：\tv_newState_u16\tUint32\t输入\n故障相关辅助信息\tv_info_u32\tUint32\t输入"
+    },
+    {
+      "type": "修改",
+      "key": "CSCI详细设计 > 应用层 > NMI中断（D/R_SDD01_026） > XNMI中断（D/R_SDD01_026_001）",
+      "seg": "_MAIN",
+      "match_method": "uid",
+      "match_score": 1.0,
+      "old_preview": "函数原型\ninterrupt void ISR_XNMIInt(void);\n功能说明\nXNMI中断程序。\n输入/输出元素\n无。\n局部数据元素\n表338 局部数据元素\n名称\t标识\t类型\t用途\n中断类型\tl_nmiSrc_u16\tUint16\t临时数据\n写入标识\tl_flgWt_u16\tUint16\t临时数据\n运行时间\tl_systime_u16\tUint16\t临时数据\n逻辑/流程图\n见图40。",
+      "new_preview": "函数原型\ninterrupt void ISR_XNMIInt1(void);\n功能说明\nXNMI中断程序。\n输入/输出元素\n无。\n局部数据元素\n表338 局部数据元素\n名称\t标识\t类型\t用途\n中断类型\tl_nmiSrc_u16\tUint16\t临时数据\n写入标识\tl_flgWt_u16\tUint16\t临时数据\n运行时间\tl_systime_u16\tUint16\t临时数据\n逻辑/流程图\n见图40。"
+    },
+    {
+      "type": "修改",
+      "key": "CSCI详细设计 > 中间层 > 余度算法（D/R_SDD01_020） > 差值计算（D/R_SDD01_020_002）",
+      "seg": "_MAIN",
+      "match_method": "uid",
+      "match_score": 1.0,
+      "old_preview": "函数原型\nstatic Uint16 RedundVoteDelta(RdVal_TypeDef *pArr_t,Uint16 l_len_u16,float l_deltaThresd_f)\n功能说明\n余度表决的差值判断。\n输入/输出元素\n表342 输入/输出元素\n名称\t标识\t类型\t输入/输出\n参与表决的合理数值\tpArr_t\tRdVal_TypeDef *\t输入\n数组长度\tl_len_u16…",
+      "new_preview": "函数原型\nstatic Uint16 RedundVoteDelta(RdVal_TypeDef *pArr_t,Uint16 l_len_u16,float l_deltaThresd_f)\n功能说明\n余度表决的差值判断。\n输入/输出元素\n表342 输入/输出元素\n名称\t标识\t类型\t输入/输出\n参与表决的合理数值\tpArr_t\tRdVal_TypeDef *\t输入\n数组长度\tl_len1_u1…"
+    },
+    {
+      "type": "修改",
+      "key": "CSCI详细设计 > 中间层 > 余度算法（D/R_SDD01_020） > 三余度处理（D/R_SDD01_020_003）",
+      "seg": "_MAIN",
+      "match_method": "uid",
+      "match_score": 1.0,
+      "old_preview": "函数原型\nstatic Uint16 Redun3Process(Uint16 deRslt_u16, VoteData_TypeDef* pVotD_t)\n功能说明\n3余度表决处理。\n输入/输出元素\n表344 输入/输出元素\n名称\t标识\t类型\t输入/输出\n差值detla判断结果\tdeRslt_u16\tUint16\t输入\n表决数据\tpVotD_t\tVoteData_TypeDef *\t输入\n实时…",
+      "new_preview": "函数原型\nstatic Uint16 Redun3Process(Uint16 deRslt_u16, VoteData_TypeDef* pVotD_t)\n功能说明\n3余度表决处理。\n输入/输出元素\n表344 输入/输出元素\n名称\t标识\t类型\t输入/输出\n差值detla判断结果\tdeRslt_u16\tUint16\t输入\n表决数据\tpVotD_t\tVoteData_TypeDef *\t输入\n实时…"
+    }
+  ]
+}

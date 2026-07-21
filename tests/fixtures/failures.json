@@ -1,0 +1,21 @@
+{
+  "failures": [
+    {
+      "func_name": "Demo_Init",
+      "file_path": "",
+      "error_type": "unknown",
+      "error_message": "simulated failure",
+      "task": {
+        "func_name": "Demo_Init",
+        "source_file": "",
+        "index": 1,
+        "func_data": {
+          "file_context": {
+            "source_file": "",
+            "_stripped": true
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "functions": {
+    "ReadCpuTimer1Counter": "读取CPU定时器1计数",
+    "SysTaskRdyCheck": "任务就绪检查",
+    "Ndb1394NewCmdCheck": "1394新指令检查",
+    "FullVote": "全票表决"
+  },
+  "members": {
+    "frceRst": "强制复位",
+    "forceRstNew": "新强制复位",
+    "pbitEn1": "PBIT使能1",
+    "test_nmi_sw": "NMI测试开关",
+    "lruId": "LRU标识",
+    "chid": "通道标识"
+  },
+  "symbols": {
+    "l_ccdlTime_u32": "CCDL时间基准",
+    "l_ii": "循环索引",
+    "ii": "循环索引",
+    "l_flgIdx_u16": "故障索引",
+    "l_asyncHeart_p": "心跳数据指针",
+    "g_sendFrameCnt_u32": "发送帧计数",
+    "g_FccTimeReceive": "FCC时间接收计时",
+    "g_CtrlCcdlEmptTick": "控制CCDL空闲计时"
+  },
+  "macros": {
+    "FLG_1_VALID": "有效",
+    "FLG_0_INVALID": "无效"
+  }
+}
