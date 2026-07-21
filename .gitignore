@@ -1,32 +1,70 @@
-# === 原始迁移压缩包(含历史明文 key,不入库) ===
-archives/
+# Packaging / runtime (Windows frozen app)
+*.exe
+*.dll
+*.pyd
+*.zip
+python*.dll
+VCRUNTIME*
+libcrypto*
+libssl*
+libffi*
+libopenblas*
+tcl86t.dll
+tk86t.dll
+sqlite3.dll
 
-# === Python ===
+# Bundled third-party runtime trees
+PIL/
+PyQt5/
+numpy/
+lxml/
+docx/
+certifi/
+charset_normalizer/
+jaraco/
+tcl/
+tcl8/
+tk/
+win32/
+pywin32_system32/
+tree_sitter/
+tree_sitter_c/
+importlib_metadata-*.dist-info/
+typeguard-*.dist-info/
+wheel-*.dist-info/
+base_library.zip
+
+# Local / tool caches
+.claude/
+.codex/
+.codebase-memory/
+.superpowers/
 __pycache__/
 *.py[cod]
-.pytest_cache/
+*.egg-info/
 .venv/
 venv/
+.env
+.DS_Store
 
-# === 运行期产物 ===
-output/
-tmp/
-*.log
-error.log
-tool.log
-ai_repro/
+# DocDiff build artifacts
+DocDiff-main/build/
+DocDiff-main/**/__pycache__/
+
+# Generated / local state
 .autodoc/
+*_review/
+autodoc_symbol_memory.json
+render_cache.json
 
-# === 测试工程运行期缓存（autodoc 工具生成的索引/记忆库，含机器绝对路径，不入库） ===
-tests/PROJECT-2007-0613/autodoc_*.json
-tests/PROJECT-2007-0613/autodoc_*_index.json
-tests/PROJECT-2007-S01-0001-0621_src/autodoc_*.json
-
-# === 含明文 API key 的本地配置(不入库,改用 autodocgen.ini.example 模板) ===
+# Secrets (never commit keys)
 autodocgen.ini
 
-# === 系统文件 ===
-.DS_Store
-.worktrees/
-.vscode/
-.idea/
+# Agent scratch / brainstorm state
+.superpowers/
+
+# DocDiff build artifacts and release tarballs
+DocDiff-main/build/
+DocDiff-main/dist/
+DocDiff-main/*.tar.gz
+*.tar.gz

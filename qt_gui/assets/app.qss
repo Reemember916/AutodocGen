@@ -1,0 +1,519 @@
+/* ============================================================
+   AutoDocGen — CSCI 详细设计生产工作台 样式表
+   浅色内容区 · 深色导航 · 单一蓝色主操作色
+   ============================================================ */
+
+QMainWindow {
+  background: #f1f5f9; /* slate-100 */
+}
+
+QWidget {
+  color: #0f172a; /* slate-900 */
+  font-family: "Microsoft YaHei", "Segoe UI", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  font-size: 13px;
+}
+
+/* ---------- 左侧导航栏 ---------- */
+QFrame#sidebar {
+  background: #0f172a; /* slate-900 */
+}
+
+QLabel#sidebar_title {
+  color: #e2e8f0; /* slate-200 */
+  font-size: 16px;
+  font-weight: 700;
+  padding: 6px 6px;
+}
+
+QLabel#sidebar_version {
+  color: #94a3b8; /* slate-400 */
+  font-size: 11px;
+  font-weight: 400;
+  padding: 0 6px;
+}
+
+/* 导航分区标题（主页/新建设计… vs 次级 vs 底部） */
+QLabel#nav_section {
+  color: #64748b; /* slate-400 */
+  font-size: 10px;
+  font-weight: 700;
+  padding: 10px 12px 4px 12px;
+  text-transform: uppercase;
+}
+
+QPushButton#nav_btn[nav="true"] {
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: none;
+  color: #cbd5e1; /* slate-300 */
+  background: transparent;
+}
+
+QPushButton#nav_btn[nav="true"]:hover {
+  background: #1e293b; /* slate-800 */
+  color: #e2e8f0;
+}
+
+QPushButton#nav_btn[nav="true"][active="true"] {
+  background: #1e293b;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* ---------- 顶栏 ---------- */
+QFrame#topbar {
+  background: #ffffff;
+  border: 1px solid #e2e8f0; /* slate-200 */
+  border-radius: 12px;
+  min-height: 56px;
+}
+
+QLabel#topbar_title {
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+QLabel#version_badge {
+  background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                              stop:0 #dbeafe, stop:1 #bfdbfe);
+  color: #1d4ed8;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+QLabel#status_pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f1f5f9; /* slate-100 */
+  color: #475569; /* slate-600 */
+  border: 1px solid #e2e8f0;
+}
+
+QProgressBar#progress_bar {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc; /* slate-50 */
+  text-align: center;
+  color: #475569;
+}
+
+QProgressBar#progress_bar::chunk {
+  background: #3b82f6; /* blue-500 */
+  border-radius: 8px;
+}
+
+/* ---------- 页面标题区 ---------- */
+QWidget#page_header {
+  background: transparent;
+}
+
+QLabel#page_title {
+  color: #0f172a;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+QLabel#page_subtitle {
+  color: #64748b; /* slate-500 */
+  font-size: 12px;
+  font-weight: 400;
+}
+
+/* ---------- 卡片 ---------- */
+QFrame#card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+QLabel#card_title {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+QLabel#muted {
+  color: #64748b; /* slate-500 */
+}
+
+/* ---------- 任务入口卡片（主页双入口） ---------- */
+QFrame#task_card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+}
+
+QFrame#task_card:hover {
+  border: 1px solid #93c5fd; /* blue-300 */
+  background: #f8faff;
+}
+
+QLabel#task_card_title {
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* ---------- 区块面板 ---------- */
+QFrame#section_panel {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+QLabel#section_title {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* ---------- 信息横幅 ---------- */
+QFrame#info_banner {
+  background: #eff6ff; /* blue-50 */
+  border: 1px solid #bfdbfe; /* blue-200 */
+  border-radius: 8px;
+}
+
+QLabel#info_banner {
+  color: #1e40af; /* blue-800 */
+  font-size: 12px;
+}
+
+/* ---------- 底部固定操作栏 ---------- */
+QFrame#action_bar {
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* ---------- 主按钮 ---------- */
+QPushButton#primary_button {
+  background: #2563eb; /* blue-600 */
+  color: #ffffff;
+  border: none;
+  padding: 9px 22px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+QPushButton#primary_button:hover {
+  background: #1d4ed8; /* blue-700 */
+}
+
+QPushButton#primary_button:pressed {
+  background: #1e40af; /* blue-800 */
+}
+
+QPushButton#primary_button:disabled {
+  background: #93c5fd; /* blue-300 */
+  color: #dbeafe;
+}
+
+/* ---------- 通用按钮 ---------- */
+QPushButton {
+  padding: 7px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+QPushButton:hover {
+  background: #f8fafc; /* slate-50 */
+}
+
+QPushButton:disabled {
+  color: #94a3b8; /* slate-400 */
+  background: #f1f5f9;
+}
+
+QToolButton {
+  padding: 7px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+QToolButton:hover {
+  background: #f1f5f9;
+}
+
+QToolButton:disabled {
+  color: #94a3b8;
+  background: #f8fafc;
+}
+
+/* ---------- 输入控件 ---------- */
+QLineEdit, QComboBox, QSpinBox, QPlainTextEdit, QTextEdit, QTextBrowser {
+  padding: 6px 8px;
+  border: 1px solid #cbd5e1; /* slate-300 */
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QPlainTextEdit:focus, QTextEdit:focus, QTextBrowser:focus {
+  border: 1px solid #3b82f6; /* blue-500 */
+}
+
+/* ---------- 标签页 ---------- */
+QTabWidget::pane {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  top: -1px;
+}
+
+QTabBar::tab {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-bottom: none;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  padding: 6px 12px;
+  margin-right: 4px;
+  color: #64748b;
+}
+
+QTabBar::tab:selected {
+  background: #ffffff;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+/* 维护页标签 */
+QTabWidget#maintenance_tabs::pane {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+/* 面板标签（右侧结果区） */
+QTabWidget#panel_tabs::pane {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+/* ---------- 滚动区 ---------- */
+QScrollArea {
+  background: transparent;
+  border: none;
+}
+
+QScrollArea > QWidget > QWidget {
+  background: transparent;
+}
+
+/* ---------- 右侧面板 ---------- */
+QFrame#right_panel {
+  background: #ffffff;
+}
+
+QTreeView {
+  background: #ffffff;
+  color: #0f172a;
+  border: none;
+  padding: 4px;
+}
+
+QTreeView::item {
+  padding: 2px 4px;
+}
+
+QTreeView::item:selected {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+QPlainTextEdit {
+  background: #ffffff;
+  color: #0f172a;
+  font-family: "Menlo", "Monaco", "Consolas", monospace;
+  font-size: 12px;
+}
+
+/* ---------- 紧凑列表（最近工程/结果等） ---------- */
+QListWidget#compact_list {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+QListWidget#compact_list::item {
+  padding: 6px 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+QListWidget#compact_list::item:selected {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+/* ---------- 工作流页面 ---------- */
+QWidget#workflow_page {
+  background: transparent;
+}
+
+/* ---------- 分割线 ---------- */
+QSplitter::handle {
+  background: #e2e8f0;
+}
+
+QSplitter::handle:hover {
+  background: #cbd5e1;
+}
+
+/* ---------- 滚动条 ---------- */
+QScrollBar:vertical {
+  width: 10px;
+  background: transparent;
+  margin: 0;
+}
+
+QScrollBar::handle:vertical {
+  background: #d1d5db; /* gray-300 */
+  border-radius: 5px;
+  min-height: 30px;
+}
+
+QScrollBar::handle:vertical:hover {
+  background: #9ca3af; /* gray-400 */
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+  height: 0px;
+}
+
+QScrollBar:horizontal {
+  height: 10px;
+  background: transparent;
+  margin: 6px 10px 0 10px;
+}
+
+QScrollBar::handle:horizontal {
+  background: #d1d5db;
+  border-radius: 5px;
+  min-width: 40px;
+}
+
+QScrollBar::handle:horizontal:hover {
+  background: #9ca3af;
+}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+  width: 0px;
+  height: 0px;
+}
+
+/* ---------- 设置页 ---------- */
+QScrollArea#settings_scroll {
+  background: transparent;
+}
+
+QWidget#settings_basic_body {
+  background: #f2f2f7;
+}
+
+QFrame#settings_card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+}
+
+QLabel#settings_card_title {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+/* ---------- 帮助页工具栏 ---------- */
+QFrame#help_toolbar {
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* ---------- 焦点可见性 ---------- */
+QPushButton:focus, QToolButton:focus, QLineEdit:focus, QComboBox:focus,
+QSpinBox:focus, QPlainTextEdit:focus, QTextEdit:focus, QTextBrowser:focus,
+QTreeWidget:focus, QListWidget:focus, QTabBar:focus {
+  outline: 1px solid #3b82f6;
+}
+
+/* ---------- 工具提示 ---------- */
+QToolTip {
+  background: #1e293b; /* slate-800 */
+  color: #e2e8f0;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+/* ---------- 消息对话框 ---------- */
+QMessageBox {
+  background: #ffffff;
+}
+
+QMessageBox QLabel {
+  color: #0f172a;
+  font-size: 13px;
+}
+
+/* ---------- 复选框 ---------- */
+QCheckBox {
+  spacing: 6px;
+  color: #334155; /* slate-700 */
+}
+
+QCheckBox::indicator {
+  width: 16px;
+  height: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #ffffff;
+}
+
+QCheckBox::indicator:checked {
+  background: #2563eb;
+  border: 1px solid #2563eb;
+}
+
+QCheckBox::indicator:hover {
+  border: 1px solid #3b82f6;
+}
+
+/* ---------- 分组框 ---------- */
+QGroupBox {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+  font-weight: 600;
+  color: #334155;
+}
+
+QGroupBox::title {
+  subcontrol-origin: margin;
+  left: 12px;
+  padding: 0 4px;
+}
+
+/* ---------- 树形列表（一致性面板等） ---------- */
+QTreeWidget {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 2px;
+}
+
+QTreeWidget::item {
+  padding: 3px 4px;
+}
+
+QTreeWidget::item:selected {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
