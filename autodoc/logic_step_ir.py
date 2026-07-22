@@ -664,15 +664,94 @@ def summarize_logic_steps(steps: Sequence[LogicStep]) -> dict[str, Any]:
     }
 
 
+_IDENT_STRIP_RE = re.compile(
+    r"^(?:(?:s_|g_|l_|p_|v_|m_|k_|t_|ls_|lr_))"
+    r"|(?:_(?:u8|u16|u32|u64|i8|i16|i32|i64|f|d|s|t|un|st|af|ptr|idx|_t))"
+    r"|(?:_[A-Za-z]\w+_t$)"
+)
+
+
+def _try_ident_cn(key: str, name_map: dict[str, str], *, backend_module=None) -> str:
+    """Strip common C prefixes/suffixes and try to look up the identifier."""
+    try:
+        backend = backend_module or legacy_backend()
+    except Exception:
+        backend = None
+    # 1) exact
+    if key in name_map:
+        return name_map[key]
+    # 2) symbol dictionary
+    if backend is not None:
+        try:
+            exact = backend._lookup_symbol_dictionary(key)
+            if exact:
+                return exact
+        except Exception:
+            pass
+    # 3) strip prefixes
+    stripped = re.sub(r"^(?:s_|g_|l_|p_|v_|m_|k_|t_|ls_|lr_)", "", key)
+    if stripped != key:
+        if stripped in name_map:
+            return name_map[stripped]
+        if backend is not None:
+            try:
+                exact = backend._lookup_symbol_dictionary(stripped)
+                if exact:
+                    return exact
+            except Exception:
+                pass
+    # 4) strip numeric type suffixes
+    stripped2 = re.sub(r"_(?:u8|u16|u32|u64|i8|i16|i32|i64|f|d|s|un|st|af|ptr|idx|_t)$", "", stripped, flags=re.IGNORECASE)
+    if stripped2 != stripped:
+        if stripped2 in name_map:
+            return name_map[stripped2]
+        if backend is not None:
+            try:
+                exact = backend._lookup_symbol_dictionary(stripped2)
+                if exact:
+                    return exact
+            except Exception:
+                pass
+    return ""
+
+
 def _cn_expr(text: str, name_map: Optional[dict[str, str]], *, backend_module=None) -> str:
     raw = utils._safe_strip(text)
     if not raw:
         return ""
     names = dict(name_map or {})
     try:
-        from . import logic as logic_utils
-
         backend = backend_module or legacy_backend()
+    except Exception:
+        backend = None
+
+    # Simple identifier: try token-level lookup before falling back to _logic_cn_expr
+    if re.fullmatch(r"[A-Za-z_]\w*", raw):
+        cn = _try_ident_cn(raw, names, backend_module=backend)
+        if cn:
+            return cn
+        if backend is not None:
+            try:
+                guessed = backend._guess_cn_from_ident(raw)
+                if guessed and guessed != raw:
+                    return guessed
+            except Exception:
+                pass
+        # Last resort: strip suffixes and try _logic_cn_expr
+        try:
+            from . import logic as logic_utils
+            result = utils._safe_strip(
+                logic_utils._logic_cn_expr(raw, name_map=names, backend_module=backend)
+            )
+            if result and result != raw:
+                return result
+        except Exception:
+            pass
+        return raw
+
+    # Complex expression: delegate to _logic_cn_expr
+    try:
+        from . import logic as logic_utils
         return utils._safe_strip(
             logic_utils._logic_cn_expr(raw, name_map=names, backend_module=backend)
         ) or raw
@@ -845,10 +924,19 @@ def render_logic_steps_to_lines(
                 lhs = _cn_expr(lhs_raw, name_map, backend_module=backend)
                 rhs = _cn_expr(rhs_raw, name_map, backend_module=backend)
                 op = utils._safe_strip(getattr(step, "op", "=")) or "="
-                if not text and lhs and rhs:
+                if not text and lhs and rhs and lhs != rhs:
                     text = f"{lhs} {op} {rhs}"
+                elif not text and lhs and rhs:
+                    # lhs == rhs after translation → the line is meaningless, skip
+                    pass
                 elif not text:
-                    text = _cn_expr(code, name_map, backend_module=backend)
+                    fallback_text = _cn_expr(code, name_map, backend_module=backend)
+                    # Guard: if the fallback renders as "A = A" (identical l/r), skip
+                    if fallback_text and "=" in fallback_text:
+                        parts = fallback_text.split("=", 1)
+                        if len(parts) == 2 and parts[0].strip() == parts[1].strip().rstrip("；;"):
+                            fallback_text = ""
+                    text = fallback_text
         elif kind == "call":
             code = utils._safe_strip(step.expression_text) or (
                 f"{getattr(step, 'callee', '')}({getattr(step, 'args', '')})"

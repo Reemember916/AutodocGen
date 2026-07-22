@@ -121,6 +121,34 @@ def test_condition_operators_translated_to_chinese():
     assert "大于" in joined
 
 
+def test_ident_cn_strips_prefixes_and_suffixes():
+    from autodoc.logic_step_ir import _cn_expr
+    # With name_map providing translations
+    name_map = {
+        "valveFeedback": "活门反馈", "wheelLoad": "轮载",
+        "presetReady": "预设就绪", "perTankTargetKg": "每油箱目标公斤",
+    }
+    assert _cn_expr("l_valveFeedback_u16", name_map) == "活门反馈"
+    assert _cn_expr("s_wheelLoad_u16", name_map) == "轮载"
+    assert _cn_expr("presetReady", name_map) == "预设就绪"
+    assert _cn_expr("v_perTankTargetKg_f", name_map) == "每油箱目标公斤"
+
+
+def test_identical_lhs_rhs_skipped():
+    body = """
+    {
+        int x = 0;
+        x = x;
+        x = 2;
+    }
+    """
+    steps = build_logic_steps(body, [], None, name_map={"x": "X"})
+    lines = render_logic_steps_to_lines(steps, name_map={"x": "X"})
+    joined = "\n".join(lines)
+    assert "X = X" not in joined
+    assert len(lines) >= 1, f"expected at least 1 line, got: {lines}"
+
+
 def test_union_and_struct_declarations_do_not_become_logic_steps():
     body = """
     {
