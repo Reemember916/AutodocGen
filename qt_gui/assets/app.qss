@@ -440,7 +440,7 @@ QFrame#help_toolbar {
 QPushButton:focus, QToolButton:focus, QLineEdit:focus, QComboBox:focus,
 QSpinBox:focus, QPlainTextEdit:focus, QTextEdit:focus, QTextBrowser:focus,
 QTreeWidget:focus, QListWidget:focus, QTabBar:focus {
-  outline: 1px solid #3b82f6;
+  outline: none;
 }
 
 /* ---------- 工具提示 ---------- */
