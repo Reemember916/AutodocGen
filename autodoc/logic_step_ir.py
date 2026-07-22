@@ -28,6 +28,7 @@ helper（``_join_c_line_continuations`` / ``_expand_inline_control_line_infos``
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, field
 from typing import Any, Optional, Sequence, Union
@@ -632,7 +633,25 @@ def build_logic_steps(
     return steps
 
 
-# ── 质量摘要 ───────────────────────────────────────────────────────
+# ── 未翻译标识符收集（module-level, 供 AI 批量建议后写回 symbol_memory）──
+
+_UNTRANSLATED_IDENTS: set[str] = set()
+
+
+def _mark_untranslated(ident: str) -> None:
+    key = str(ident or "").strip()
+    if not key:
+        return
+    if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*$", key):
+        _UNTRANSLATED_IDENTS.add(key)
+
+
+def get_untranslated_idents() -> list[str]:
+    return sorted(_UNTRANSLATED_IDENTS)
+
+
+def clear_untranslated_idents() -> None:
+    _UNTRANSLATED_IDENTS.clear()
 
 
 def summarize_logic_steps(steps: Sequence[LogicStep]) -> dict[str, Any]:
@@ -747,14 +766,16 @@ def _cn_expr(text: str, name_map: Optional[dict[str, str]], *, backend_module=No
                 return result
         except Exception:
             pass
+        _mark_untranslated(raw)
         return raw
 
     # Complex expression: delegate to _logic_cn_expr
     try:
         from . import logic as logic_utils
-        return utils._safe_strip(
+        result = utils._safe_strip(
             logic_utils._logic_cn_expr(raw, name_map=names, backend_module=backend)
         ) or raw
+        return result
     except Exception:
         return names.get(raw, raw)
 
@@ -988,6 +1009,84 @@ def render_logic_steps_to_lines(
     return lines
 
 
+def auto_suggest_symbol_translations(cfg: Any, *, project_root: str = "") -> dict[str, str]:
+    """Use AI to translate collected untranslated identifiers and write to symbol memory.
+
+    Call after LogicStep rendering completes.  Requires ``ai_assist=True``.
+    Returns ``{ident: cn}`` for the suggestions that were written.
+    """
+    idents = get_untranslated_idents()
+    if not idents:
+        return {}
+    try:
+        backend = legacy_backend()
+    except Exception:
+        return {}
+    if not getattr(cfg, "ai_assist", False):
+        return {}
+    if not utils.cfg_get_int(cfg, "logic_step_auto_translate", 1):
+        return {}
+
+    # Build prompt with minimal context
+    chunk = [{"name": name} for name in idents[:40]]
+    prompt = (
+        "你是嵌入式软件术语整理助手。请为以下 C 代码标识符生成稳定、保守的中文名称。\n"
+        "规则：\n"
+        "- 名称要短，偏中性；不确定就返回空字符串，不要硬猜。\n"
+        "- 只输出 JSON，不要解释。\n\n"
+        f"输入：\n{json.dumps(chunk, ensure_ascii=False, indent=2)}\n\n"
+        "输出格式：\n{\"symbol_name\": {\"cn_name\": \"中文名\", \"confidence\": 0.0}}"
+    )
+    try:
+        js = backend.call_llm_json(prompt, cfg)
+    except Exception:
+        return {}
+    if not isinstance(js, dict):
+        return {}
+
+    written: dict[str, str] = {}
+    for name, item in js.items():
+        if isinstance(item, dict):
+            cn = utils._safe_strip(item.get("cn_name") or item.get("cn") or "")
+        else:
+            cn = utils._safe_strip(item)
+        if not cn or cn == name:
+            continue
+        written[name] = cn
+
+    if written and project_root:
+        try:
+            from . import naming as naming_utils
+            path = naming_utils._default_project_symbol_memory_path(project_root)
+            import json as _json
+            existing: dict[str, Any] = {}
+            if __import__("os").path.isfile(path):
+                with open(path, "r", encoding="utf-8") as f:
+                    existing = _json.load(f) if isinstance(_json.load(f), dict) else {}
+            existing.setdefault("symbols", {})
+            for k, v in written.items():
+                existing["symbols"][k] = {"cn": v, "source": "ai_auto_suggest", "confidence": 0.7}
+            parent = __import__("os").path.dirname(path) or "."
+            __import__("os").makedirs(parent, exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                _json.dump(existing, f, ensure_ascii=False, indent=2)
+                f.write("\n")
+            # Also update runtime symbol dictionary
+            naming_utils.apply_symbol_dictionary_overrides(
+                {k: v for k, v in written.items()},
+                backend_module=backend,
+            )
+            try:
+                backend.save_project_symbol_memory()
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    clear_untranslated_idents()
+    return written
+
+
 __all__ = [
     "SourceRange",
     "LogicStep",
@@ -998,4 +1097,7 @@ __all__ = [
     "build_logic_steps",
     "summarize_logic_steps",
     "render_logic_steps_to_lines",
+    "get_untranslated_idents",
+    "clear_untranslated_idents",
+    "auto_suggest_symbol_translations",
 ]

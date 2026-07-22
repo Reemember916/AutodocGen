@@ -32,9 +32,12 @@ from .models import AIBuildMeta, DesignModel, FunctionBuildResult, FunctionDesig
 _EVIDENCE_ENABLED = False
 try:
     from .evidence import record_function_evidence, clear_recorded_evidence, write_evidence_report
+    from .logic_step_ir import clear_untranslated_idents, auto_suggest_symbol_translations
     _EVIDENCE_ENABLED = True
 except Exception:
     _EVIDENCE_ENABLED = False
+    clear_untranslated_idents = lambda: None  # type: ignore
+    auto_suggest_symbol_translations = lambda *a, **kw: {}  # type: ignore
 
 
 def _truthy_flag(value: Any) -> bool:
@@ -7183,6 +7186,7 @@ def run_single_file_generation(
     backend.vlog(cfg, f"开始处理单文件：{source}")
     if _EVIDENCE_ENABLED:
         clear_recorded_evidence()
+        clear_untranslated_idents()
     project_root = backend._guess_project_root_for_source(source)
     # 加载 docx 渲染缓存
     try:
@@ -7376,6 +7380,14 @@ def run_single_file_generation(
     except Exception:
         pass
     maybe_write_evidence_report(output, cfg, backend_module=backend)
+    if _EVIDENCE_ENABLED and logic_step_ir_enabled(cfg):
+        try:
+            suggested = auto_suggest_symbol_translations(cfg, project_root=project_root)
+            if suggested:
+                backend.vlog(cfg, f"[LogicStep] AI 自动建议 {len(suggested)} 个符号翻译，已写入符号记忆库")
+        except Exception as exc:
+            backend.vlog(cfg, f"[LogicStep] 自动翻译建议失败：{exc}")
+    return output
 
 
 def run_single_export_generation(
@@ -7524,6 +7536,13 @@ def run_single_export_generation(
             pass
     backend.finalize_project_symbol_memory(cfg)
     maybe_write_evidence_report(output, cfg, backend_module=backend)
+    if _EVIDENCE_ENABLED and logic_step_ir_enabled(cfg):
+        try:
+            suggested = auto_suggest_symbol_translations(cfg, project_root=project_root)
+            if suggested:
+                backend.vlog(cfg, f"[LogicStep] AI 自动建议 {len(suggested)} 个符号翻译，已写入符号记忆库")
+        except Exception as exc:
+            backend.vlog(cfg, f"[LogicStep] 自动翻译建议失败：{exc}")
     return output
 
 
@@ -8121,6 +8140,13 @@ def run_project_generation(
             pass
     backend.finalize_project_symbol_memory(cfg)
     maybe_write_evidence_report(output, cfg, backend_module=backend)
+    if _EVIDENCE_ENABLED and logic_step_ir_enabled(cfg):
+        try:
+            suggested = auto_suggest_symbol_translations(cfg, project_root=root_dir)
+            if suggested:
+                backend.vlog(cfg, f"[LogicStep] AI 自动建议 {len(suggested)} 个符号翻译，已写入符号记忆库")
+        except Exception as exc:
+            backend.vlog(cfg, f"[LogicStep] 自动翻译建议失败：{exc}")
 
 
 def collect_project_module_functions(

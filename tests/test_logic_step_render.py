@@ -163,3 +163,22 @@ def test_union_and_struct_declarations_do_not_become_logic_steps():
     assert "arinc429Data" not in joined
     assert "device_state" not in joined
     assert any("msgData" in line for line in lines)
+
+
+def test_untranslated_idents_collected():
+    from autodoc.logic_step_ir import clear_untranslated_idents, get_untranslated_idents
+    name_map = {"x": "X"}
+    body = """{
+    int x = 0;
+    y = z;
+}"""
+    clear_untranslated_idents()
+    lines = render_logic_steps_to_lines(
+        build_logic_steps(body, [], None, name_map=name_map),
+        name_map=name_map,
+    )
+    collected = get_untranslated_idents()
+    assert "y" in collected or "z" in collected
+    assert "x" not in collected
+    clear_untranslated_idents()
+    assert get_untranslated_idents() == []
