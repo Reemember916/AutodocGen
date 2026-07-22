@@ -671,6 +671,67 @@ def _impacted_headers_for(header_rel: str, includes_by_file: dict[str, list[str]
     return impacted
 
 
+_HEADER_SYMBOL_RE = re.compile(r"\b[A-Za-z_]\w*\b")
+_HEADER_SYMBOL_IGNORED = {
+    "const", "extern", "static", "struct", "typedef", "union", "enum",
+    "unsigned", "signed", "volatile", "void", "char", "short", "int",
+    "long", "float", "double", "return", "include", "define", "ifdef",
+    "ifndef", "endif", "pragma", "true", "false", "null",
+    # Common project/toolchain type aliases are frequently present only in
+    # truncated diff context and must never fan out header impact records.
+    "uint8", "uint16", "uint32", "uint64",
+    "int8", "int16", "int32", "int64",
+    "uint8_t", "uint16_t", "uint32_t", "uint64_t",
+    "int8_t", "int16_t", "int32_t", "int64_t",
+}
+
+
+def _changed_header_symbols(change: dict[str, Any]) -> set[str]:
+    """Extract identifiers added or removed by a header diff.
+
+    Header inclusion alone is too broad in embedded projects where nearly every
+    C file includes a shared ``Global.h``.  These symbols provide a conservative
+    second signal: a function is listed only when its body actually references
+    an identifier changed by the header diff.
+    """
+    old_symbols = set(_HEADER_SYMBOL_RE.findall(str(change.get("old_text") or "")))
+    new_symbols = set(_HEADER_SYMBOL_RE.findall(str(change.get("new_text") or "")))
+    candidates = old_symbols.symmetric_difference(new_symbols)
+    return {
+        symbol
+        for symbol in candidates
+        if len(symbol) >= 3
+        and symbol.lower() not in _HEADER_SYMBOL_IGNORED
+        and not re.fullmatch(r"(?:u?int|uint|float|double|bool)\d*(?:_t)?", symbol, re.IGNORECASE)
+        and not symbol.isdigit()
+    }
+
+
+def _extract_c_function_bodies(source_text: str) -> list[tuple[str, str]]:
+    """Return (function_name, body) pairs using balanced-brace scanning."""
+    text = source_text or ""
+    out: list[tuple[str, str]] = []
+    for match in C_FUNC_DEF_RE.finditer(text):
+        name = str(match.group(1) or "").strip()
+        brace = text.find("{", match.start(), match.end() + 1)
+        if not name or brace < 0:
+            continue
+        depth = 0
+        end = brace
+        for pos in range(brace, len(text)):
+            char = text[pos]
+            if char == "{":
+                depth += 1
+            elif char == "}":
+                depth -= 1
+                if depth == 0:
+                    end = pos + 1
+                    break
+        if depth == 0:
+            out.append((name, text[match.start():end]))
+    return out
+
+
 def _extract_c_function_names(source_text: str) -> list[str]:
     names: list[str] = []
     for match in C_FUNC_DEF_RE.finditer(source_text or ""):
@@ -730,6 +791,12 @@ def find_header_impacted_items(
 
     includes_by_file, file_texts = _scan_project_includes(root)
     impacted_headers = _impacted_headers_for(header_rel, includes_by_file)
+    changed_symbols = _changed_header_symbols(header_change)
+    if not changed_symbols:
+        return impacted
+    symbol_pattern = re.compile(
+        r"\b(?:" + "|".join(re.escape(symbol) for symbol in sorted(changed_symbols)) + r")\b"
+    )
 
     for rel_path in sorted(path for path in file_texts if path.lower().endswith(".c")):
         text = file_texts.get(rel_path, "")
@@ -737,15 +804,19 @@ def find_header_impacted_items(
         matched_headers = sorted(set(includes).intersection(impacted_headers))
         if not matched_headers:
             continue
-        for func_name in _extract_c_function_names(text):
+        for func_name, func_body in _extract_c_function_bodies(text):
             if (rel_path, func_name) in skip_functions:
+                continue
+            referenced_symbols = sorted(set(symbol_pattern.findall(func_body)))
+            if not referenced_symbols:
                 continue
             matches = csu_index.get(func_name, [])
             csu_id = matches[0]["csu_id"] if len(matches) == 1 else ""
             via_text = matched_headers[0]
-            reason = f"function includes header impacted by changed header: {header_rel}"
+            symbol_preview = ", ".join(referenced_symbols[:5])
+            reason = f"function references changed header symbols ({symbol_preview}): {header_rel}"
             if via_text == header_rel:
-                reason = f"function directly includes changed header: {header_rel}"
+                reason = f"function directly includes and references changed symbols ({symbol_preview}): {header_rel}"
             status = "review"
             if len(matches) > 1:
                 status = "manual"
@@ -761,6 +832,8 @@ def find_header_impacted_items(
                 "header_file": header_rel,
                 "matched_header_file": via_text,
                 "impacted_headers": sorted(impacted_headers),
+                "changed_symbols": sorted(changed_symbols),
+                "referenced_symbols": referenced_symbols,
             })
             impacted.append(PlannedItem("header_impacted_function", status, rel_path, func_name, csu_id, reason, impact_change))
     return impacted
