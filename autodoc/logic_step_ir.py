@@ -194,6 +194,14 @@ def _is_declaration(code: str) -> bool:
         return False
     if re.match(r"^(if|else|for|while|do|switch|case|default|return|break|continue)\b", c):
         return False
+    # Tagged aggregate declarations are valid even when the tag is lowercase,
+    # e.g. ``union arinc429Data l_rdata_un[...]``.
+    if re.match(
+        r"^(?:static\s+|const\s+|volatile\s+|register\s+)*"
+        r"(?:struct|union|enum)\s+[A-Za-z_]\w*\s+\**\s*[A-Za-z_]\w*",
+        c,
+    ):
+        return True
     return bool(re.match(
         r"^(static\s+|const\s+|volatile\s+|register\s+)*"
         r"(unsigned\s+|signed\s+)?"
@@ -283,7 +291,15 @@ def build_logic_steps(
     steps: list[LogicStep] = []
 
     # ── 阶段 1: 行预处理（复用 logic.py 的 helper）──
-    lines = parse_utils._join_c_line_continuations(body).splitlines()
+    # Block comments may span several lines.  Removing only one line at a
+    # time leaves `* comment` / `*/` fragments, which then become unknown
+    # logic steps and leak into the rendered flow. Preserve line count while
+    # removing the entire block so source ranges remain valid.
+    def _strip_block_comment_keep_lines(match: re.Match) -> str:
+        return "\n" * match.group(0).count("\n")
+
+    code_body = re.sub(r"/\*.*?\*/", _strip_block_comment_keep_lines, body or "", flags=re.DOTALL)
+    lines = parse_utils._join_c_line_continuations(code_body).splitlines()
     line_infos: list[dict[str, Any]] = []
     for line_no, raw in enumerate(lines, start=1):
         tmp = raw
@@ -411,6 +427,11 @@ def build_logic_steps(
                     if nxt in ("ELSE", "ELSE IF") and same_level:
                         block_stack.append(top)
                         break
+                # ELSE / ELSE IF are branches of the retained IF block, not
+                # independent control structures.  Closing them must not
+                # render the invalid pseudo-lines "END ELSE" / "END ELSE IF".
+                if t in ("ELSE", "ELSE IF"):
+                    continue
                 steps.append(EndBlockStep(
                     source_range=src,
                     attached_comments=(),
@@ -663,6 +684,51 @@ def _indent(depth: int) -> str:
     return "  " * max(0, int(depth or 0))
 
 
+def _volatile_register_label(expression: str, name_map: Optional[dict[str, str]], *, backend_module=None) -> str:
+    """Return a readable hardware-register label for volatile pointer access."""
+    raw = utils._safe_strip(expression)
+    if "volatile" not in raw or "*" not in raw:
+        return ""
+    known = (
+        ("WReg_rFifo_EN", "接收FIFO读使能寄存器"),
+        ("RReg_FiFo_Cnt", "接收FIFO计数寄存器"),
+        ("RReg_FiFo_2Byte_L", "接收FIFO低16位数据寄存器"),
+        ("RReg_FiFo_2Byte_H", "接收FIFO高16位数据寄存器"),
+        ("WReg_resetRFifo", "接收FIFO复位寄存器"),
+        ("WReg_tFifo_EN", "发送FIFO使能寄存器"),
+        ("WReg_FiFo_2Byte_L", "发送FIFO低16位数据寄存器"),
+        ("WReg_FiFo_2Byte_H", "发送FIFO高16位数据寄存器"),
+    )
+    for marker, label in known:
+        if marker in raw:
+            return label
+    # Generic fallback: remove pointer cast/dereference and translate the
+    # underlying structure member, never leaking ``volatile Uint16 *``.
+    member = re.findall(r"\.([A-Za-z_]\w*)\s*\)?\s*$", raw)
+    if member:
+        return _cn_expr(member[-1], name_map, backend_module=backend_module) or member[-1]
+    return "硬件寄存器"
+
+
+def _render_volatile_assignment(
+    lhs_raw: str,
+    rhs_raw: str,
+    name_map: Optional[dict[str, str]],
+    *,
+    backend_module=None,
+) -> str:
+    """Render ``volatile`` pointer reads/writes without C cast syntax."""
+    lhs_register = _volatile_register_label(lhs_raw, name_map, backend_module=backend_module)
+    rhs_register = _volatile_register_label(rhs_raw, name_map, backend_module=backend_module)
+    lhs_cn = _cn_expr(lhs_raw, name_map, backend_module=backend_module)
+    rhs_cn = _cn_expr(rhs_raw, name_map, backend_module=backend_module)
+    if lhs_register:
+        return f"向{lhs_register}写入{rhs_cn}" if rhs_cn else f"写入{lhs_register}"
+    if rhs_register:
+        return f"读取{rhs_register}并写入{lhs_cn}" if lhs_cn else f"读取{rhs_register}"
+    return ""
+
+
 def render_logic_steps_to_lines(
     steps: Sequence[LogicStep],
     *,
@@ -749,12 +815,17 @@ def render_logic_steps_to_lines(
             except Exception:
                 text = ""
             if not text:
-                lhs = _cn_expr(getattr(step, "lhs", ""), name_map, backend_module=backend)
-                rhs = _cn_expr(getattr(step, "rhs", ""), name_map, backend_module=backend)
+                lhs_raw = utils._safe_strip(getattr(step, "lhs", ""))
+                rhs_raw = utils._safe_strip(getattr(step, "rhs", ""))
+                text = _render_volatile_assignment(
+                    lhs_raw, rhs_raw, name_map, backend_module=backend
+                )
+                lhs = _cn_expr(lhs_raw, name_map, backend_module=backend)
+                rhs = _cn_expr(rhs_raw, name_map, backend_module=backend)
                 op = utils._safe_strip(getattr(step, "op", "=")) or "="
-                if lhs and rhs:
+                if not text and lhs and rhs:
                     text = f"{lhs} {op} {rhs}"
-                else:
+                elif not text:
                     text = _cn_expr(code, name_map, backend_module=backend)
         elif kind == "call":
             code = utils._safe_strip(step.expression_text) or (
@@ -771,7 +842,9 @@ def render_logic_steps_to_lines(
                 callee = utils._safe_strip(getattr(step, "callee", ""))
                 callee_cn = _cn_expr(callee, name_map, backend_module=backend) or callee
                 lhs = _cn_expr(getattr(step, "lhs", ""), name_map, backend_module=backend)
-                if lhs:
+                if callee == "Ccdl429LabOrderRev" and lhs:
+                    text = f"对{lhs}进行429标签位序翻转"
+                elif lhs:
                     text = f"调用 {callee_cn}，结果写入 {lhs}"
                 else:
                     text = f"调用 {callee_cn}" if callee_cn else code
