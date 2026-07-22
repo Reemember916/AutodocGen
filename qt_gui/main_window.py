@@ -24,10 +24,32 @@ from typing import Optional
 from PyQt5 import QtCore, QtGui, QtWidgets  # type: ignore
 
 try:
-    from .runner import DocUpdateWorker, ExportFuncWorker, GenerateWorker, RegenerateCsuBatchWorker, RegenerateCsuWorker, StepDef, TaskSpec, TermTableWorker, UpdateCsuWorker
+    from .runner import (
+        DocUpdateWorker,
+        ExportFuncWorker,
+        GenerateWorker,
+        RegenerateCsuBatchWorker,
+        RegenerateCsuWorker,
+        RetryFailedWorker,
+        StepDef,
+        TaskSpec,
+        TermTableWorker,
+        UpdateCsuWorker,
+    )
     from .settings_store import AppSettings, SettingsStore, LOCAL_LLM_API_BASE, normalize_ai_mode
 except ImportError:  # allow running as a script: python qt_gui/main_window.py
-    from qt_gui.runner import DocUpdateWorker, ExportFuncWorker, GenerateWorker, RegenerateCsuBatchWorker, RegenerateCsuWorker, StepDef, TaskSpec, TermTableWorker, UpdateCsuWorker
+    from qt_gui.runner import (
+        DocUpdateWorker,
+        ExportFuncWorker,
+        GenerateWorker,
+        RegenerateCsuBatchWorker,
+        RegenerateCsuWorker,
+        RetryFailedWorker,
+        StepDef,
+        TaskSpec,
+        TermTableWorker,
+        UpdateCsuWorker,
+    )
     from qt_gui.settings_store import AppSettings, SettingsStore, LOCAL_LLM_API_BASE, normalize_ai_mode
 
 
@@ -441,24 +463,87 @@ class MainWindow(QtWidgets.QMainWindow):
 
         msg.setText(text)
 
-        # 选择性重试尚未实现，避免提供无法兑现的操作。
+        retry_btn = msg.addButton("重试失败函数", QtWidgets.QMessageBox.ActionRole)
         export_btn = msg.addButton("导出错误报告", QtWidgets.QMessageBox.ActionRole)
         msg.addButton("确定", QtWidgets.QMessageBox.AcceptRole)
 
         msg.exec()
 
         clicked = msg.clickedButton()
-        if clicked == export_btn:
+        if clicked == retry_btn:
+            self._retry_failed_functions()
+        elif clicked == export_btn:
             self._export_failure_report(output_path)
 
     def _retry_failed_functions(self) -> None:
-        """保留失败记录；选择性重试实现前不暴露此入口。"""
+        """Retry failed functions via RetryFailedWorker / autodoc.retry."""
         if not self._failed_functions:
             return
-        QtWidgets.QMessageBox.information(
-            self,
-            "选择性重试暂不可用",
-            "失败记录已保留，可先导出失败清单，再决定是否重新生成。",
+        if self._thread is not None:
+            QtWidgets.QMessageBox.information(self, "提示", "任务运行中，请稍后再重试。")
+            return
+
+        failures = list(self._failed_functions)
+        output_path = ""
+        try:
+            output_path = str(self.ed_output.text() or "").strip()
+        except Exception:
+            output_path = ""
+        if not output_path and getattr(self, "_last_task", None) is not None:
+            output_path = str(getattr(self._last_task, "output", "") or "").strip()
+        if not output_path:
+            QtWidgets.QMessageBox.warning(self, "提示", "请先指定 Word 输出路径再重试。")
+            return
+
+        c_file = ""
+        project_dir = ""
+        try:
+            c_file = str(self.ed_c_file.text() or "").strip()
+            project_dir = str(self.ed_project.text() or "").strip()
+        except Exception:
+            pass
+        if not c_file and not project_dir and getattr(self, "_last_task", None) is not None:
+            c_file = str(getattr(self._last_task, "c_file", "") or "").strip()
+            project_dir = str(getattr(self._last_task, "project_dir", "") or "").strip()
+
+        # Prefer path from first failure if UI empty
+        if not c_file:
+            for f in failures:
+                fp = str(f.get("file_path") or "").strip()
+                if fp and os.path.isfile(fp):
+                    c_file = fp
+                    break
+
+        template = ""
+        try:
+            template = str(self.ed_template.text() or "").strip()
+        except Exception:
+            pass
+
+        self._save_settings_from_ui_silent()
+        settings = self.settings
+        task = TaskSpec(
+            mode="retry",
+            c_file=c_file,
+            project_dir=project_dir,
+            output=output_path,
+            template_path=template,
+            failures=failures,
+        )
+        steps = [
+            StepDef("validate", "校验失败列表"),
+            StepDef("config", "配置"),
+            StepDef("generate", "重试生成"),
+        ]
+        self._reset_steps(steps)
+        self._resume_state = None
+        self._last_task = task
+        self._last_task_kind = "retry"
+        self._failed_functions = []  # clear; worker will re-emit failures if any
+        self._set_running(True, note=f"重试 {len(failures)} 个失败函数...")
+        self._run_in_thread(
+            impl=RetryFailedWorker(backend=self.backend, task=task, settings=settings),
+            kind="retry",
         )
 
     def _export_failure_report(self, output_path: Optional[str]) -> None:
@@ -3722,13 +3807,25 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         if et == "consistency_report":
-            # 术语一致性报告 —— 优先使用 payload["report"]（report_to_dict 全量数据）
+            # 术语一致性报告 —— 优先使用 payload["report"]；其次 report_path 文件
             try:
                 report_dict = payload.get("report")
+                report_path = str(payload.get("report_path") or "").strip()
+                if (not isinstance(report_dict, dict) or not report_dict) and report_path and os.path.isfile(report_path):
+                    try:
+                        with open(report_path, "r", encoding="utf-8") as handle:
+                            report_dict = json.load(handle)
+                    except Exception:
+                        report_dict = None
+                # Feed project root for repair writeback
+                try:
+                    proj = str(self.ed_project.text() or "").strip()
+                    self._consistency_panel.set_paths(project_root=proj)
+                except Exception:
+                    pass
                 if isinstance(report_dict, dict) and report_dict:
                     self._consistency_panel.update_report(report_dict)
                 else:
-                    # 兼容旧 payload（仅计数）
                     total = int(payload.get("total_symbols") or 0)
                     inc_count = int(payload.get("inconsistencies") or 0)
                     self._consistency_panel.update_report({
@@ -3738,7 +3835,6 @@ class MainWindow(QtWidgets.QMainWindow):
                         "inconsistencies": [],
                         "symbol_dict_conflicts": [],
                     })
-                # 切换到一致性页
                 self._open_page("_page_terms")
             except Exception:
                 pass
@@ -4469,7 +4565,14 @@ class _QtWorker(QtCore.QObject):
     @QtCore.pyqtSlot()
     def run(self) -> None:
         try:
-            if self.kind in ("generate", "export_func", "doc_update", "regen_csu", "regen_csu_batch"):
+            if self.kind in (
+                "generate",
+                "export_func",
+                "doc_update",
+                "regen_csu",
+                "regen_csu_batch",
+                "retry",
+            ):
                 self.impl.run(
                     emit_step=self.step.emit,
                     emit_log=getattr(self.impl, "emit_log", self.log.emit),

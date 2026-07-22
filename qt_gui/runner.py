@@ -19,7 +19,7 @@ class StepDef:
 
 @dataclass(frozen=True)
 class TaskSpec:
-    mode: str  # "single" | "project" | "export_func" | "term_table"
+    mode: str  # "single" | "project" | "export_func" | "term_table" | "retry"
     c_file: str
     project_dir: str
     output: str
@@ -35,6 +35,7 @@ class TaskSpec:
     doc_update_mode: str = "plan-only"
     docdiff_root: str = ""
     renumber_module_csu: bool = False
+    failures: Optional[list] = None
 
 
 class TaskWorkerBase:
@@ -224,6 +225,99 @@ class GenerateWorker(TaskWorkerBase):
                 pass
             emit_log(tb)
             emit_done(f"失败：{e}", rs, None)
+
+
+class RetryFailedWorker(TaskWorkerBase):
+    """Retry only failed functions via autodoc.retry (no full project rescan)."""
+
+    def __init__(self, *, backend, task: TaskSpec, settings):
+        super().__init__()
+        self.backend = backend
+        self.task = task
+        self.settings = settings
+
+    def run(self, *, emit_step, emit_log, emit_done, emit_output=None, emit_detail=None):
+        _ = emit_detail
+        try:
+            emit_step("validate", "running")
+            failures = list(self.task.failures or [])
+            if not failures:
+                raise ValueError("没有可重试的失败函数")
+            output = (self.task.output or "").strip()
+            if not output:
+                raise ValueError("请指定输出路径")
+            try:
+                output = self.backend.normalize_docx_output_path(output, ensure_parent_dir=True)
+            except Exception:
+                pass
+            if callable(emit_output):
+                emit_output(output)
+            emit_step("validate", "success")
+
+            emit_step("config", "running")
+            ai_mode = normalize_ai_mode(getattr(self.settings, "ai_mode", 0))
+            extra_params = dict(getattr(self.settings, "extra_params", None) or {})
+            cfg = self.backend.GenConfig(
+                section_prefix=getattr(self.settings, "section_prefix", "5.1.1."),
+                req_id_prefix=getattr(self.settings, "req_id_prefix", "D/R_SDD01_"),
+                only_with_comment=bool(getattr(self.settings, "only_with_comment", False)),
+                include_locals=bool(getattr(self.settings, "include_locals", True)),
+                include_logic=bool(getattr(self.settings, "include_logic", True)),
+                logic_use_comment=bool(getattr(self.settings, "logic_use_comment", True)),
+                open_after_done=False,
+                ai_assist=(ai_mode == 1),
+                ai_mode=ai_mode,
+                ai_provider=str(getattr(self.settings, "ai_provider", "local") or "local"),
+                ai_model=str(getattr(self.settings, "ai_model", "") or ""),
+                ai_api_base=str(getattr(self.settings, "ai_api_base", LOCAL_LLM_API_BASE) or LOCAL_LLM_API_BASE),
+                ai_api_key=str(getattr(self.settings, "ai_api_key", "") or ""),
+                ai_use_auth=bool(getattr(self.settings, "ai_api_key", "") or ""),
+                verbose=bool(getattr(self.settings, "verbose", True)),
+                gui_log=emit_log,
+                stop_event=self.stop_event,
+                template_path=str(self.task.template_path or ""),
+                gui_event=(emit_detail if callable(emit_detail) else None),
+                extra_params=extra_params,
+            )
+            emit_step("config", "success")
+
+            emit_step("generate", "running")
+            from autodoc.retry import run_retry_generation
+
+            result = run_retry_generation(
+                failures,
+                output,
+                cfg,
+                c_file=str(self.task.c_file or "").strip(),
+                project_dir=str(self.task.project_dir or "").strip(),
+                merge=True,
+                backend_module=self.backend,
+            )
+            for name in result.retried:
+                emit_log(f"[retry] ok  {name}")
+            for item in result.still_failed:
+                emit_log(f"[retry] fail {item.get('func_name')}: {item.get('error_message')}")
+            if result.ok:
+                emit_step("generate", "success")
+                emit_done(
+                    f"失败函数重试完成：成功 {len(result.retried)}",
+                    None,
+                    result.output_path,
+                )
+            else:
+                emit_step("generate", "failed")
+                emit_done(
+                    f"失败函数重试部分失败：成功 {len(result.retried)}，仍失败 {len(result.still_failed)}",
+                    None,
+                    result.output_path if result.retried else None,
+                )
+        except Exception as e:
+            emit_step("validate", "failed")
+            emit_step("config", "failed")
+            emit_step("generate", "failed")
+            tb = traceback.format_exc()
+            emit_log(tb)
+            emit_done(f"失败函数重试失败：{e}", None, None)
 
 
 class UpdateCsuWorker(TaskWorkerBase):

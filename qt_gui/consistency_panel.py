@@ -66,16 +66,24 @@ class ConsistencyPanel(QtWidgets.QWidget):
         self._btn_export = QtWidgets.QPushButton("导出报告")
         self._btn_export.setEnabled(False)
         btn_layout.addWidget(self._btn_export)
-        self._btn_repair = QtWidgets.QPushButton("打开术语表处理")
+        self._btn_repair = QtWidgets.QPushButton("应用修复到符号字典")
         self._btn_repair.setEnabled(False)
         self._btn_repair.setObjectName("open_term_table_btn")
+        self._btn_repair.setToolTip("将 high/medium 建议写回 symbol_dictionary.json（可 dry-run 预览）")
         btn_layout.addWidget(self._btn_repair)
         layout.addLayout(btn_layout)
 
         # 初始状态
         self._report_data: dict = {}
+        self._project_root: str = ""
+        self._dict_path: str = ""
         self._btn_export.clicked.connect(self._on_export)
         self._btn_repair.clicked.connect(self._on_repair)
+
+    def set_paths(self, *, project_root: str = "", dict_path: str = "") -> None:
+        """Optional paths for apply-repair writeback."""
+        self._project_root = str(project_root or "").strip()
+        self._dict_path = str(dict_path or "").strip()
 
     def update_report(self, report: dict) -> None:
         """更新一致性报告。"""
@@ -171,10 +179,85 @@ class ConsistencyPanel(QtWidgets.QWidget):
             QtWidgets.QMessageBox.warning(self, "导出失败", str(exc))
 
     def _on_repair(self) -> None:
-        """打开术语表处理入口。"""
-        # 不承诺自动修复；引导用户打开术语表人工处理
-        QtWidgets.QMessageBox.information(
-            self,
-            "术语表处理",
-            '自动修复尚未实现，无法解释修改范围。\n请根据上方不一致明细，在术语表或符号字典中手动修正对应条目。\n\n可点击「导出报告」保存当前检查结果以便参照。',
+        """Apply high/medium suggestions into symbol dictionary / project memory."""
+        if not self._report_data:
+            return
+        try:
+            from autodoc.term_checker import apply_repair_from_report, build_repair_patch
+        except Exception as exc:
+            QtWidgets.QMessageBox.warning(self, "无法加载修复模块", str(exc))
+            return
+
+        patch = build_repair_patch(self._report_data, severities=("high", "medium"))
+        if not patch:
+            QtWidgets.QMessageBox.information(self, "无需修复", "当前报告没有 high/medium 级别的可写回项。")
+            return
+
+        preview = "\n".join(f"  {k} → {v}" for k, v in list(patch.items())[:15])
+        if len(patch) > 15:
+            preview += f"\n  ... 共 {len(patch)} 项"
+
+        import os
+
+        dict_path = self._dict_path
+        if not dict_path:
+            candidates = []
+            if self._project_root:
+                candidates.append(os.path.join(self._project_root, "symbol_dictionary.json"))
+            candidates.append(os.path.join(os.getcwd(), "symbol_dictionary.json"))
+            for c in candidates:
+                if c and os.path.isfile(c):
+                    dict_path = c
+                    break
+            if not dict_path:
+                dict_path = candidates[0] if candidates else "symbol_dictionary.json"
+
+        memory_path = ""
+        if self._project_root:
+            memory_path = os.path.join(self._project_root, "autodoc_symbol_memory.json")
+
+        msg = QtWidgets.QMessageBox(self)
+        msg.setWindowTitle("应用术语修复")
+        msg.setIcon(QtWidgets.QMessageBox.Question)
+        msg.setText(
+            f"将把 {len(patch)} 个建议写回符号字典"
+            f"{' 与项目记忆库' if memory_path else ''}。\n\n"
+            f"字典：{dict_path}\n"
+            f"{'记忆库：' + memory_path + chr(10) if memory_path else ''}\n"
+            f"预览：\n{preview}"
         )
+        dry_btn = msg.addButton("仅预览 (dry-run)", QtWidgets.QMessageBox.ActionRole)
+        apply_btn = msg.addButton("写入", QtWidgets.QMessageBox.AcceptRole)
+        msg.addButton("取消", QtWidgets.QMessageBox.RejectRole)
+        msg.exec_()
+        clicked = msg.clickedButton()
+        if clicked not in (dry_btn, apply_btn):
+            return
+        dry_run = clicked is dry_btn
+        try:
+            result = apply_repair_from_report(
+                self._report_data,
+                dict_path=dict_path,
+                memory_path=memory_path,
+                dry_run=dry_run,
+                backup=True,
+                severities=("high", "medium"),
+            )
+        except Exception as exc:
+            QtWidgets.QMessageBox.critical(self, "修复失败", str(exc))
+            return
+        if dry_run:
+            QtWidgets.QMessageBox.information(
+                self,
+                "Dry-run 结果",
+                f"将应用 {result.applied_count} 项（未写盘）。\n字典：{dict_path}",
+            )
+        else:
+            QtWidgets.QMessageBox.information(
+                self,
+                "已写入",
+                f"已应用 {result.applied_count} 项。\n"
+                f"字典：{result.dict_path or dict_path}\n"
+                f"{'记忆库：' + (result.memory_path or memory_path) if result.wrote_memory else ''}\n"
+                f"{'备份：' + result.dict_backup if result.dict_backup else ''}".strip(),
+            )

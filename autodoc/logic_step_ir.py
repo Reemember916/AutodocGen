@@ -643,6 +643,168 @@ def summarize_logic_steps(steps: Sequence[LogicStep]) -> dict[str, Any]:
     }
 
 
+def _cn_expr(text: str, name_map: Optional[dict[str, str]], *, backend_module=None) -> str:
+    raw = utils._safe_strip(text)
+    if not raw:
+        return ""
+    names = dict(name_map or {})
+    try:
+        from . import logic as logic_utils
+
+        backend = backend_module or legacy_backend()
+        return utils._safe_strip(
+            logic_utils._logic_cn_expr(raw, name_map=names, backend_module=backend)
+        ) or raw
+    except Exception:
+        return names.get(raw, raw)
+
+
+def _indent(depth: int) -> str:
+    return "  " * max(0, int(depth or 0))
+
+
+def render_logic_steps_to_lines(
+    steps: Sequence[LogicStep],
+    *,
+    name_map: Optional[dict[str, str]] = None,
+    backend_module=None,
+) -> list[str]:
+    """Deterministic GJB-style lines from LogicStep IR (opt-in main path).
+
+    Skips pure declarations; unknown steps fall back to expression_text / code.
+    """
+    backend = backend_module or legacy_backend()
+    lines: list[str] = []
+    for step in steps or []:
+        kind = utils._safe_strip(getattr(step, "kind", "") or "unknown")
+        depth = int(getattr(step, "scope_depth", 0) or 0)
+        ind = _indent(depth)
+        text = ""
+
+        if kind == "if":
+            cond = _cn_expr(getattr(step, "condition", "") or step.expression_text, name_map, backend_module=backend)
+            text = f"IF {cond} 时" if cond else "IF"
+        elif kind == "else_if":
+            cond = _cn_expr(getattr(step, "condition", "") or step.expression_text, name_map, backend_module=backend)
+            text = f"ELSE IF {cond} 时" if cond else "ELSE IF"
+        elif kind == "else":
+            if getattr(step, "is_empty", False):
+                continue
+            text = "ELSE"
+        elif kind == "for":
+            cond = _cn_expr(getattr(step, "condition", "") or step.expression_text, name_map, backend_module=backend)
+            text = f"FOR {cond} 循环" if cond else "FOR 循环"
+        elif kind == "while":
+            cond = _cn_expr(getattr(step, "condition", "") or step.expression_text, name_map, backend_module=backend)
+            text = f"WHILE {cond} 时" if cond else "WHILE"
+        elif kind == "do_while":
+            cond = _cn_expr(getattr(step, "condition", "") or step.expression_text, name_map, backend_module=backend)
+            text = f"DO WHILE {cond} 时" if cond else "DO WHILE"
+        elif kind == "switch":
+            expr = _cn_expr(getattr(step, "expression", "") or step.expression_text, name_map, backend_module=backend)
+            text = f"SWITCH 根据 {expr} 分支处理" if expr else "SWITCH"
+        elif kind == "case":
+            val = _cn_expr(getattr(step, "value", "") or step.expression_text, name_map, backend_module=backend)
+            text = f"CASE 分支 {val}" if val else "CASE"
+        elif kind == "default":
+            text = "DEFAULT"
+        elif kind == "break":
+            text = "退出当前循环或分支"
+        elif kind == "continue":
+            text = "跳过本轮循环，进入下一轮循环"
+        elif kind == "return":
+            expr = utils._safe_strip(getattr(step, "expression", "") or step.expression_text)
+            if not expr:
+                text = "返回"
+            else:
+                try:
+                    from . import semantic_elements as se
+
+                    ret = se.infer_return_semantic(expr, name_map)
+                    text = se.render_return_semantic(ret) or f"返回 {_cn_expr(expr, name_map, backend_module=backend)}"
+                except Exception:
+                    text = f"返回 {_cn_expr(expr, name_map, backend_module=backend)}"
+        elif kind == "end_block":
+            bt = utils._safe_strip(getattr(step, "block_type", "")).upper()
+            end_map = {
+                "IF": "END IF",
+                "FOR": "NEXT",
+                "WHILE": "END WHILE",
+                "DO WHILE": "END DO WHILE",
+                "DO_WHILE": "END DO WHILE",
+                "SWITCH": "END SWITCH",
+            }
+            text = end_map.get(bt, f"END {bt}" if bt else "")
+        elif kind == "assignment":
+            if getattr(step, "is_declaration", False):
+                continue
+            code = utils._safe_strip(step.expression_text) or (
+                f"{getattr(step, 'lhs', '')} {getattr(step, 'op', '=')} {getattr(step, 'rhs', '')}"
+            )
+            try:
+                from . import semantic_elements as se
+
+                act = se.infer_action_semantic(code, name_map)
+                text = se.render_action_semantic(act) or ""
+            except Exception:
+                text = ""
+            if not text:
+                lhs = _cn_expr(getattr(step, "lhs", ""), name_map, backend_module=backend)
+                rhs = _cn_expr(getattr(step, "rhs", ""), name_map, backend_module=backend)
+                op = utils._safe_strip(getattr(step, "op", "=")) or "="
+                if lhs and rhs:
+                    text = f"{lhs} {op} {rhs}"
+                else:
+                    text = _cn_expr(code, name_map, backend_module=backend)
+        elif kind == "call":
+            code = utils._safe_strip(step.expression_text) or (
+                f"{getattr(step, 'callee', '')}({getattr(step, 'args', '')})"
+            )
+            try:
+                from . import semantic_elements as se
+
+                act = se.infer_action_semantic(code, name_map)
+                text = se.render_action_semantic(act) or ""
+            except Exception:
+                text = ""
+            if not text:
+                callee = utils._safe_strip(getattr(step, "callee", ""))
+                callee_cn = _cn_expr(callee, name_map, backend_module=backend) or callee
+                lhs = _cn_expr(getattr(step, "lhs", ""), name_map, backend_module=backend)
+                if lhs:
+                    text = f"调用 {callee_cn}，结果写入 {lhs}"
+                else:
+                    text = f"调用 {callee_cn}" if callee_cn else code
+        elif kind == "unknown":
+            code = utils._safe_strip(getattr(step, "code", "") or step.expression_text)
+            if not code or code in ("{", "}", ";"):
+                continue
+            try:
+                from . import semantic_elements as se
+
+                act = se.infer_action_semantic(code, name_map)
+                text = se.render_action_semantic(act) or ""
+            except Exception:
+                text = ""
+            if not text:
+                text = _cn_expr(code, name_map, backend_module=backend) or code
+        else:
+            text = _cn_expr(step.expression_text, name_map, backend_module=backend)
+
+        text = utils._safe_strip(text)
+        if not text:
+            continue
+        # Statement lines get Chinese full stop; control headers do not.
+        control = kind in {
+            "if", "else_if", "else", "for", "while", "do_while",
+            "switch", "case", "default", "end_block",
+        }
+        if (not control) and (not text.endswith("；")) and (not text.endswith(";")):
+            text = text + "；"
+        lines.append(ind + text)
+    return lines
+
+
 __all__ = [
     "SourceRange",
     "LogicStep",
@@ -652,4 +814,5 @@ __all__ = [
     "LogicStepType",
     "build_logic_steps",
     "summarize_logic_steps",
+    "render_logic_steps_to_lines",
 ]

@@ -60,16 +60,25 @@ def evidence_output_enabled(cfg) -> bool:
 
 
 def logic_step_ir_enabled(cfg) -> bool:
-    """logic_step_ir=shadow|on by default when evidence is on; explicit off disables."""
+    """logic_step_ir=shadow|on|primary by default when evidence is on; explicit off disables."""
     extra = getattr(cfg, "extra_params", None) or {}
     if not isinstance(extra, dict):
         return False
     raw = str(extra.get("logic_step_ir", "") or "").strip()
     if raw:
-        return _truthy_flag(raw) and not (
-            str(raw).strip().lower() in ("0", "false", "off", "no", "none")
+        return _truthy_flag(raw) or str(raw).strip().lower() in (
+            "primary", "main", "replace", "render",
         )
     return evidence_output_enabled(cfg)
+
+
+def logic_step_ir_primary(cfg) -> bool:
+    """When true, LogicStep IR replaces generate_logic_from_body text for docx."""
+    extra = getattr(cfg, "extra_params", None) or {}
+    if not isinstance(extra, dict):
+        return False
+    raw = str(extra.get("logic_step_ir", "") or "").strip().lower()
+    return raw in ("primary", "main", "replace", "render")
 
 
 def resolve_evidence_report_path(output: str, cfg) -> str:
@@ -3754,19 +3763,33 @@ def build_design_logic_lines(
     else:
         logic = ""
         unknowns = []
-        # 逻辑渲染始终走规则解析：逐语句完整（含 ++/-- / compound assign），
-        # LSP/clangd 的结构体成员 owner 翻译通过 build_design_name_map 注入 name_map 生效，
-        # 不再用 generate_logic_from_semantic_pack 整体覆盖（会漏 LSP 未归类的语句）。
-        logic, unknowns = backend.generate_logic_from_body(body, local_vars, cfg, name_map=name_map)
-        if cfg.ai_assist and unknowns:
-            logic = _apply_ai_logic_replacements(logic, unknowns)
-        if cfg.ai_assist and logic and not getattr(cfg, "ai_one_call", False):
-            polish_unknowns = backend.select_ai_logic_polish_unknowns(
-                logic,
-                max_items=utils_module.cfg_get_int(cfg, "ai_logic_polish_max_items", 12),
-            )
-            if polish_unknowns:
-                logic = _apply_ai_logic_replacements(logic, polish_unknowns)
+        # Opt-in primary path: LogicStep IR → deterministic Chinese lines.
+        if logic_step_ir_primary(cfg):
+            try:
+                from .logic_step_ir import build_logic_steps, render_logic_steps_to_lines
+
+                steps = build_logic_steps(body, local_vars, cfg, name_map=name_map, backend_module=backend)
+                step_lines = render_logic_steps_to_lines(steps, name_map=name_map, backend_module=backend)
+                if step_lines:
+                    logic = "\n".join(step_lines)
+                    unknowns = []
+            except Exception as exc:
+                backend.vlog(cfg, f"[LogicStep] primary 渲染失败，回退规则链：{exc}")
+                logic = ""
+        if not logic:
+            # 逻辑渲染始终走规则解析：逐语句完整（含 ++/-- / compound assign），
+            # LSP/clangd 的结构体成员 owner 翻译通过 build_design_name_map 注入 name_map 生效，
+            # 不再用 generate_logic_from_semantic_pack 整体覆盖（会漏 LSP 未归类的语句）。
+            logic, unknowns = backend.generate_logic_from_body(body, local_vars, cfg, name_map=name_map)
+            if cfg.ai_assist and unknowns:
+                logic = _apply_ai_logic_replacements(logic, unknowns)
+            if cfg.ai_assist and logic and not getattr(cfg, "ai_one_call", False):
+                polish_unknowns = backend.select_ai_logic_polish_unknowns(
+                    logic,
+                    max_items=utils_module.cfg_get_int(cfg, "ai_logic_polish_max_items", 12),
+                )
+                if polish_unknowns:
+                    logic = _apply_ai_logic_replacements(logic, polish_unknowns)
     if bool(getattr(cfg, "enhanced_single_func_pseudocode", False)):
         enhanced_logic = backend._build_enhanced_single_function_logic(body, local_vars, name_map=name_map)
         if enhanced_logic:
