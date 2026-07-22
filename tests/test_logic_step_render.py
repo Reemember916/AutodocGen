@@ -97,6 +97,30 @@ def test_multiline_block_comment_never_becomes_logic_step():
     assert "*；" not in joined
 
 
+def test_condition_operators_translated_to_chinese():
+    body = """
+    {
+        if (VALID != presetReady)
+        {
+            return INVALID;
+        }
+        if (count > 0U && flag == TRUE)
+        {
+            value = 1U;
+        }
+    }
+    """
+    steps = build_logic_steps(body, [], None, name_map={"presetReady": "预设准备完成标志", "count": "计数", "flag": "标志", "value": "数值"})
+    lines = render_logic_steps_to_lines(steps, name_map={"presetReady": "预设准备完成标志", "count": "计数", "flag": "标志", "value": "数值"})
+    joined = "\n".join(lines)
+    assert "!=" not in joined
+    assert "&&" not in joined
+    assert ">" not in joined
+    assert "不等于" in joined
+    assert "且" in joined
+    assert "大于" in joined
+
+
 def test_union_and_struct_declarations_do_not_become_logic_steps():
     body = """
     {

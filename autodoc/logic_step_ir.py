@@ -684,6 +684,28 @@ def _indent(depth: int) -> str:
     return "  " * max(0, int(depth or 0))
 
 
+def _cn_condition(text: str, name_map: Optional[dict[str, str]], *, backend_module=None) -> str:
+    """Translate a C comparison/boolean condition into readable Chinese.
+
+    Delegates to ``_cn_expr`` for identifier translation, then replaces
+    C operators with Chinese equivalents.  Parentheses are kept as-is
+    because replacing them with full-width forms breaks function-call
+    readability.
+    """
+    cn = _cn_expr(text, name_map, backend_module=backend_module)
+    cn = cn.replace(" != ", " 不等于 ")
+    cn = cn.replace(" == ", " 等于 ")
+    cn = cn.replace(" >= ", " 大于等于 ")
+    cn = cn.replace(" <= ", " 小于等于 ")
+    cn = cn.replace(" > ", " 大于 ")
+    cn = cn.replace(" < ", " 小于 ")
+    cn = cn.replace(" && ", " 且 ")
+    cn = cn.replace(" || ", " 或 ")
+    cn = cn.replace("! ", "非 ")
+    cn = re.sub(r"\s+", " ", cn).strip()
+    return cn
+
+
 def _volatile_register_label(expression: str, name_map: Optional[dict[str, str]], *, backend_module=None) -> str:
     """Return a readable hardware-register label for volatile pointer access."""
     raw = utils._safe_strip(expression)
@@ -748,23 +770,23 @@ def render_logic_steps_to_lines(
         text = ""
 
         if kind == "if":
-            cond = _cn_expr(getattr(step, "condition", "") or step.expression_text, name_map, backend_module=backend)
+            cond = _cn_condition(getattr(step, "condition", "") or step.expression_text, name_map, backend_module=backend)
             text = f"IF {cond} 时" if cond else "IF"
         elif kind == "else_if":
-            cond = _cn_expr(getattr(step, "condition", "") or step.expression_text, name_map, backend_module=backend)
+            cond = _cn_condition(getattr(step, "condition", "") or step.expression_text, name_map, backend_module=backend)
             text = f"ELSE IF {cond} 时" if cond else "ELSE IF"
         elif kind == "else":
             if getattr(step, "is_empty", False):
                 continue
             text = "ELSE"
         elif kind == "for":
-            cond = _cn_expr(getattr(step, "condition", "") or step.expression_text, name_map, backend_module=backend)
+            cond = _cn_condition(getattr(step, "condition", "") or step.expression_text, name_map, backend_module=backend)
             text = f"FOR {cond} 循环" if cond else "FOR 循环"
         elif kind == "while":
-            cond = _cn_expr(getattr(step, "condition", "") or step.expression_text, name_map, backend_module=backend)
+            cond = _cn_condition(getattr(step, "condition", "") or step.expression_text, name_map, backend_module=backend)
             text = f"WHILE {cond} 时" if cond else "WHILE"
         elif kind == "do_while":
-            cond = _cn_expr(getattr(step, "condition", "") or step.expression_text, name_map, backend_module=backend)
+            cond = _cn_condition(getattr(step, "condition", "") or step.expression_text, name_map, backend_module=backend)
             text = f"DO WHILE {cond} 时" if cond else "DO WHILE"
         elif kind == "switch":
             expr = _cn_expr(getattr(step, "expression", "") or step.expression_text, name_map, backend_module=backend)
