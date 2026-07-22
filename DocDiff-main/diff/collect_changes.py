@@ -148,7 +148,9 @@ def _pair_score(old_sec, new_sec) -> float:
     leaf_old = _leaf_title(old_sec)
     leaf_new = _leaf_title(new_sec)
     title_score = max(
-        _title_similarity(getattr(old_sec, "title", "") or "", getattr(new_sec, "title", "") or ""),
+        _title_similarity(
+            getattr(old_sec, "title", "") or "", getattr(new_sec, "title", "") or ""
+        ),
         _title_similarity(leaf_old, leaf_new),
         _text_ratio(
             _normalize_key(getattr(old_sec, "key", "") or ""),
@@ -332,7 +334,9 @@ def build_section_pairs(
     def _bucket_indices(indices, side_list):
         buckets: Dict[str, List[int]] = defaultdict(list)
         for idx in indices:
-            buckets[_parent_bucket(getattr(side_list[idx], "key", "") or "")].append(idx)
+            buckets[_parent_bucket(getattr(side_list[idx], "key", "") or "")].append(
+                idx
+            )
         return buckets
 
     old_buckets = _bucket_indices(unmatched_old, old_list)
@@ -395,7 +399,9 @@ def build_match_report(
     """机器可读匹配报告，供 --dump-match / 验收使用。"""
     old_sections = list(getattr(old_ast, "sections", None) or [])
     new_sections = list(getattr(new_ast, "sections", None) or [])
-    pairs = build_section_pairs(old_sections, new_sections, fuzzy_min_score=fuzzy_min_score)
+    pairs = build_section_pairs(
+        old_sections, new_sections, fuzzy_min_score=fuzzy_min_score
+    )
 
     pair_rows = []
     method_counts: Dict[str, int] = defaultdict(int)
@@ -407,12 +413,20 @@ def build_match_report(
         row = {
             "match_method": method,
             "score": round(float(score), 4),
-            "old_title": getattr(old_sec, "title", None) if old_sec is not None else None,
-            "new_title": getattr(new_sec, "title", None) if new_sec is not None else None,
+            "old_title": getattr(old_sec, "title", None)
+            if old_sec is not None
+            else None,
+            "new_title": getattr(new_sec, "title", None)
+            if new_sec is not None
+            else None,
             "old_key": getattr(old_sec, "key", None) if old_sec is not None else None,
             "new_key": getattr(new_sec, "key", None) if new_sec is not None else None,
-            "old_doc_id": _extract_doc_id(getattr(old_sec, "title", "") or "") if old_sec else None,
-            "new_doc_id": _extract_doc_id(getattr(new_sec, "title", "") or "") if new_sec else None,
+            "old_doc_id": _extract_doc_id(getattr(old_sec, "title", "") or "")
+            if old_sec
+            else None,
+            "new_doc_id": _extract_doc_id(getattr(new_sec, "title", "") or "")
+            if new_sec
+            else None,
         }
         pair_rows.append(row)
 
@@ -450,7 +464,9 @@ def build_match_report(
             )
 
     return {
-        "fuzzy_min_score": threshold if (threshold := float(fuzzy_min_score)) else DEFAULT_FUZZY_MIN_SCORE,
+        "fuzzy_min_score": threshold
+        if (threshold := float(fuzzy_min_score))
+        else DEFAULT_FUZZY_MIN_SCORE,
         "old_section_count": len(old_sections),
         "new_section_count": len(new_sections),
         "pair_count": len(pair_rows),
@@ -532,6 +548,48 @@ def collect_changes(
         new_segs = getattr(new_sec, "segments", {}) if new_sec is not None else {}
         old_segs = old_segs or {}
         new_segs = new_segs or {}
+
+        # 整个 section 新增/删除且含多个 segment 时，合并为一条变更，避免产生 a) b) c) d) e) 5条
+        # 仅有一个 segment（如仅 _MAIN）时保持原有行为不变
+        if old_sec is None and len(new_segs) > 1:
+            merged_blocks = []
+            for sid in sorted(new_segs.keys()):
+                seg = new_segs[sid]
+                for b in getattr(seg, "blocks", []) or []:
+                    merged_blocks.append(b)
+            merged_seg = Segment(seg_id="_ALL", blocks=merged_blocks)
+            changes.append(
+                {
+                    "type": "新增",
+                    "key": display_key,
+                    "seg": "全部",
+                    "old": None,
+                    "new": merged_seg,
+                    "match_method": match_method,
+                    "match_score": match_score,
+                }
+            )
+            continue
+
+        if new_sec is None and len(old_segs) > 1:
+            merged_blocks = []
+            for sid in sorted(old_segs.keys()):
+                seg = old_segs[sid]
+                for b in getattr(seg, "blocks", []) or []:
+                    merged_blocks.append(b)
+            merged_seg = Segment(seg_id="_ALL", blocks=merged_blocks)
+            changes.append(
+                {
+                    "type": "删除",
+                    "key": display_key,
+                    "seg": "全部",
+                    "old": merged_seg,
+                    "new": None,
+                    "match_method": match_method,
+                    "match_score": match_score,
+                }
+            )
+            continue
 
         seg_ids = set(old_segs.keys()) | set(new_segs.keys())
 

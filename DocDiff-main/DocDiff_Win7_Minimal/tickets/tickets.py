@@ -54,7 +54,10 @@ def _norm_header(h: str) -> str:
 def _map_headers(headers: Sequence[str]) -> Dict[str, int]:
     """返回逻辑字段 -> 列下标。优先精确匹配，避免「问题」误匹配「问题单编号」。"""
     out: Dict[str, int] = {}
-    norms = [(idx, _norm_header(str(raw)), str(raw).strip()) for idx, raw in enumerate(headers)]
+    norms = [
+        (idx, _norm_header(str(raw)), str(raw).strip())
+        for idx, raw in enumerate(headers)
+    ]
 
     # 第一遍：精确匹配（含去空白后完全相等）
     for idx, key, _raw in norms:
@@ -174,8 +177,22 @@ def _load_json(path: str) -> List[Ticket]:
     return tickets
 
 
+def _detect_encoding(path: str) -> str:
+    for enc in ["utf-8-sig", "gbk", "gb18030", "latin-1"]:
+        try:
+            with open(path, "rb") as f:
+                f.read(32)
+            with open(path, "r", encoding=enc, newline="") as f:
+                f.read(256)
+            return enc
+        except (UnicodeDecodeError, UnicodeError):
+            continue
+    return "utf-8-sig"
+
+
 def _load_csv(path: str) -> List[Ticket]:
-    with open(path, "r", encoding="utf-8-sig", newline="") as f:
+    encoding = _detect_encoding(path)
+    with open(path, "r", encoding=encoding, newline="") as f:
         # 尝试检测分隔符
         sample = f.read(4096)
         f.seek(0)
@@ -190,7 +207,8 @@ def _load_csv(path: str) -> List[Ticket]:
     # 是否有表头
     first = [str(c).strip() for c in rows[0]]
     has_header = any(
-        _norm_header(c) in {_norm_header(a) for aliases in _HEADER_ALIASES.values() for a in aliases}
+        _norm_header(c)
+        in {_norm_header(a) for aliases in _HEADER_ALIASES.values() for a in aliases}
         for c in first
     )
     if has_header:
@@ -227,7 +245,8 @@ def _load_xlsx(path: str) -> List[Ticket]:
         return []
     first = ["" if c is None else str(c).strip() for c in rows[0]]
     has_header = any(
-        _norm_header(c) in {_norm_header(a) for aliases in _HEADER_ALIASES.values() for a in aliases}
+        _norm_header(c)
+        in {_norm_header(a) for aliases in _HEADER_ALIASES.values() for a in aliases}
         for c in first
         if c
     )
