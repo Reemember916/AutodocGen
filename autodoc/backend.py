@@ -52,7 +52,7 @@ if sys.modules.get(__name__) is not None:
     sys.modules["_autodoc_legacy_backend"] = sys.modules[__name__]
 
 APP_NAME = "AutoDocGen"
-APP_VERSION = "V1.4"
+APP_VERSION = "V2.00"
 
 def _ensure_stdio():
     """
