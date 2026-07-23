@@ -1703,6 +1703,110 @@ def render_project_graph_overview(doc, func_entries, cfg, *, root_dir: str = "",
     return False
 
 
+def render_static_call_relation_table(
+    doc,
+    rows: list[tuple[str, str, str, str]],
+    *,
+    entry_label: str = "主函数",
+    caption_suffix: str = "构成本CSCI的软件单元静态关系",
+    backend_module=None,
+):
+    """Render a 4-column flattened call-tree table (GJB 438B style).
+
+    *rows* comes from ``callgraph.flatten_call_tree``.  Column 0 is the
+    entry function (merged vertically), columns 1-3 are successive call
+    depths.  Leaf cells show ``"-"``.
+    """
+    backend = backend_module or legacy_backend()
+    if not rows:
+        return None
+
+    if backend_module is not None:
+        backend.add_section_label(doc, "构成本CSCI的软件单元静态关系见下表。")
+    else:
+        add_section_label(doc, "构成本CSCI的软件单元静态关系见下表。")
+
+    caption = doc.add_paragraph()
+    caption.add_run("表 ")
+    if backend_module is not None:
+        backend.add_seq_field(caption, "表")
+    else:
+        add_seq_field(caption, "表")
+    caption.add_run(f" {caption_suffix}")
+    if backend_module is not None:
+        backend.style_as_caption(caption)
+    else:
+        style_as_caption(caption)
+
+    headers = [entry_label, "调用", "调用", "调用"]
+    n = len(rows)
+    table = doc.add_table(rows=1 + n, cols=4)
+    if backend_module is not None:
+        backend.apply_table_style(table, doc)
+    else:
+        apply_table_style(table, doc)
+
+    for idx, h in enumerate(headers):
+        table.rows[0].cells[idx].text = h
+
+    merge_groups: list[list[tuple[int, int]]] = []
+    for col in range(3):
+        groups: list[tuple[int, int]] = []
+        start = 0
+        while start < n:
+            text = str(rows[start][col]) if col < len(rows[start]) else "-"
+            end = start
+            while end + 1 < n and (str(rows[end + 1][col]) if col < len(rows[end + 1]) else "-") == text:
+                end += 1
+            if end > start and text and text != "-":
+                groups.append((start, end))
+            start = end + 1
+        merge_groups.append(groups)
+
+    merged_cells: set[tuple[int, int]] = set()
+    for col, groups in enumerate(merge_groups):
+        for g_start, g_end in groups:
+            for r in range(g_start + 1, g_end + 1):
+                merged_cells.add((r, col))
+
+    for row_idx, row_vals in enumerate(rows):
+        cells = table.rows[row_idx + 1].cells
+        for col_idx in range(4):
+            if (row_idx, col_idx) in merged_cells:
+                continue
+            cells[col_idx].text = str(row_vals[col_idx]) if col_idx < len(row_vals) else "-"
+
+    for col, groups in enumerate(merge_groups):
+        for g_start, g_end in groups:
+            try:
+                table.cell(g_start + 1, col).merge(table.cell(g_end + 1, col))
+            except Exception:
+                pass
+
+    prevent_table_row_splitting(table)
+    return table
+
+
+def _merge_static_relation_column(table, col: int, data_rows: int) -> None:
+    """Vertically merge consecutive cells with the same text in *col*."""
+    if data_rows <= 1:
+        return
+    start = 1
+    while start <= data_rows:
+        text = table.rows[start].cells[col].text
+        end = start
+        while end + 1 <= data_rows and table.rows[end + 1].cells[col].text == text:
+            end += 1
+        if end > start and text and text != "-":
+            for r in range(start + 1, end + 1):
+                table.rows[r].cells[col].text = ""
+            try:
+                table.cell(start, col).merge(table.cell(end, col))
+            except Exception:
+                pass
+        start = end + 1
+
+
 def _render_function_design_impl(doc, design, cfg, *, backend_module=None):
     backend = backend_module or legacy_backend()
     heading_style = backend.pick_heading_style(doc, 4) if backend_module is not None else pick_heading_style(doc, 4)
@@ -1847,6 +1951,7 @@ __all__ = [
     "render_design_model",
     "render_function_design",
     "render_project_graph_overview",
+    "render_static_call_relation_table",
     "render_table_or_none",
     "prevent_table_row_splitting",
     "safe_save_docx",

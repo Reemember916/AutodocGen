@@ -81,6 +81,74 @@ def build_call_graph(source: str) -> Optional[CallGraph]:
     return graph
 
 
+def flatten_call_tree(
+    callees_map: dict[str, list[str]],
+    entry: str,
+    *,
+    max_depth: int = 3,
+    name_map: Optional[dict[str, str]] = None,
+) -> list[tuple[str, str, str, str]]:
+    """Flatten a call tree rooted at *entry* into 4-column rows.
+
+    Each row is ``(level0, level1, level2, level3)`` where level0 is the
+    entry function and subsequent columns are successive callee depths.
+    Leaf positions are filled with ``"-"``.  *name_map* optionally maps
+    C identifiers to display names (e.g. Chinese titles).
+    """
+    nm = name_map or {}
+
+    def _label(ident: str) -> str:
+        return nm.get(ident) or ident
+
+    rows: list[tuple[str, str, str, str]] = []
+    visited: set[str] = set()
+
+    def _walk(node: str, depth: int, prefix: list[str]) -> None:
+        if depth > max_depth or node in visited:
+            return
+        visited.add(node)
+        children = list(dict.fromkeys(callees_map.get(node, [])))
+        children = [c for c in children if c != node and c not in visited]
+        if not children or depth == max_depth:
+            cols = list(prefix) + [_label(node)]
+            while len(cols) < 4:
+                cols.append("-")
+            rows.append(tuple(cols[:4]))  # type: ignore[arg-type]
+            visited.discard(node)
+            return
+        for child in children:
+            _walk(child, depth + 1, prefix + [_label(node)])
+        visited.discard(node)
+
+    _walk(entry, 0, [])
+    return rows
+
+
+def find_entry_functions(callees_map: dict[str, list[str]]) -> list[str]:
+    """Return functions that are not called by any other function (roots)."""
+    all_callees: set[str] = set()
+    for calls in callees_map.values():
+        all_callees.update(calls)
+    return [fn for fn in callees_map if fn not in all_callees]
+
+
+def build_project_callees_map(func_entries: list[dict]) -> dict[str, list[str]]:
+    """Build a project-wide callees_map from preprocessed func_entries."""
+    m: dict[str, list[str]] = {}
+    for fd in func_entries or []:
+        func_info = (fd or {}).get("func_info") or {}
+        name = str(func_info.get("func_name") or "").strip()
+        if not name:
+            continue
+        fc = (fd or {}).get("file_context") or {}
+        callees = list(fc.get("callee_funcs") or [])
+        if not callees:
+            sr = (fd or {}).get("semantic_record") or {}
+            callees = list(sr.get("callee_names") or [])
+        m[name] = list(dict.fromkeys(c for c in callees if c and c != name))
+    return m
+
+
 def _first_child_of_type(node, t: str):
     for c in node.children:
         if c.type == t:

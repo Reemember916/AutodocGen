@@ -7745,6 +7745,41 @@ def run_project_generation(
             )
         except Exception as exc:
             backend.vlog(cfg, f"[Graph] 项目调用关系总览生成失败：{exc}")
+    if not continuing and func_entries_for_graph:
+        try:
+            from . import callgraph as cgmod
+            from . import render as render_module
+
+            callees_map = cgmod.build_project_callees_map(func_entries_for_graph)
+            if callees_map:
+                title_map: dict[str, str] = {}
+                for fd in func_entries_for_graph:
+                    fi = (fd or {}).get("func_info") or {}
+                    fn = str(fi.get("func_name") or "").strip()
+                    fc = (fd or {}).get("file_context") or {}
+                    title = str(fc.get("function_title") or "").strip()
+                    if fn and title:
+                        title_map[fn] = title
+                entries = cgmod.find_entry_functions(callees_map)
+                if not entries:
+                    entries = list(callees_map.keys())[:1]
+                for entry_fn in entries:
+                    tree_rows = cgmod.flatten_call_tree(
+                        callees_map,
+                        entry_fn,
+                        max_depth=3,
+                        name_map=title_map,
+                    )
+                    if tree_rows:
+                        entry_label = title_map.get(entry_fn, entry_fn)
+                        render_module.render_static_call_relation_table(
+                            doc,
+                            tree_rows,
+                            entry_label=entry_label,
+                            backend_module=backend,
+                        )
+        except Exception as exc:
+            backend.vlog(cfg, f"[Graph] 软件单元静态关系表生成失败：{exc}")
     resume_info = run_state["resume_info"]
     start_layer_idx = int(run_state["start_layer_idx"])
     start_file_idx = int(run_state["start_file_idx"])
