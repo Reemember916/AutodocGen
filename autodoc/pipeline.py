@@ -6075,6 +6075,7 @@ def execute_project_module_tasks(
                     task.get("source_file", ""),
                     task.get("func_name", ""),
                     (task.get("func_data") or {}).get("body", ""),
+                    _registered_function_title(task.get("func_data") or {}, backend_module=backend),
                 )
                 _body_start = len(list(doc.element.body))
                 # Revision profiles can change rendered text without source-body changes.
@@ -6203,6 +6204,7 @@ def execute_single_file_tasks(
                     task.get("source_file", ""),
                     task.get("func_name", ""),
                     (task.get("func_data") or {}).get("body", ""),
+                    _registered_function_title(task.get("func_data") or {}, backend_module=backend),
                 )
                 _body_start = len(list(doc.element.body))
                 # Revision profiles can change rendered text without source-body changes.
@@ -6305,6 +6307,7 @@ def execute_single_export_task(
                 task.get("source_file", ""),
                 task.get("func_name", ""),
                 (task.get("func_data") or {}).get("body", ""),
+                _registered_function_title(task.get("func_data") or {}, backend_module=backend),
             )
             _body_start = len(list(doc.element.body))
             # Revision profiles can change rendered text without source-body changes.

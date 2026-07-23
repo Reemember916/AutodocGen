@@ -32,9 +32,11 @@ _RENDER_CACHE_MISSES = 0
 _RENDER_CACHE_REPLAY_TIME = 0.0
 
 
-def _render_cache_key(source_file: str, func_name: str, body: str) -> str:
+def _render_cache_key(source_file: str, func_name: str, body: str, function_title: str = "") -> str:
+    """Build a cache identity for all content that can change rendered XML."""
     body_hash = hashlib.sha1((body or "").encode("utf-8", errors="replace")).hexdigest()[:8]
-    return f"{source_file}::{func_name}::{body_hash}"
+    title_hash = hashlib.sha1((function_title or "").encode("utf-8", errors="replace")).hexdigest()[:8]
+    return f"{source_file}::{func_name}::{body_hash}::{title_hash}"
 
 
 def try_replay_rendered(doc, cache_key: str) -> bool:
