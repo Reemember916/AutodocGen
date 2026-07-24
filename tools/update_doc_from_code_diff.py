@@ -1050,17 +1050,41 @@ def classify_changes(
     return dedupe_header_impacted_items(items)
 
 
-def _make_cfg(*, ai_assist: bool, template_path: str, verbose: bool = False):
+def _make_cfg(
+    *,
+    ai_assist: bool,
+    template_path: str,
+    verbose: bool = False,
+    stop_event: Any = None,
+    settings: Any = None,
+    gui_log: Any = None,
+):
     root = Path(__file__).resolve().parents[1]
     if str(root) not in sys.path:
         sys.path.insert(0, str(root))
     from autodoc.backend import GenConfig
 
-    return GenConfig(
+    cfg = GenConfig(
         verbose=bool(verbose),
         ai_assist=bool(ai_assist),
         template_path=template_path or "",
+        stop_event=stop_event,
     )
+    if settings is not None:
+        cfg.ai_mode = int(getattr(settings, "ai_mode", 1) or 1)
+        cfg.ai_provider = str(getattr(settings, "ai_provider", "local") or "local")
+        cfg.ai_api_base = str(getattr(settings, "ai_api_base", "") or "")
+        cfg.ai_api_key = str(getattr(settings, "ai_api_key", "") or "")
+        cfg.ai_model = str(getattr(settings, "ai_model", "") or "")
+        cfg.ai_read_timeout = float(getattr(settings, "ai_read_timeout", 40) or 40)
+        cfg.ai_workers = max(1, int(getattr(settings, "ai_workers", 1) or 1))
+        cfg.ai_max_tokens = int(getattr(settings, "ai_max_tokens", 16384) or 16384)
+        cfg.ai_num_ctx = int(getattr(settings, "ai_num_ctx", 0) or 0)
+        cfg.proxy = str(getattr(settings, "proxy", "") or "") if bool(getattr(settings, "use_proxy", False)) else ""
+        cfg.no_proxy = bool(getattr(settings, "no_proxy", False))
+    if gui_log is not None:
+        cfg.gui_log = gui_log
+    return cfg
 
 
 def _copy_old_doc_to_out(*, old_doc: str, out_doc: str, label: str) -> str:
@@ -1094,6 +1118,9 @@ def apply_safe_items(
     template_path: str,
     verbose: bool = False,
     copy_doc: bool = True,
+    stop_event: Any = None,
+    settings: Any = None,
+    gui_log: Any = None,
 ) -> None:
     out_abs = _copy_old_doc_to_out(old_doc=old_doc, out_doc=out_doc, label="apply-safe") if copy_doc else _abs(out_doc)
 
@@ -1103,7 +1130,8 @@ def apply_safe_items(
     from autodoc.pipeline import regenerate_csu_in_doc
     from autodoc._legacy_support import legacy_backend
 
-    cfg = _make_cfg(ai_assist=ai_assist, template_path=template_path, verbose=verbose)
+    cfg = _make_cfg(ai_assist=ai_assist, template_path=template_path, verbose=verbose,
+                    stop_event=stop_event, settings=settings, gui_log=gui_log)
     backend = legacy_backend()
     doc = _open_docx_safe(out_abs)
     prepared_func_cache: dict[tuple[str, str], tuple[list[dict[str, Any]], Any]] = {}
@@ -1111,6 +1139,8 @@ def apply_safe_items(
     for item in items:
         if item.status != "safe":
             continue
+        if stop_event is not None and stop_event.is_set():
+            break
         source = os.path.join(new_code, item.rel_path)
         try:
             kwargs = {
@@ -1183,6 +1213,9 @@ def apply_review_decisions(
     template_path: str,
     renumber_module_csu: bool = False,
     verbose: bool = False,
+    stop_event: Any = None,
+    settings: Any = None,
+    gui_log: Any = None,
 ) -> None:
     root = Path(__file__).resolve().parents[1]
     if str(root) not in sys.path:
@@ -1191,10 +1224,13 @@ def apply_review_decisions(
     from autodoc import render as render_module
     from autodoc._legacy_support import legacy_backend
 
-    cfg = _make_cfg(ai_assist=ai_assist, template_path=template_path, verbose=verbose)
+    cfg = _make_cfg(ai_assist=ai_assist, template_path=template_path, verbose=verbose,
+                    stop_event=stop_event, settings=settings, gui_log=gui_log)
     backend = legacy_backend()
     prepared_func_cache: dict[tuple[str, str], tuple[list[dict[str, Any]], Any]] = {}
     for decision in review_decisions:
+        if stop_event is not None and stop_event.is_set():
+            break
         item = _item_for_decision(items, decision)
         if item is None:
             continue

@@ -384,18 +384,28 @@ class MainWindow(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot()
     def _flush_detail_events(self) -> None:
+        log_empty = False
+        event_empty = False
         for _ in range(200):
             try:
                 text = self._gui_log_queue.get_nowait()
             except queue.Empty:
+                log_empty = True
                 break
             self._on_log_event(text)
         for _ in range(200):
             try:
                 payload = self._gui_event_queue.get_nowait()
             except queue.Empty:
+                event_empty = True
                 break
             self._on_detail_event(payload)
+        timer = getattr(self, "_detail_timer", None)
+        if timer is not None:
+            if log_empty and event_empty:
+                timer.setInterval(200)
+            else:
+                timer.setInterval(50)
 
     @QtCore.pyqtSlot(str)
     def _on_output_event(self, path: str) -> None:

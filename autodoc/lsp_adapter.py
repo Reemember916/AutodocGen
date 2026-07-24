@@ -303,6 +303,23 @@ def _find_function_symbol(name: str, symbols: list[dict[str, Any]]) -> dict[str,
     return {}
 
 
+def _find_function_end_line(lines: list[str], start_idx: int) -> int:
+    """Find the closing brace of a function starting at *start_idx* (1-based)."""
+    depth = 0
+    started = False
+    for idx in range(start_idx - 1, len(lines)):
+        line = lines[idx]
+        for ch in line:
+            if ch == "{":
+                depth += 1
+                started = True
+            elif ch == "}":
+                depth -= 1
+                if started and depth == 0:
+                    return idx + 1
+    return min(len(lines), start_idx + 1)
+
+
 def _guess_function_range(function_meta: dict[str, Any], symbols: list[dict[str, Any]], source_text: str) -> SourceRange:
     legacy = legacy_backend()
     func_name = utils._safe_strip(function_meta.get("name") or function_meta.get("func_name"))
@@ -315,7 +332,9 @@ def _guess_function_range(function_meta: dict[str, Any], symbols: list[dict[str,
         if signature and signature in line:
             return _line_range(idx, min(len(lines), idx + max(1, len((function_meta.get("body") or "").splitlines()) + 1)), line)
         if func_name and re.search(rf"\b{re.escape(func_name)}\s*\(", line):
-            return _line_range(idx, len(lines), line)
+            body_lines = len((function_meta.get("body") or "").splitlines())
+            end_line = min(len(lines), idx + max(1, body_lines)) if body_lines else _find_function_end_line(lines, idx)
+            return _line_range(idx, end_line, line)
     return _line_range(1, len(lines), signature or func_name)
 
 

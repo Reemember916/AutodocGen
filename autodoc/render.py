@@ -31,12 +31,36 @@ _RENDER_CACHE_HITS = 0
 _RENDER_CACHE_MISSES = 0
 _RENDER_CACHE_REPLAY_TIME = 0.0
 
+_DESIGN_CACHE: dict[str, dict[str, Any]] = {}
+_DESIGN_CACHE_MAX = 512
 
-def _render_cache_key(source_file: str, func_name: str, body: str, function_title: str = "") -> str:
+
+def _design_cache_key(source_file: str, func_name: str, body: str) -> str:
+    """Cache key for rule-based design context (no AI mode)."""
+    body_hash = hashlib.sha1((body or "").encode("utf-8", errors="replace")).hexdigest()[:8]
+    return f"{source_file}::{func_name}::{body_hash}"
+
+
+def get_design_cache(key: str) -> dict[str, Any] | None:
+    cached = _DESIGN_CACHE.get(key)
+    return dict(cached) if cached else None
+
+
+def put_design_cache(key: str, ctx: dict[str, Any]) -> None:
+    if not ctx:
+        return
+    serializable = {k: copy.deepcopy(v) for k, v in ctx.items() if k != "cfg"}
+    if len(_DESIGN_CACHE) >= _DESIGN_CACHE_MAX:
+        oldest_key = next(iter(_DESIGN_CACHE))
+        del _DESIGN_CACHE[oldest_key]
+    _DESIGN_CACHE[key] = serializable
+
+
+def _render_cache_key(source_file: str, func_name: str, body: str, function_title: str = "", *, ai_mode: int = 0) -> str:
     """Build a cache identity for all content that can change rendered XML."""
     body_hash = hashlib.sha1((body or "").encode("utf-8", errors="replace")).hexdigest()[:8]
     title_hash = hashlib.sha1((function_title or "").encode("utf-8", errors="replace")).hexdigest()[:8]
-    return f"{source_file}::{func_name}::{body_hash}::{title_hash}"
+    return f"{source_file}::{func_name}::{body_hash}::{title_hash}::ai{ai_mode}"
 
 
 def try_replay_rendered(doc, cache_key: str) -> bool:
@@ -50,6 +74,9 @@ def try_replay_rendered(doc, cache_key: str) -> bool:
     t0 = _time.time()
     body = doc.element.body
     for elem in cached:
+        tag = elem.tag.split('}')[-1] if '}' in elem.tag else elem.tag
+        if tag == 'sectPr':
+            continue
         body.append(copy.deepcopy(elem))
     _RENDER_CACHE_REPLAY_TIME += _time.time() - t0
     _RENDER_CACHE_HITS += 1
@@ -85,7 +112,8 @@ def capture_rendered_elements(doc, body_start_count: int, cache_key: str) -> Non
     current = list(body)
     if len(current) <= body_start_count:
         return
-    new_elements = current[body_start_count:]
+    new_elements = [e for e in current[body_start_count:]
+                    if (e.tag.split('}')[-1] if '}' in e.tag else e.tag) != 'sectPr']
     _RENDER_CACHE[cache_key] = copy.deepcopy(new_elements)
 
 

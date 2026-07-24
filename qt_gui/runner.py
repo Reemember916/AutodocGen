@@ -971,6 +971,9 @@ class DocUpdateWorker(TaskWorkerBase):
                     new_code=new_code,
                     ai_assist=(ai_mode == 1),
                     template_path=str(self.task.template_path or ""),
+                    stop_event=self.stop_event,
+                    settings=self.settings,
+                    gui_log=emit_log,
                 )
             elif mode == "apply-review":
                 updater.apply_safe_items(
@@ -980,6 +983,9 @@ class DocUpdateWorker(TaskWorkerBase):
                     new_code=new_code,
                     ai_assist=(ai_mode == 1),
                     template_path=str(self.task.template_path or ""),
+                    stop_event=self.stop_event,
+                    settings=self.settings,
+                    gui_log=emit_log,
                 )
                 updater.apply_review_decisions(
                     items,
@@ -989,6 +995,9 @@ class DocUpdateWorker(TaskWorkerBase):
                     ai_assist=(ai_mode == 1),
                     template_path=str(self.task.template_path or ""),
                     renumber_module_csu=bool(self.task.renumber_module_csu),
+                    stop_event=self.stop_event,
+                    settings=self.settings,
+                    gui_log=emit_log,
                 )
             emit_step("apply", "success")
 

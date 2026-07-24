@@ -888,12 +888,20 @@ def _post_with_proxy_fallback(
 
             # 每 0.5 秒检查一次完成状态和停止信号
             poll_interval = 0.5
+            read_timeout = float(getattr(cfg, "ai_read_timeout", 40.0) or 40.0)
+            max_total_wait = read_timeout * max(1, attempts) * 2 + 30.0
+            elapsed = 0.0
             while not result_container["done"]:
                 if utils.stop_requested(cfg):
-                    # 用户取消，等待线程结束（最多 1 秒）后返回
                     post_thread.join(timeout=1.0)
                     return None, "用户取消", dict(last_proxy_meta)
+                if elapsed >= max_total_wait:
+                    post_thread.join(timeout=1.0)
+                    last_reason = f"AI 调用总超时({max_total_wait:.0f}s)[{proxy_desc}]"
+                    utils.vlog(cfg, last_reason)
+                    return None, last_reason, dict(last_proxy_meta)
                 time.sleep(poll_interval)
+                elapsed += poll_interval
 
             # 线程完成，检查结果
             if result_container["exc"] is not None:
@@ -2540,24 +2548,51 @@ def build_func_prompt(func_info, body, comment_info, cfg: Optional[Any] = None):
         ),
     }
 
+    # Inject revision context for iterative improvement
+    _revision_ctx = None
+    try:
+        _extra = getattr(cfg, "extra_params", None) or {}
+        _revision_ctx = _extra.get("revision_context")
+    except Exception:
+        pass
+    if _revision_ctx and isinstance(_revision_ctx, dict):
+        context["revision_context"] = {
+            "previous_output": {
+                "title": str(_revision_ctx.get("title") or ""),
+                "description": str(_revision_ctx.get("description") or ""),
+                "logic_lines": list(_revision_ctx.get("logic_lines") or [])[:20],
+                "io_elements": list(_revision_ctx.get("io_elements") or []),
+                "local_elements": list(_revision_ctx.get("local_elements") or []),
+            },
+            "quality_issues": list(_revision_ctx.get("quality_issues") or []),
+            "unresolved_symbols": list(_revision_ctx.get("unresolved_symbols") or []),
+            "instruction": "这是上一版输出。在上一版基础上改进，重点修复 quality_issues 标记的问题，保持优点，不要整体推翻。",
+        }
+
     return f"""你是嵌入式软件设计文档助手。根据上下文生成中文函数名和一句话功能说明。
 上下文(JSON)：
 {json.dumps(context, ensure_ascii=False, indent=2)}
 
 规则：
-1. 只使用上下文已有的术语/标识符（尤其是术语表 glossary），不要创造新缩写；不确定时在词尾标注\"(推测)\"。
+1. 只使用上下文已有的术语/标识符（尤其是术语表 glossary），不要创造新缩写；不确定时在词尾标注"(推测)"。
 2. `func_cn_name` 必须是适合章节标题的短名，不是功能说明句；优先 4~12 个字，结尾不加标点。
-3. 标题格式统一为“对象/领域 + 动作”，动作词尽量放末尾；常用动作：初始化/获取/读取/更新/校验/判定/处理/上传/发送/接收/打包/解包/转换/滤波/采集。
-4. `func_cn_name` 不要直接照抄 `desc`，避免输出“根据/遍历/读取/更新/判断...并...”这类整句说明。
-   例如 `Comm429RxProcess` 应偏向“429接收处理”，`RedunTempGet` 应偏向“余度温度获取”，`IFBITStateUpdate` 应偏向“周期自检状态更新”。
+3. 标题格式统一为"对象/领域 + 动作"，动作词尽量放末尾；常用动作：初始化/获取/读取/更新/校验/判定/处理/上传/发送/接收/打包/解包/转换/滤波/采集。
+4. `func_cn_name` 不要直接照抄 `desc`，避免输出"根据/遍历/读取/更新/判断...并..."这类整句说明。
+   例如 `Comm429RxProcess` 应偏向"429接收处理"，`RedunTempGet` 应偏向"余度温度获取"，`IFBITStateUpdate` 应偏向"周期自检状态更新"。
 5. 若功能描述本身已是紧凑短语，可在其基础上补足必要领域限定词，再作为 `func_cn_name`。
 6. 保守命名优先；已有中文名/描述可直接沿用或在此基础上微调。
 7. 若 remembered_terms 中已有某个标识符的中文名，必须优先沿用，不要另起新名。
 8. 优先参考 semantic_pack 与 title_context_pack 提供的语义摘要、控制骨架、project_concepts 和检索样本；title_examples 只是最终风格参考。
 9. `candidates` 给出 2~4 个短标题候选，按推荐顺序排列。
 10. **严禁虚构**: 描述中出现的数字 (倍数/参数值/阈值) 必须能在源码或 glossary 中找到出处; 出现"X倍""Y次"等数字表述时, 若源码无此关系, 改为"多次""循环"等模糊表述或不写.
-11. **严禁展开宏名**: 对于源码中以全大写+下划线形式出现的宏 (如 COMM_CCDL_RIU_EXT_PAGE1_ID), 不要按字母拆解为"COMMbit2"等错误展开, 保留原名或使用 glossary 中已存在的简短称呼.
+11. **宏名与函数前缀区分**: 全大写+下划线的宏定义(如 COMM_CCDL_RIU_EXT_PAGE1_ID)不要按字母拆解, 保留原名或用 glossary 中的称呼。但函数名前缀(如 IFBIT/MBIT/PuBIT/Comm/SCI/CCDL)不是宏, 必须翻译为中文:
+    - IFBIT → 周期自检, MBIT → 维护自检, PuBIT → 上电自检
+    - Comm422 → 422通信, Comm429 → 429通信, CommCCDL → CCDL通信
+    - SCI → 串口, CPLD → CPLD, RIU → 远端接口, KZZZ → KZZZ(项目代号保留)
+    - 同模块内的函数名前缀必须统一, 例如同为 IFBIT 模块的函数都用"周期自检"前缀。
 12. **严禁新增功能**: 不要为函数添加源码未体现的"滤波""校验和计算""CRC""加密"等处理; 若不能确定, 用"处理"或省略.
+13. **禁止英文残留**: func_cn_name 中不允许出现连续的英文字母组合(如 IFBITCPLD, SCICCDL), 项目代号(如 429, KZZZ)和标准缩写(如 AD, CRC, CPU, DSP, FLASH)除外。
+14. **禁止标点开头**: func_cn_name 不以 /, (, 等标点开头; 含 "/" 时改为 "共用" 或去掉。
 
 输出严格JSON，仅此：
 {{
@@ -2717,10 +2752,13 @@ def build_func_title_retry_prompt(func_info, body, comment_info, cfg: Optional[A
 
 硬性规则：
 1. 必须输出非空 `func_cn_name`，长度优先 4~12 个字。
-2. 不能写解释句，禁止“根据/用于/以便/然后/并/遍历/进行”。
+2. 不能写解释句，禁止"根据/用于/以便/然后/并/遍历/进行"。
 3. 只能使用上下文已有术语；若没有更好答案，可直接返回 `current_title` 或从 `func_name` 保守翻译。
 4. 若 `project_concepts` 有高置信度概念，可吸收其中领域词；没有证据不要强行展开缩写。
 5. `candidates` 至少给 1 个候选。
+6. 函数名前缀(如 IFBIT/MBIT/PuBIT/Comm/SCI/CCDL)不是宏, 必须翻译为中文: IFBIT→周期自检, MBIT→维护自检, PuBIT→上电自检, Comm422→422通信, Comm429→429通信, SCI→串口, RIU→远端接口。同模块内前缀统一。
+7. 禁止英文残留(如 IFBITCPLD, SCICCDL), 项目代号(429, KZZZ)和标准缩写(AD, CRC, CPU, DSP, FLASH)除外。
+8. 不以标点开头。
 
 输出严格 JSON：
 {{
@@ -4855,16 +4893,33 @@ def ai_refine_logic_unknowns(unknown_list, code_context: str, cfg):
         "comment_hints": list(u.get("comment_hints") or []),
     } for u in unknown_list]
 
+    _revision_hint = ""
+    try:
+        _rc = (getattr(cfg, "extra_params", None) or {}).get("revision_context") or {}
+        _prev_logic = list(_rc.get("logic_lines") or [])
+        _prev_issues = list(_rc.get("quality_issues") or [])
+        if _prev_logic or _prev_issues:
+            _revision_hint = "    上一版逻辑流程（参考改进，不要完全推翻）：\n    " + "\n    ".join(_prev_logic[:15])
+            if _prev_issues:
+                _revision_hint += "\n    上一版质量问题（重点修复）：\n    " + "\n    ".join(
+                    str(i.get("msg") or i.get("code") or "") for i in _prev_issues[:5]
+                )
+    except Exception:
+        pass
+
     prompt = f"""你是一名嵌入式软件详细设计说明撰写助手。
     下面是一段 C 函数的代码（上下文）：
     {code_context}
     下面是需要你补全/润色的伪代码条目。
     请基于对应代码行、已有中文动作(code_cn)及上下文，写出简洁、准确的中文动作说明（不超过20字，不要主观臆测业务逻辑），不要带句号。
     对赋值语句避免机械重复"设置/更新变量"，优先用：写入/赋给/清零/置位/累加/清除位/拷贝/计算/获取。
+    **同义反复禁止**: 当赋值两端中文翻译相同时(如"将故障等级写入故障等级")，改为语义描述(如"用默认配置初始化故障等级"或"从配置加载故障等级")。
+    **前值保存**: 当保存当前值到上一拍变量时(如 cur→prev)，用"将当前X保存为前值"而非"将X写入X前值"。
     comment_hints 仅作为理解提示，history/debug/purpose 类提示不允许直接写入最终动作说明。
     polish_only=true 表示只能在 code_cn 的事实范围内改善措辞，不得改变控制结构、不得新增业务含义。
-    结构安全规则：不得输出 if(、&&、||、裸 & 或 |；不得输出未闭合括号；不得输出“待人工修改”或“执行操作”。
+    结构安全规则：不得输出 if(、&&、||、裸 & 或 |；不得输出未闭合括号；不得输出"待人工修改"或"执行操作"。
     仅修改给定 index 的动作，不得新增、删除或重排其他流程行。
+{_revision_hint}
 
     只返回 JSON，不要解释。
 

@@ -6278,11 +6278,12 @@ def _build_canonical_file_symbol_map(
 def _simplify_member_access(text: str) -> str:
     if not text:
         return text
-    prev = None
     cur = text
-    while prev != cur:
-        prev = cur
-        cur = _MEMBER_PREFIX_RE.sub("", cur)
+    for _ in range(20):
+        new_cur = _MEMBER_PREFIX_RE.sub("", cur)
+        if new_cur == cur:
+            break
+        cur = new_cur
     return cur
 
 

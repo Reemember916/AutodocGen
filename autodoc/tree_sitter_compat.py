@@ -22,7 +22,10 @@ def create_c_parser():
     # tree-sitter 0.21 Parser does not retain a Python reference to Language.
     _LANGUAGE_CACHE.append(language)
     parser = Parser()
-    parser.set_language(language)
+    try:
+        parser.set_language(language)
+    except AttributeError:
+        parser.language = language
     return parser
 
 

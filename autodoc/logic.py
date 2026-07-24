@@ -4320,10 +4320,11 @@ def _prettify_logic_expr_text(text: str) -> str:
     stripped = (text or "").strip()
     if not stripped:
         return stripped
-    prev = None
-    while prev != stripped:
-        prev = stripped
-        stripped = re.sub(r"\bfabs\s*\(\s*([^()]+?)\s*\)", r"\1的绝对值", stripped)
+    for _ in range(20):
+        new_stripped = re.sub(r"\bfabs\s*\(\s*([^()]+?)\s*\)", r"\1的绝对值", stripped)
+        if new_stripped == stripped:
+            break
+        stripped = new_stripped
     stripped = re.sub(r"\s*<<\s*", " 左移 ", stripped)
     stripped = re.sub(r"\s*>>\s*", " 右移 ", stripped)
     stripped = re.sub(r"\s*\|\s*", " 按位或 ", stripped)
@@ -5347,10 +5348,11 @@ def _dedupe_adjacent_cjk_phrases(text: str) -> str:
     if not text:
         return text
     pattern = re.compile(r"([\u4e00-\u9fff]{1,6})\1+")
-    prev = None
-    while prev != text:
-        prev = text
-        text = pattern.sub(r"\1", text)
+    for _ in range(20):
+        new_text = pattern.sub(r"\1", text)
+        if new_text == text:
+            break
+        text = new_text
     return text
 
 
@@ -5358,10 +5360,11 @@ def _collapse_repeated_parenthesized_cjk(text: str) -> str:
     if not text:
         return text
     pattern = re.compile(r"([\u4e00-\u9fff]{1,6})\s*[（(]\s*\1\s*[）)]")
-    prev = None
-    while prev != text:
-        prev = text
-        text = pattern.sub(r"\1", text)
+    for _ in range(20):
+        new_text = pattern.sub(r"\1", text)
+        if new_text == text:
+            break
+        text = new_text
     return text
 
 

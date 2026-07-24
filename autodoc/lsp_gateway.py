@@ -207,9 +207,15 @@ class LspGateway:
         semantic_tokens = self._request(session, "textDocument/semanticTokens/full", {"textDocument": {"uri": _path_to_lsp_uri(source_file)}}, cfg)
         function_range = self._guess_function_range(func_data, source_text, document_symbols)
         func_name = utils_module._safe_strip(dict((func_data or {}).get("func_info") or {}).get("func_name"))
-        calls = self._collect_call_sites(session, source_file, source_text, function_range, cfg, owner_func=func_name)
-        members = self._collect_member_sites(session, source_file, source_text, function_range, cfg)
-        locals_ = self._collect_local_sites(session, source_file, source_text, function_range, cfg)
+        compile_mode = str((session.compile_db or {}).get("mode") or "")
+        if compile_mode == "generated":
+            calls: list[dict[str, Any]] = []
+            members: list[dict[str, Any]] = []
+            locals_: list[dict[str, Any]] = []
+        else:
+            calls = self._collect_call_sites(session, source_file, source_text, function_range, cfg, owner_func=func_name)
+            members = self._collect_member_sites(session, source_file, source_text, function_range, cfg)
+            locals_ = self._collect_local_sites(session, source_file, source_text, function_range, cfg)
         session.last_used = time.time()
         return {
             "source_text": source_text,
@@ -301,8 +307,24 @@ class LspGateway:
         session.opened_documents[uri] = int(version or max(1, (current_version or 0) + 1))
 
     def _request(self, session: LspSession, method: str, params: dict[str, Any], cfg: Optional[Any]) -> Any:
-        result = session.transport.request(method, params, timeout_ms=utils_module.cfg_get_int(cfg, "logic_lsp_request_timeout_ms", 2000))
+        timeout_ms = utils_module.cfg_get_int(cfg, "logic_lsp_request_timeout_ms", 800)
+        result = session.transport.request(method, params, timeout_ms=timeout_ms)
         return result.get("result") if result.get("ok") else {}
+
+    @staticmethod
+    def _find_function_end(lines: list[str], start_idx: int) -> int:
+        depth = 0
+        started = False
+        for idx in range(start_idx - 1, len(lines)):
+            for ch in lines[idx]:
+                if ch == "{":
+                    depth += 1
+                    started = True
+                elif ch == "}":
+                    depth -= 1
+                    if started and depth == 0:
+                        return idx + 1
+        return min(len(lines), start_idx + 1)
 
     def _guess_function_range(self, func_data: dict[str, Any], source_text: str, symbols: Any) -> dict[str, int]:
         func_info = dict((func_data or {}).get("func_info") or {})
@@ -320,7 +342,13 @@ class LspGateway:
             if prototype and prototype in line:
                 return {"start_line": idx, "end_line": min(len(source_text.splitlines()), idx + len((func_data.get("body") or "").splitlines()) + 1)}
             if func_name and re.search(rf"\b{re.escape(func_name)}\s*\(", line):
-                return {"start_line": idx, "end_line": len(source_text.splitlines())}
+                body_lines = len((func_data.get("body") or "").splitlines())
+                lines = source_text.splitlines()
+                if body_lines:
+                    end_line = min(len(lines), idx + body_lines)
+                else:
+                    end_line = self._find_function_end(lines, idx)
+                return {"start_line": idx, "end_line": end_line}
         return {"start_line": 1, "end_line": len(source_text.splitlines())}
 
     def _flatten_symbols(self, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -378,17 +406,6 @@ class LspGateway:
                 params = self._position_params(source_file, lineno, match.start(1))
                 hover = self._request(session, "textDocument/hover", params, cfg)
                 definition = self._request(session, "textDocument/definition", params, cfg)
-                type_definition = self._request(session, "textDocument/typeDefinition", params, cfg)
-                references = self._request(
-                    session,
-                    "textDocument/references",
-                    dict(params, context={"includeDeclaration": False}),
-                    cfg,
-                )
-                call_prepare = self._request(session, "textDocument/prepareCallHierarchy", params, cfg)
-                outgoing = {}
-                if isinstance(call_prepare, list) and call_prepare:
-                    outgoing = self._request(session, "callHierarchy/outgoingCalls", {"item": call_prepare[0]}, cfg)
                 hover_full = self._parse_hover_full(hover)
                 out.append(
                     {
@@ -408,9 +425,6 @@ class LspGateway:
                             "doc_comment": hover_full.get("doc_comment", ""),
                         },
                         "definition": self._normalize_location(definition),
-                        "type_definition": self._normalize_location(type_definition),
-                        "references": references if isinstance(references, list) else [],
-                        "call_hierarchy": self._normalize_call_hierarchy(outgoing),
                     }
                 )
         return out[:24]

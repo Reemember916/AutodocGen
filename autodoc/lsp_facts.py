@@ -738,13 +738,16 @@ def _assess_lsp_quality(payload: dict[str, Any]) -> float:
     return min(score, 1.0)
 
 
+_C_KEYWORDS = r"(?:return|if|for|while|switch|else|case|do|sizeof|typeof|typeof|_Generic|_Alignof|offsetof)"
+
+
 def _payload_misses_obvious_body_structure(payload: dict[str, Any], body: str) -> bool:
     text_value = str(body or "")
     if not text_value.strip():
         return False
     has_control = bool(re.search(r"\b(?:if|for|while|switch)\s*\(", text_value))
     has_assignment = bool(re.search(r"(?<![=!<>])=(?![=])", text_value))
-    has_call = bool(re.search(r"\b[A-Za-z_]\w*\s*\(", text_value))
+    has_call = bool(re.search(r"\b(?!%s\b)[A-Za-z_]\w*\s*\(" % _C_KEYWORDS, text_value))
     if not (has_control or has_assignment or has_call):
         return False
     blocks = payload.get("blocks") or []

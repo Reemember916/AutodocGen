@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import concurrent.futures
 import copy
+import json
 import os
 import re
 from dataclasses import fields, replace
@@ -4945,8 +4946,21 @@ def build_function_design_impl(
     changed_statement_lines: Optional[set[int]] = None,
 ):
     backend = backend_module or legacy_backend()
+    from . import render as render_module
     setattr(cfg, "_current_func_title_debug", {})
-    ctx = prepare_design_context(func_data, cfg, backend_module=backend)
+
+    # Design cache: reuse rule-based parsing across AI mode switches
+    _dkey_file = str((func_data.get("file_context") or {}).get("source_file") or "")
+    _dkey_name = str((func_data.get("func_info") or {}).get("func_name") or "")
+    _dkey_body = str(func_data.get("body") or "")
+    _design_key = render_module._design_cache_key(_dkey_file, _dkey_name, _dkey_body)
+    cached_ctx = render_module.get_design_cache(_design_key)
+    if cached_ctx is not None:
+        ctx = dict(cached_ctx)
+        ctx["cfg"] = cfg
+    else:
+        ctx = prepare_design_context(func_data, cfg, backend_module=backend)
+        render_module.put_design_cache(_design_key, ctx)
     # ── P0#3 Evidence 旁路采集（shadow mode，不影响生成）──
     try:
         _evidence_shadow_collect(func_data, ctx, cfg)
@@ -5172,6 +5186,13 @@ def iter_function_build_results(
     stop_now = False
     try:
         while next_yield < len(tasks):
+            if backend.stop_requested(cfg):
+                stop_now = True
+                for f in future_map.values():
+                    if not f.done():
+                        f.cancel()
+                break
+
             while next_submit < len(tasks) and len(future_map) < max_workers and (not backend.stop_requested(cfg)):
                 task = tasks[next_submit]
                 _submit_cb(task)
@@ -5368,7 +5389,7 @@ def build_single_file_table_payload(
             {
                 "index": len(func_rows) + 1,
                 "name": csu_name,
-                "prototype": backend._format_func_prototype(func_info),
+                "prototype": backend._format_func_prototype(func_data.get("func_info") or {}),
             }
         )
     return {
@@ -5682,6 +5703,8 @@ def initialize_project_run_state(
             raise backend.RenderError("未找到上次生成的文档，无法继续。")
         return {
             "doc": backend.Document(output),
+            "placeholder": None,
+            "body_start_idx": 0,
             "resume_info": resume_info,
             "start_layer_idx": resume_info.layer_index,
             "start_file_idx": resume_info.file_index,
@@ -5703,6 +5726,8 @@ def initialize_project_run_state(
     )
     return {
         "doc": doc_state["doc"],
+        "placeholder": doc_state.get("placeholder"),
+        "body_start_idx": int(doc_state.get("body_start_idx") or 0),
         "resume_info": None,
         "start_layer_idx": 0,
         "start_file_idx": 0,
@@ -6062,40 +6087,76 @@ def execute_project_module_tasks(
     def _on_submit(task: dict) -> None:
         backend.gui_event(cfg, build_project_func_start_event(task, root_dir=root_dir))
 
+    _parallel = should_parallel_build_design(cfg) and len(module_tasks) > 1
+
     try:
-        for task, design, err in _iter_function_design_results(
-            module_tasks,
-            cfg,
-            on_submit=_on_submit,
-            backend_module=backend,
-        ):
-            try:
-                cfg._current_render_func_data = task.get("func_data") or {}
-                _rkey = render_module._render_cache_key(
-                    task.get("source_file", ""),
-                    task.get("func_name", ""),
-                    (task.get("func_data") or {}).get("body", ""),
-                    _registered_function_title(task.get("func_data") or {}, backend_module=backend),
+        if _parallel:
+            _design_iter = _iter_function_design_results(
+                module_tasks, cfg, on_submit=_on_submit, backend_module=backend,
+            )
+        else:
+            _design_iter = None
+
+        for task in module_tasks:
+            if backend.stop_requested(cfg):
+                backend.vlog(cfg, "[停止] 检测到停止信号，退出任务循环")
+                break
+
+            # Compute render cache key before building design
+            cfg._current_render_func_data = task.get("func_data") or {}
+            _rkey = render_module._render_cache_key(
+                task.get("source_file", ""),
+                task.get("func_name", ""),
+                (task.get("func_data") or {}).get("body", ""),
+                _registered_function_title(task.get("func_data") or {}, backend_module=backend),
+                ai_mode=int(getattr(cfg, "ai_mode", 0) or 0),
+            )
+            _body_start = len(list(doc.element.body))
+            _has_revision = bool(
+                getattr(cfg, "extra_params", None)
+                and (
+                    (cfg.extra_params or {}).get("revision_profile")
+                    or (cfg.extra_params or {}).get("revision_profile_json")
                 )
-                _body_start = len(list(doc.element.body))
-                # Revision profiles can change rendered text without source-body changes.
-                _has_revision = bool(
-                    getattr(cfg, "extra_params", None)
-                    and (
-                        (cfg.extra_params or {}).get("revision_profile")
-                        or (cfg.extra_params or {}).get("revision_profile_json")
-                    )
-                )
-                if _has_revision or not render_module.try_replay_rendered(doc, _rkey):
-                    if _has_revision:
-                        try:
-                            render_module._RENDER_CACHE.pop(_rkey, None)
-                        except Exception:
-                            pass
+            )
+
+            design = None
+            err = None
+
+            if not _has_revision and render_module.try_replay_rendered(doc, _rkey):
+                # Cache hit: skip design building entirely (saves AI calls)
+                pass
+            elif _parallel:
+                # Parallel path: get design from generator
+                try:
+                    task_r, design, err = next(_design_iter)
+                except StopIteration:
+                    break
+                if design is not None:
                     render_module.render_function_design(doc, design, cfg)
                     render_module.capture_rendered_elements(doc, _body_start, _rkey)
-                _collect_review_function(cfg, design, task)
-                _collect_design_workspace_pair(cfg, design, task)
+            else:
+                # Sequential path: build design on demand
+                _on_submit(task)
+                try:
+                    design = run_function_design_task(task, cfg, backend_module=backend)
+                except Exception as exc:
+                    err = exc
+                    if not _continue_on_function_error(cfg, backend_module=backend):
+                        raise backend.FunctionBuildTaskError(task, exc) from exc
+                    design = _build_failed_function_design(task, exc, cfg, backend_module=backend)
+                if design is not None:
+                    render_module.render_function_design(doc, design, cfg)
+                    render_module.capture_rendered_elements(doc, _body_start, _rkey)
+
+            try:
+                if design is not None:
+                    _collect_review_function(cfg, design, task)
+                    _collect_design_workspace_pair(cfg, design, task)
+                    _doc_path = getattr(cfg, "_output_doc_path", "")
+                    _csu_id = f"{task.get('module_id', '')}_{int(task.get('index', 0) or 0):03d}"
+                    if _doc_path and _csu_id and design is not None:
+                        save_design_snapshot(_doc_path, _csu_id, design)
             finally:
                 try:
                     cfg._current_render_func_data = None
@@ -6191,40 +6252,72 @@ def execute_single_file_tasks(
     def _on_submit(task: dict) -> None:
         backend.gui_event(cfg, build_single_file_func_start_event(task, mode="single", source=source))
 
+    _parallel = should_parallel_build_design(cfg) and len(tasks) > 1
+
     try:
-        for task, design, err in _iter_function_design_results(
-            tasks,
-            cfg,
-            on_submit=_on_submit,
-            backend_module=backend,
-        ):
-            try:
-                cfg._current_render_func_data = task.get("func_data") or {}
-                _rkey = render_module._render_cache_key(
-                    task.get("source_file", ""),
-                    task.get("func_name", ""),
-                    (task.get("func_data") or {}).get("body", ""),
-                    _registered_function_title(task.get("func_data") or {}, backend_module=backend),
+        if _parallel:
+            _design_iter = _iter_function_design_results(
+                tasks, cfg, on_submit=_on_submit, backend_module=backend,
+            )
+        else:
+            _design_iter = None
+
+        for task in tasks:
+            if backend.stop_requested(cfg):
+                backend.vlog(cfg, "[停止] 检测到停止信号，退出任务循环")
+                break
+
+            cfg._current_render_func_data = task.get("func_data") or {}
+            _rkey = render_module._render_cache_key(
+                task.get("source_file", ""),
+                task.get("func_name", ""),
+                (task.get("func_data") or {}).get("body", ""),
+                _registered_function_title(task.get("func_data") or {}, backend_module=backend),
+                ai_mode=int(getattr(cfg, "ai_mode", 0) or 0),
+            )
+            _body_start = len(list(doc.element.body))
+            _has_revision = bool(
+                getattr(cfg, "extra_params", None)
+                and (
+                    (cfg.extra_params or {}).get("revision_profile")
+                    or (cfg.extra_params or {}).get("revision_profile_json")
                 )
-                _body_start = len(list(doc.element.body))
-                # Revision profiles can change rendered text without source-body changes.
-                _has_revision = bool(
-                    getattr(cfg, "extra_params", None)
-                    and (
-                        (cfg.extra_params or {}).get("revision_profile")
-                        or (cfg.extra_params or {}).get("revision_profile_json")
-                    )
-                )
-                if _has_revision or not render_module.try_replay_rendered(doc, _rkey):
-                    if _has_revision:
-                        try:
-                            render_module._RENDER_CACHE.pop(_rkey, None)
-                        except Exception:
-                            pass
+            )
+
+            design = None
+            err = None
+
+            if not _has_revision and render_module.try_replay_rendered(doc, _rkey):
+                pass
+            elif _parallel:
+                try:
+                    task_r, design, err = next(_design_iter)
+                except StopIteration:
+                    break
+                if design is not None:
                     render_module.render_function_design(doc, design, cfg)
                     render_module.capture_rendered_elements(doc, _body_start, _rkey)
-                _collect_review_function(cfg, design, task)
-                _collect_design_workspace_pair(cfg, design, task)
+            else:
+                _on_submit(task)
+                try:
+                    design = run_function_design_task(task, cfg, backend_module=backend)
+                except Exception as exc:
+                    err = exc
+                    if not _continue_on_function_error(cfg, backend_module=backend):
+                        raise backend.FunctionBuildTaskError(task, exc) from exc
+                    design = _build_failed_function_design(task, exc, cfg, backend_module=backend)
+                if design is not None:
+                    render_module.render_function_design(doc, design, cfg)
+                    render_module.capture_rendered_elements(doc, _body_start, _rkey)
+
+            try:
+                if design is not None:
+                    _collect_review_function(cfg, design, task)
+                    _collect_design_workspace_pair(cfg, design, task)
+                    _doc_path = getattr(cfg, "_output_doc_path", "")
+                    _csu_id = f"{task.get('module_id', '')}_{int(task.get('index', 0) or 0):03d}"
+                    if _doc_path and _csu_id and design is not None:
+                        save_design_snapshot(_doc_path, _csu_id, design)
             finally:
                 try:
                     cfg._current_render_func_data = None
@@ -6308,6 +6401,7 @@ def execute_single_export_task(
                 task.get("func_name", ""),
                 (task.get("func_data") or {}).get("body", ""),
                 _registered_function_title(task.get("func_data") or {}, backend_module=backend),
+                ai_mode=int(getattr(cfg, "ai_mode", 0) or 0),
             )
             _body_start = len(list(doc.element.body))
             # Revision profiles can change rendered text without source-body changes.
@@ -6329,6 +6423,10 @@ def execute_single_export_task(
                 render_module.capture_rendered_elements(doc, _body_start, _rkey)
             _collect_review_function(cfg, design, task)
             _collect_design_workspace_pair(cfg, design, task)
+            _doc_path = getattr(cfg, "_output_doc_path", "")
+            _csu_id = f"{task.get('module_id', '')}_{int(task.get('index', 0) or 0):03d}"
+            if _doc_path and _csu_id and design is not None:
+                save_design_snapshot(_doc_path, _csu_id, design)
         finally:
             try:
                 cfg._current_render_func_data = None
@@ -7244,6 +7342,7 @@ def run_single_file_generation(
         raise backend.NoDataError(f"未解析到任何函数：{source}")
 
     cfg.resume_state = None
+    cfg._output_doc_path = output
     if continuing:
         if not os.path.exists(output):
             raise backend.RenderError("未找到已生成的文档，无法继续。")
@@ -7344,7 +7443,6 @@ def run_single_file_generation(
         raise backend.NoDataError("没有符合条件的函数可生成。")
 
     if not continuing:
-        backend.relocate_generated_blocks(doc, body_start_idx, placeholder)
         backend.relocate_generated_blocks(doc, body_start_idx, placeholder)
     try:
         backend.safe_save_docx(doc, output)
@@ -7666,6 +7764,7 @@ def run_project_generation(
         raise backend.NoDataError("SRC 目录下未找到任何 .c 文件。")
 
     cfg.resume_state = None
+    cfg._output_doc_path = output
     prefilter = generation.prefilter_project_files
     preprocessed: dict[str, dict] = {}
     func_entries_for_graph: list[dict] = []
@@ -7763,6 +7862,7 @@ def run_project_generation(
                 entries = cgmod.find_entry_functions(callees_map)
                 if not entries:
                     entries = list(callees_map.keys())[:1]
+                all_tree_rows: list[tuple[str, str, str, str]] = []
                 for entry_fn in entries:
                     tree_rows = cgmod.flatten_call_tree(
                         callees_map,
@@ -7770,14 +7870,14 @@ def run_project_generation(
                         max_depth=3,
                         name_map=title_map,
                     )
-                    if tree_rows:
-                        entry_label = title_map.get(entry_fn, entry_fn)
-                        render_module.render_static_call_relation_table(
-                            doc,
-                            tree_rows,
-                            entry_label=entry_label,
-                            backend_module=backend,
-                        )
+                    all_tree_rows.extend(tree_rows)
+                if all_tree_rows:
+                    render_module.render_static_call_relation_table(
+                        doc,
+                        all_tree_rows,
+                        entry_label="主函数",
+                        backend_module=backend,
+                    )
         except Exception as exc:
             backend.vlog(cfg, f"[Graph] 软件单元静态关系表生成失败：{exc}")
     resume_info = run_state["resume_info"]
@@ -8121,6 +8221,10 @@ def run_project_generation(
         raise backend.NoDataError("工程内没有可生成的函数内容。")
 
     try:
+        _placeholder = run_state.get("placeholder")
+        _body_start_idx = int(run_state.get("body_start_idx") or 0)
+        if _placeholder is not None:
+            backend.relocate_generated_blocks(doc, _body_start_idx, _placeholder)
         backend.safe_save_docx(doc, output)
     except Exception as exc:
         raise backend.RenderError(f"保存 Word 失败：{exc}") from exc
@@ -8386,6 +8490,51 @@ def generate_design_doc_for_single_function(source: str, func_name: str, output:
     return impl(source, func_name, output, cfg, project_root=project_root)
 
 
+def _design_snapshot_path(doc_path: str) -> str:
+    return doc_path + ".autodesign.json"
+
+
+def save_design_snapshot(doc_path: str, csu_id: str, design: Any) -> None:
+    path = _design_snapshot_path(doc_path)
+    try:
+        data = {}
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        meta = getattr(design, "ai_meta", None)
+        quality_issues = []
+        unresolved = []
+        if meta is not None:
+            quality_issues = list(getattr(meta, "quality_issues", ()) or ())
+            unresolved = list(getattr(meta, "unresolved_local_symbols", ()) or ()) + list(getattr(meta, "unresolved_param_symbols", ()) or ()) + list(getattr(meta, "unresolved_logic_symbols", ()) or ())
+        data[csu_id] = {
+            "title": getattr(design, "title", ""),
+            "description": "\n".join(getattr(design, "description_lines", ()) or ()),
+            "logic_lines": list(getattr(design, "logic_lines", ()) or ()),
+            "io_elements": [{"name": getattr(e, "name", ""), "ident": getattr(e, "ident", "")} for e in (getattr(design, "io_elements", ()) or ())],
+            "local_elements": [{"name": getattr(e, "name", ""), "ident": getattr(e, "ident", "")} for e in (getattr(design, "local_elements", ()) or ())],
+            "quality_issues": quality_issues,
+            "unresolved_symbols": unresolved,
+        }
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+
+def load_design_snapshot(doc_path: str, csu_id: str) -> Optional[dict]:
+    path = _design_snapshot_path(doc_path)
+    try:
+        if not os.path.exists(path):
+            return None
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data.get(csu_id)
+    except Exception:
+        return None
+
+
 def _build_csu_body_elements(
     doc,
     target: dict,
@@ -8614,6 +8763,13 @@ def regenerate_csu_in_doc(
     if owns_doc:
         doc = Document(doc_path)
 
+    # 2b. Load previous design snapshot for iterative improvement
+    revision_ctx = load_design_snapshot(doc_path, csu_id)
+    if revision_ctx is not None:
+        if cfg.extra_params is None:
+            cfg.extra_params = {}
+        cfg.extra_params["revision_context"] = revision_ctx
+
     # 3. Render into the TARGET doc (inherits all styles: 609_4, Table Grid, etc.)
     new_elements, design = _build_csu_body_elements(
         doc, target, target_pos, csu_id, cfg,
@@ -8647,6 +8803,9 @@ def regenerate_csu_in_doc(
         result["saved"] = False  # Caller will save.
     else:
         result["saved"] = True  # owns_doc but save=False (unusual).
+
+    # 6b. Save updated design snapshot
+    save_design_snapshot(doc_path, csu_id, design)
 
     # 7. Write back incremental cache.
     _write_back_incremental_cache(project_root, source, func_name, design)
