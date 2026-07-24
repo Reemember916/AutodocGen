@@ -1912,17 +1912,6 @@ def _render_function_design_impl(doc, design, cfg, *, backend_module=None):
             else:
                 add_logic_text(doc, line, base_indent_pt=48, level_indent_pt=18)
 
-    return_effects = [item for item in (getattr(design, "return_effects", ()) or ()) if getattr(item, "verified", False)]
-    if return_effects:
-        if backend_module is not None:
-            backend.add_alpha_section_label(doc, "返回值语义", 5, indent_pt=24)
-        else:
-            add_alpha_section_label(doc, "返回值语义", 5, indent_pt=24)
-        rows = [
-            [item.target_ident, item.target_name or item.target_ident, item.condition or "无条件"]
-            for item in return_effects
-        ]
-        render_table_or_none(doc, "返回值语义", ["返回表达式", "含义", "成立条件"], rows, backend_module=backend)
     _render_call_graph_section(doc, cfg, backend_module=backend)
 
 

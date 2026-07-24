@@ -938,6 +938,20 @@ def maybe_regress_function_design(task: dict, design: Any, cfg, *, backend_modul
         backend.vlog(cfg, f"函数 {func_name or task.get('index')} 触发 AI 回归补跑，第 {round_idx} 轮：{reasons}")
 
         retry_cfg = make_regression_cfg(cfg, round_idx=round_idx, meta=meta, backend_module=backend)
+        # Inject previous design as revision context for iterative improvement
+        if isinstance(current, FunctionDesign):
+            _prev = {
+                "title": getattr(current, "title", ""),
+                "description": "\n".join(getattr(current, "description_lines", ()) or ()),
+                "logic_lines": list(getattr(current, "logic_lines", ()) or [])[:20],
+                "io_elements": [{"name": getattr(e, "name", ""), "ident": getattr(e, "ident", "")} for e in (getattr(current, "io_elements", ()) or ())],
+                "local_elements": [{"name": getattr(e, "name", ""), "ident": getattr(e, "ident", "")} for e in (getattr(current, "local_elements", ()) or ())],
+                "quality_issues": list(getattr(meta, "quality_issues", ()) or []),
+                "unresolved_symbols": list(getattr(meta, "unresolved_local_symbols", ()) or []) + list(getattr(meta, "unresolved_param_symbols", ()) or []) + list(getattr(meta, "unresolved_logic_symbols", ()) or []),
+            }
+            if retry_cfg.extra_params is None:
+                retry_cfg.extra_params = {}
+            retry_cfg.extra_params["revision_context"] = _prev
         has_hard_error = quality_gate.has_structural_logic_error(meta.quality_issues)
         if has_hard_error:
             if deterministic_baseline is None:
@@ -4576,11 +4590,11 @@ def build_design_ai_meta(
             if code in quality_gate.STRUCTURAL_LOGIC_CODES:
                 ai_regression_reasons.append(code)
         if quality_report["unresolved_locals"]:
-            ai_regression_reasons.append("locals_residual_symbols")
+            pass  # 不触发回归：符号不在术语表中，重试无法翻译
         if quality_report["unresolved_params"]:
-            ai_regression_reasons.append("params_residual_symbols")
+            pass  # 不触发回归：同上
         if quality_report["unresolved_logic_symbols"]:
-            ai_regression_reasons.append("logic_residual_symbols")
+            pass  # 不触发回归：同上
         generic_logic_limit = max(2, len(logic_lines or ()) // 4) if logic_lines else 2
         if int(quality_report["generic_logic_count"] or 0) >= generic_logic_limit:
             ai_regression_reasons.append("logic_generic")
@@ -4593,7 +4607,7 @@ def build_design_ai_meta(
         if int(quality_report["bad_symbol_guess_count"] or 0) > 0:
             ai_regression_reasons.append("bad_symbol_guess")
         if quality_report.get("thin_logic"):
-            ai_regression_reasons.append("thin_logic")
+            pass  # 不触发回归：简单函数逻辑行少是正常的
         if quality_report.get("generic_call_count", 0) >= 3:
             ai_regression_reasons.append("generic_calls_excess")
         if bool(getattr(cfg, "ai_one_call", False)) and (not one_call_guard_fallback):

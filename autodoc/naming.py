@@ -571,6 +571,7 @@ def _clean_function_title_tail(text: str) -> str:
         return ""
     value = value.replace("周期BIT", "").replace("IFBIT", "").replace("PuBIT", "").replace("MBIT", "")
     value = value.replace("BIT", "")
+    value = value.lstrip("/\\-")
     value = value.replace("检测结果获取", "结果获取")
     value = value.replace("检测项状态信息", "状态")
     value = value.replace("状态信息", "状态")
