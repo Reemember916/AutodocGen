@@ -8208,6 +8208,12 @@ def run_project_generation(
             unit_index = int(execution["unit_index"])
             func_index = int(execution["func_index"])
 
+            # Flush review bundle after each module so review HTML is available
+            # even if generation is interrupted partway.
+            _write_review_workspace_if_enabled(
+                cfg, output, project_root=root_dir, merge_existing=True,
+            )
+
             module_finalize = finalize_project_module_iteration(
                 cfg=cfg,
                 processed_tasks=processed_tasks,
